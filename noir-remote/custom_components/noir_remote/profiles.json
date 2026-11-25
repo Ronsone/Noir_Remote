@@ -1,0 +1,16 @@
+{
+  "_doc": "TV infrared profiles. One entry per brand: protocol, address and a command per key. Only add codes you have tested on a real TV. Keys: power_on power_off power up down left right ok back menu info play stop rewind ff ch_up ch_down red green yellow blue vol_up vol_down mute.",
+  "lg": {
+    "name": "LG",
+    "protocol": "nec",
+    "address": 4,
+    "tested": "LG webOS TVs (2016+)",
+    "codes": {
+      "power_on": 196, "power_off": 197, "power": 8,
+      "up": 64, "down": 65, "left": 7, "right": 6, "ok": 68, "back": 40, "menu": 67, "info": 170,
+      "play": 176, "stop": 177, "rewind": 143, "ff": 142, "ch_up": 0, "ch_down": 1,
+      "red": 114, "green": 113, "yellow": 99, "blue": 97,
+      "vol_up": 2, "vol_down": 3, "mute": 9
+    }
+  }
+}

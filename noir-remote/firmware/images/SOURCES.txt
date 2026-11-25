@@ -1,0 +1,4 @@
+TV source logos: see firmware/logos (made by tools/make_logos.py; Simple Icons 16.38.1 CC0, Lucide 1.80.0 ISC).
+Home navigation marks: Lucide Static 0.468.0 (ISC), https://github.com/lucide-icons/lucide/tree/0.468.0
+Typeface: Inter by Rasmus Andersson, SIL Open Font License 1.1, https://github.com/google/fonts/tree/main/ofl/inter
+Original Obsidian wallpaper and placeholder album artwork generated specifically for NOIR / SIGNATURE. No reference-image pixels or watermarks reused.

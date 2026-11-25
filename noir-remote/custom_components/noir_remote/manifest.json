@@ -1,0 +1,12 @@
+{
+  "domain": "noir_remote",
+  "name": "NOIR Remote",
+  "codeowners": ["@ronsone"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend", "panel_custom", "websocket_api"],
+  "documentation": "https://github.com/ronsone/Noir_Remote",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/ronsone/Noir_Remote/issues",
+  "requirements": [],
+  "version": "0.2.0"
+}

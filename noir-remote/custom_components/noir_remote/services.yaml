@@ -1,0 +1,7 @@
+set_mode:
+  fields:
+    mode:
+      required: true
+      selector:
+        select:
+          options: ["full", "eco"]

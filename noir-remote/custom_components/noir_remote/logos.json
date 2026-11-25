@@ -1,0 +1,32 @@
+{
+  "_doc": "Logos for TV sources. 'match' = words in the source name that pick this logo (lower case). Brand marks: Simple Icons (CC0). Generic marks: Lucide (ISC). Trademarks belong to their owners and are only used to show which source a tile opens.",
+  "brands": {
+    "playstation": {"name": "PlayStation", "match": ["playstation", "ps5", "ps4", "ps3"]},
+    "steam": {"name": "Steam", "match": ["steam"]},
+    "appletv": {"name": "Apple TV", "match": ["apple tv", "appletv"]},
+    "netflix": {"name": "Netflix", "match": ["netflix"]},
+    "youtube": {"name": "YouTube", "match": ["youtube"]},
+    "plex": {"name": "Plex", "match": ["plex"]},
+    "jellyfin": {"name": "Jellyfin", "match": ["jellyfin"]},
+    "kodi": {"name": "Kodi", "match": ["kodi"]},
+    "emby": {"name": "Emby", "match": ["emby"]},
+    "spotify": {"name": "Spotify", "match": ["spotify"]},
+    "tidal": {"name": "TIDAL", "match": ["tidal"]},
+    "twitch": {"name": "Twitch", "match": ["twitch"]},
+    "max": {"name": "Max", "match": ["hbo", "max"]},
+    "viaplay": {"name": "Viaplay", "match": ["viaplay"]},
+    "dazn": {"name": "DAZN", "match": ["dazn"]},
+    "crunchyroll": {"name": "Crunchyroll", "match": ["crunchyroll"]},
+    "googletv": {"name": "Google TV", "match": ["google tv", "chromecast"]},
+    "nvidia": {"name": "NVIDIA Shield", "match": ["shield", "nvidia"]},
+    "ziggo": {"name": "Ziggo", "match": ["ziggo"]}
+  },
+  "generic": {
+    "game": {"name": "Game console", "icon": "gamepad-2", "match": ["xbox", "switch", "nintendo", "console", "game", "wii", "steam deck"]},
+    "tv": {"name": "Live TV", "icon": "tv", "match": ["live", "tv", "antenna", "tuner", "iptv", "kpn", "canal", "dvb"]},
+    "hdmi": {"name": "HDMI / PC", "icon": "monitor", "match": ["hdmi", "pc", "computer", "av", "component", "scart"]},
+    "stream": {"name": "Streaming", "icon": "clapperboard", "match": ["disney", "prime", "video", "movie", "film", "videoland", "skyshowtime", "npo"]},
+    "music": {"name": "Music", "icon": "music", "match": ["music", "audio", "radio", "sonos"]},
+    "cast": {"name": "Cast", "icon": "cast", "match": ["cast", "airplay", "miracast"]}
+  }
+}

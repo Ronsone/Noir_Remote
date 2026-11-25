@@ -1,0 +1,85 @@
+<p align="center"><img src="docs/hero.png" width="100%" alt="NOIR – a calm, dark remote for Home Assistant"></p>
+
+<p align="center">
+  <b>NOIR turns the OpenRemote Rev6 into a calm, dark remote for your home.</b><br>
+  Big tiles, few words, one tap. You set it up in Home Assistant – no code, no YAML editing.
+</p>
+
+<p align="center">
+  <a href="#setup--about-30-minutes-most-of-it-waiting-for-the-first-build"><b>Get started</b></a> ·
+  <a href="docs/tv.md">TV</a> ·
+  <a href="#inside">How it works</a>
+</p>
+
+<br>
+
+| ✦ **Simple** | ✦ **Yours** | ✦ **Open** |
+|---|---|---|
+| One screen per task. Text only where it helps. Nederlands or English. | Build your screens in the **NOIR Builder** – what you see is what the remote shows. | Any TV in Home Assistant. Free, MIT licensed, every feature a small module. |
+
+<p align="center"><img src="docs/screens.png" width="100%" alt="Home, TV, Lights, Scenes, Settings"></p>
+
+## What it does (version 0.2)
+
+| | |
+|---|---|
+| **Home** | Big tiles. You choose what each one opens. |
+| **TV** | Any TV in Home Assistant. Your inputs and apps as tiles with their logo. Keys by infrared. |
+| **Lights** | Tap = on/off, hold = dim. |
+| **Scenes** | Your scenes and scripts, plus *All off*. |
+| **Modes** | **Full** – always ready. **Eco** – longer battery. |
+
+Audio, Netflix and Airco come next – each as its own module.
+
+## Setup – about 30 minutes, most of it waiting for the first build
+
+**You need:** an OpenRemote Rev6 with a USB-C cable · Home Assistant with [HACS](https://hacs.xyz) · a PC with Python 3.
+
+### 1 · Home Assistant
+1. HACS → ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add**.
+2. Search **NOIR Remote** → *Download* → restart Home Assistant.
+3. *Settings → Devices & services → Add integration → NOIR Remote*.
+4. You get a short text: your **secrets.yaml**. Keep this screen open.
+
+### 2 · Firmware
+1. On this page: **Code → Download ZIP**, unzip it.
+2. In the folder `firmware`, make a file `secrets.yaml`, paste the text from step 1.4 and fill in your Wi-Fi.
+   Lost it? *NOIR Builder* (sidebar) → tab *Remote* → *First-time setup* → **Copy**.
+3. Connect the remote by USB. Open a terminal in the `firmware` folder:
+   ```
+   pip install esphome
+   esphome run noir-remote.yaml
+   ```
+   Choose the USB port. The first build takes 10–20 minutes; later builds are quick and go over Wi-Fi.
+
+### 3 · Connect
+Home Assistant shows **New device found: NOIR Remote** → *Configure*. It asks for a key: the `noir_api_key` line from your secrets.yaml.
+
+### 4 · Your screens
+Open **NOIR Builder** in the sidebar. Each tab is one screen, the preview shows your remote. Press **Save** – the remote updates in seconds.
+
+**TV in four steps:** choose your TV → choose its brand and press **Test** → (optional) your speaker → tap the inputs and apps you want. Logos are picked for you. More in [docs/tv.md](docs/tv.md).
+
+## Inside
+
+```
+firmware/
+  noir-remote.yaml    hardware + ESPHome setup
+  noir-ui.h           the screens (shared with the simulator)
+  noir-app.h          starts the modules
+  modules/            one file per feature: core, home, lights, scenes, tv
+  logos/              logos for TV sources (made by tools/make_logos.py)
+custom_components/noir_remote/
+  NOIR Builder panel, config + state endpoints for the remote
+  profiles.json       infrared codes per TV brand
+  logos.json          which source name gets which logo
+simulator/            all screens on your PC (SDL2 + LVGL)
+```
+
+**New feature = new module.** Copy `firmware/modules/scenes.h`, give it a name, handle its actions/keys, add it in `noir-app.h`.
+
+## Credits
+
+Hardware: [OpenRemote Rev6](https://github.com/LORDSn1per/OpenRemote-Hardware). Display, touch, key and battery drivers come from [ESPHomeRemote by Aggro600](https://github.com/Aggro600/ESPHomeRemote). Font: Inter (OFL). Icons: Material Design Icons, Lucide (ISC). Source logos: [Simple Icons](https://simpleicons.org) (CC0) – trademarks belong to their owners and only show which source a tile opens.
+
+License: MIT

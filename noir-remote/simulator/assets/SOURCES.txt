@@ -1,0 +1,7 @@
+Monochrome brand marks: Simple Icons 11.15.0, https://github.com/simple-icons/simple-icons/tree/11.15.0/icons
+Files: playstation5.svg, nintendoswitch.svg, netflix.svg, plex.svg, youtube.svg
+Cookie IPTV: temporary text wordmark, exact app identity not established.
+Home navigation marks: Lucide Static 0.468.0 (ISC), https://github.com/lucide-icons/lucide/tree/0.468.0
+Typeface: Inter by Rasmus Andersson, SIL Open Font License 1.1, https://github.com/google/fonts/tree/main/ofl/inter
+Original Obsidian wallpaper and placeholder album artwork generated specifically for NOIR / SIGNATURE. No reference-image pixels or watermarks reused.
+Grand Line: original One Piece-inspired fan wallpaper, generated for this project; no official affiliation.

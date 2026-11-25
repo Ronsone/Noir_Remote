@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NOIR Remote",
+        "description": "Naam van je remote in ESPHome (device_name).",
+        "data": {
+          "device": "Naam remote"
+        }
+      },
+      "keys": {
+        "title": "Je secrets.yaml",
+        "description": "Bewaar dit als **secrets.yaml** in de map `firmware`. Vul alleen je wifi in.\n\n```\n{block}\n```\n\nJe ziet het later ook in de NOIR Builder (tab Remote)."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NOIR Remote is al ingesteld."
+    }
+  }
+}
