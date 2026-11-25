@@ -350,13 +350,17 @@ class NoirBuilder extends HTMLElement {
   }
   // The remote's firmware update (ESPHome update entity, e.g. update.noir_remote_firmware)
   _fwEntity() {
-    const dev = (this.s.device || "noir-remote").replace(/-/g, "_");
-    const st = this._hass?.states || {};
-    // only ESPHome's update entity of the remote - not HACS's update for this integration (update.noir_remote_update)
-    const ents = this._hass?.entities || {};
-    const esp = (e) => e.startsWith("update.") && (ents[e] ? ents[e].platform === "esphome" : e === `update.${dev}_firmware`);
-    return esp(`update.${dev}_firmware`) && st[`update.${dev}_firmware`] ? `update.${dev}_firmware`
-      : Object.keys(st).find((e) => esp(e) && e.startsWith(`update.${dev}`)) || "";
+    // ESPHome's update entity of the remote, found through its device (the entity id can differ: _2, renamed, ...)
+    const h = this._hass || {}, st = h.states || {}, ents = h.entities || {}, devs = h.devices || {};
+    const norm = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const want = norm(this.s.device || "noir-remote");
+    const ours = (e) => {
+      const r = ents[e];
+      if (!r || r.platform !== "esphome") return false;
+      const d = devs[r.device_id];
+      return d ? [d.name, d.name_by_user].some((n) => norm(n).includes(want)) : norm(e).includes(want);
+    };
+    return Object.keys(st).find((e) => e.startsWith("update.") && ours(e)) || "";
   }
   _firmware() {
     const e = this._fwEntity(), st = e && this._hass.states[e];
