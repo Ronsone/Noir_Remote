@@ -67,6 +67,8 @@ inline void key(int k, bool pressed, bool held_long) {
   a.last_input = millis();
   a.wake = true;
   if (pressed && was_dark && k != 102 && k != 33 && k != 43 && k != 44) return;   // first press only wakes the display
+  // Button test (Settings): every key only shows its name and number; Terug on the screen leaves the test
+  if (noir::st().seite == noir::S_TEST && k != 102) { noir::knoptest::taste(k, pressed); return; }
   for (Module *m : modules()) if (m->key(k, pressed)) return;
 }
 
