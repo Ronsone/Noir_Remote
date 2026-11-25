@@ -33,17 +33,21 @@ Audio, Netflix and Airco come next – each as its own module.
 
 ## Setup – about 30 minutes, most of it waiting for the first build
 
-**You need:** an OpenRemote Rev6 with a USB-C cable · Home Assistant with [HACS](https://hacs.xyz) · a PC with Python 3.
+**You need:** an OpenRemote Rev6 with a USB-C cable · Home Assistant · a PC with Python 3.
 
 ### 1 · Home Assistant
-1. HACS → ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add**.
-2. Search **NOIR Remote** → *Download* → restart Home Assistant.
-3. *Settings → Devices & services → Add integration → NOIR Remote*.
-4. You get a short text: your **secrets.yaml**. Keep this screen open.
+1. On this page: **Code → Download ZIP**, unzip it.
+2. Copy the folder `custom_components/noir_remote` into the `custom_components` folder of your Home Assistant config
+   (the folder with `configuration.yaml`; make `custom_components` if it is not there). Use the *Samba share* or *File editor* add-on, or SSH.
+   You now have `config/custom_components/noir_remote/manifest.json`.
+3. Restart Home Assistant.
+   *Or with HACS:* ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add** → search **NOIR Remote** → *Download* → restart.
+4. *Settings → Devices & services → Add integration → NOIR Remote*.
+5. You get a short text: your **secrets.yaml**. Keep this screen open.
 
 ### 2 · Firmware
-1. On this page: **Code → Download ZIP**, unzip it.
-2. In the folder `firmware`, make a file `secrets.yaml`, paste the text from step 1.4 and fill in your Wi-Fi.
+1. Use the same unzipped download from step 1.1.
+2. In the folder `firmware`, make a file `secrets.yaml`, paste the text from step 1.5 and fill in your Wi-Fi.
    Lost it? *NOIR Builder* (sidebar) → tab *Remote* → *First-time setup* → **Copy**.
 3. Connect the remote by USB. Open a terminal in the `firmware` folder:
    ```
