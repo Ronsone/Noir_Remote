@@ -69,7 +69,7 @@ struct Airco : Module {
     if (d.units.empty()) d.units.push_back(ac::Unit{});
     d.cur = 0;
     ac::wijziging() = [this](int i) { send(i); };
-    poll_set("airco", {[this]() { return on_screen() && screen_on() && !entities().empty(); },
+    poll_set("airco", {[this]() { return (on_screen() || noir::st().seite == noir::S_THUIS) && screen_on() && !entities().empty(); },   // also for the tile on Home
                        [this]() { return entities(); },
                        [this](JsonDocument &doc) { read(doc); }});
     ac::tonen();

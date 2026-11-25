@@ -32,7 +32,7 @@ struct Home : Module {
     else ha("homeassistant.toggle", {{"entity_id", e}});
   }
   void configure(JsonObjectConst) override {
-    if (app().built) noir::thuis_herbouwen(list_of("home"));
+    if (app().built) { noir::thuis_herbouwen(list_of("home")); noir::airco::tonen(); }   // airco tile: fill it right away
   }
   bool action(int a) override {
     if (a >= noir::ITEM) {

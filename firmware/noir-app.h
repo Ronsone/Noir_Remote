@@ -71,6 +71,7 @@ inline void build(lv_obj_t *home, const noir::Fonts &f, const Images &b) {
   noir::tv_status("", "");
   noir::zeigen(true);
   noir::zeigen_seite(noir::S_THUIS);
+  noir::airco::tonen();
   fetch_config();
 }
 
