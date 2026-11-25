@@ -352,7 +352,11 @@ class NoirBuilder extends HTMLElement {
   _fwEntity() {
     const dev = (this.s.device || "noir-remote").replace(/-/g, "_");
     const st = this._hass?.states || {};
-    return st[`update.${dev}_firmware`] ? `update.${dev}_firmware` : Object.keys(st).find((e) => e.startsWith(`update.${dev}`)) || "";
+    // only ESPHome's update entity of the remote - not HACS's update for this integration (update.noir_remote_update)
+    const ents = this._hass?.entities || {};
+    const esp = (e) => e.startsWith("update.") && (ents[e] ? ents[e].platform === "esphome" : e === `update.${dev}_firmware`);
+    return esp(`update.${dev}_firmware`) && st[`update.${dev}_firmware`] ? `update.${dev}_firmware`
+      : Object.keys(st).find((e) => esp(e) && e.startsWith(`update.${dev}`)) || "";
   }
   _firmware() {
     const e = this._fwEntity(), st = e && this._hass.states[e];
