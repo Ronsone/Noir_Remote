@@ -84,8 +84,9 @@ In Home Assistant, delete the old *noir-remote* under ESPHome first; the new one
 <details><summary>Build the firmware yourself (developers)</summary>
 
 With Python 3: `pip install esphome`, then in the folder `firmware`: `esphome run noir-remote.yaml`.
-GitHub builds and publishes the firmware by itself when `firmware/` changes on `main` (`.github/workflows/firmware.yml`).
-The remote only updates when the version under `substitutions: version` in `noir-remote.yaml` is new – raise it with every firmware change.
+GitHub checks that the firmware builds on every change in `firmware/` (`.github/workflows/firmware.yml`). Remotes only get it when you **release** it:
+raise `substitutions: version` in `noir-remote.yaml`, then *GitHub → Releases → Draft a new release*, tag `v` + that version (e.g. `v0.3.1`) → **Publish**.
+Only then is it published for the installer and the update button.
 </details>
 
 ## Inside
