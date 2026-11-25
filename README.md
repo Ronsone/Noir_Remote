@@ -34,7 +34,7 @@
 | **D-pad** | The screen you see decides: on the TV screen the arrows go to the TV, on the Airco screen they set temperature and mode, everywhere else a focus ring moves over the buttons and sliders – OK presses, hold OK = long press, left/right moves a slider. |
 | **Modes** | **Full** – always ready. **Eco** – longer battery. |
 
-Netflix comes next – as its own module. Which tiles your home screen shows is up to you: add and remove them in the NOIR Builder.
+What comes next – a test channel for updates, local updates, more remotes, German/French/Spanish/Italian – is in the [roadmap](docs/roadmap.md). Which tiles your home screen shows is up to you: add and remove them in the NOIR Builder.
 
 **Try it first:** the **[demo](https://ronsone.github.io/Noir_Remote/demo.html)** shows the remote's screens in your browser, with sample data – tap the tiles or use the D-pad under the screen (or the arrow keys and Enter on your keyboard).
 
