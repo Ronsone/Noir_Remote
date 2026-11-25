@@ -38,6 +38,7 @@
     .btn:active, .btn.press { background:linear-gradient(#2a2d33,#1c1e22); border-color:#aeb4bf; }
     .btn .mdi { font-size:20px; line-height:1; }
     .btn.focus { outline:2px solid #e8eef3; outline-offset:-2px; }
+    .slider.focus { outline:2px solid #e8eef3; outline-offset:7px; border-radius:6px; }
     .tile { flex-direction:column; align-items:flex-start; justify-content:space-between; padding:9px 12px; border-radius:16px; }
     .tile .n { font-size:14px; color:var(--text2); }
     .foot { position:absolute; left:0; right:0; top:240px; height:42px; }
@@ -113,7 +114,7 @@ const T = {
     allofft:"Alles uit", dimh:"Lang drukken = dimmen", ready:"Gereed", soon:"In de demo niet beschikbaar",
     intro1:"Probeer de remote voordat je hem flasht. Dit zijn de schermen van de firmware, met voorbeelddata.",
     intro2:"Tik op de tegels, of gebruik de toetsen onder het scherm. Toetsenbord: <kbd>←↑→↓</kbd> navigeren, <kbd>Enter</kbd> OK, <kbd>Backspace</kbd> terug, <kbd>H</kbd> home.",
-    intro3:"Op het TV-scherm gaan de pijltjes naar de tv; op de andere schermen beweegt een focusrand over de knoppen. Lamp vasthouden (of OK vasthouden) = dimmen.",
+    intro3:"Op het TV-scherm gaan de pijltjes naar de tv; op de andere schermen beweegt een focusrand over de knoppen en schuifregelaars (links/rechts schuift). Lamp vasthouden (of OK vasthouden) = dimmen.",
     install:"→ Naar de installer", lamps:["Woonkamer","Eettafel","Keuken","Hal","Tuin"] },
   en: { home:"Home", back:"Back", tv:"TV", audio:"Audio", lights:"Lights", scenes:"Scenes", airco:"Airco", alloff:"All off",
     settings:"Settings", on:"On", off:"Off", mode:"Mode", skin:"Skin", wifi:"Wi-Fi", test:"Button test", input:"Input", level:"Level",
@@ -122,7 +123,7 @@ const T = {
     allofft:"All off", dimh:"Hold = dim", ready:"Done", soon:"Not in the demo",
     intro1:"Try the remote before you flash it. These are the firmware's screens, with sample data.",
     intro2:"Tap the tiles, or use the keys under the screen. Keyboard: <kbd>←↑→↓</kbd> move, <kbd>Enter</kbd> OK, <kbd>Backspace</kbd> back, <kbd>H</kbd> home.",
-    intro3:"On the TV screen the arrows go to the TV; on the other screens a focus ring moves over the buttons. Hold a lamp (or hold OK) = dim.",
+    intro3:"On the TV screen the arrows go to the TV; on the other screens a focus ring moves over the buttons and sliders (left/right slides). Hold a lamp (or hold OK) = dim.",
     install:"→ To the installer", lamps:["Living room","Dining table","Kitchen","Hall","Garden"] },
 };
 let lang = "nl";
@@ -258,7 +259,7 @@ function slide(sl, e) {
 
 // ---- D-pad: the screen you see decides ----
 let focusIdx = null, focusTimer = null;
-const buttons = () => [...scr.querySelectorAll(".page.on [data-act]")];
+const buttons = () => [...scr.querySelectorAll(".page.on [data-act], .page.on [data-sl]")];
 const centre = (b) => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 function setFocus(i) {
   buttons().forEach((b) => b.classList.remove("focus"));
@@ -300,11 +301,18 @@ function key(k, down) {
     return;
   }
   if (S.page === "airco" && k === "ok") { if (down) act("acpower"); return; }
+  const f = buttons()[focusIdx];
+  if (f && f.dataset.sl && (k === "left" || k === "right")) {   // slider: left/right change it
+    if (!down) return;
+    const st = f.dataset.sl === "vol" ? 5 : 1, d = k === "right" ? st : -st;
+    if (f.dataset.sl === "vol") S.audio.vol = Math.max(0, Math.min(100, S.audio.vol + d)); else S.audio.sub = Math.max(-10, Math.min(10, S.audio.sub + d));
+    render(); setFocus(focusIdx); return;
+  }
   if (dirs.includes(k)) { if (down) move(k); return; }
   if (k === "ok") {
     const b = buttons()[focusIdx];
     if (down) { if (!b) { move("up"); okAt = 0; } else okAt = Date.now(); return; }
-    if (b && okAt) { b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); act(b.dataset.act, Date.now() - okAt >= 500); }
+    if (b && okAt && !b.dataset.sl) { b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); act(b.dataset.act, Date.now() - okAt >= 500); }
     okAt = 0;
   }
 }
