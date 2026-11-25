@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 
-from .const import DEFAULT_MODEL, MAX_AUDIO_SOURCES, PROFILES
+from .const import AIRCO_IR, DEFAULT_MODEL, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
 from .tv import clean_apps, ir_block
 
 FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "netflix", "airco"}
@@ -19,6 +19,8 @@ def normalize(model: dict | None) -> dict:
                 m["tv"]["speaker"] = v["kef"]
             if "on" in v and "profile" not in v:           # before 0.2: LG codes were filled in
                 m["tv"]["profile"] = "lg"
+        elif k == "airco" and isinstance(v, dict):
+            m["airco"].update(v)
         elif k == "audio" and isinstance(v, dict):
             m["audio"].update(v)
         elif k in m:
@@ -27,7 +29,21 @@ def normalize(model: dict | None) -> dict:
     m["tv"]["apps"] = clean_apps(m["tv"]["apps"])
     m["audio"] = {k: m["audio"].get(k, d) for k, d in DEFAULT_MODEL["audio"].items()}
     m["audio"]["sources"] = clean_sources(m["audio"]["sources"])
+    m["airco"] = {"units": clean_units(m["airco"].get("units"))}
     return m
+
+
+def clean_units(units) -> list:
+    """Airco units: [{"name", "control"}], control = "climate.x" or "ir:<profile>"."""
+    out = []
+    for u in units if isinstance(units, list) else []:
+        if not isinstance(u, dict):
+            continue
+        c = str(u.get("control", "")).strip()
+        if not (c.startswith("climate.") or (c.startswith("ir:") and c[3:] in AIRCO_IR)):
+            continue
+        out.append({"name": str(u.get("name", "")).strip()[:16], "control": c})
+    return out[:MAX_AIRCO_UNITS]
 
 
 def clean_sources(sources) -> list:
@@ -82,6 +98,8 @@ def payload(model: dict, version: str) -> dict:
                "ir": ir_block(tv.get("profile", "")) if tv.get("profile") in PROFILES else {},
                "apps": clean_apps(tv.get("apps"))},
         "audio": audio_block(m["audio"]),
+        "airco": {"units": [{"name": u["name"], **({"ir": u["control"][3:]} if u["control"].startswith("ir:") else {"entity": u["control"]})}
+                            for u in m["airco"]["units"]]},
     }
 
 

@@ -24,7 +24,7 @@ from homeassistant.util import dt as dt_util
 
 from . import link
 from .autoadd import maybe_add
-from .const import DOMAIN, PROFILES, STORE_VERSION
+from .const import AIRCO_IR, DOMAIN, PROFILES, STORE_VERSION
 from .model import normalize, payload
 from .tv import guess_logo, logo_list
 
@@ -121,6 +121,14 @@ class StatesView(HomeAssistantView):
                 row += [str(a.get("media_title") or "")[:80], str(a.get("media_artist") or a.get("app_name") or "")[:60],
                         bool(a.get("is_volume_muted")), bool(a.get("shuffle")), str(a.get("repeat") or ""),
                         str(a.get("app_name") or "")[:40], str(a.get("source") or "")[:40], -1.0, 0.0, 0.0]
+            elif st.entity_id.startswith("climate."):   # NOIR Airco: everything the unit offers
+                num = lambda x: float(x) if isinstance(x, (int, float)) else -1000.0
+                row += [num(a.get("temperature")), num(a.get("current_temperature")),
+                        str(a.get("fan_mode") or ""), str(a.get("swing_mode") or ""),
+                        num(a.get("min_temp")), num(a.get("max_temp")),
+                        "|".join(str(x) for x in (a.get("hvac_modes") or []))[:120],
+                        "|".join(str(x) for x in (a.get("fan_modes") or [])[:8])[:120],
+                        "|".join(str(x) for x in (a.get("swing_modes") or [])[:6])[:120]]
             out[st.entity_id] = row
         return web.Response(body=json.dumps(out, separators=(",", ":"), ensure_ascii=False).encode(),
                             content_type="application/json", headers={"Cache-Control": "no-store"})
@@ -133,7 +141,8 @@ async def ws_get(hass, connection, msg):
     nd: NoirData = hass.data[DOMAIN]
     profiles = [{"key": k, "name": v["name"], "tested": v.get("tested", "")} for k, v in PROFILES.items()]
     connection.send_result(msg["id"], {"model": nd.model, "version": nd.version, "device": nd.device,
-                                       "profiles": profiles, "logos": logo_list()})
+                                       "profiles": profiles, "logos": logo_list(),
+                                       "airco_ir": [{"key": k, "name": v} for k, v in AIRCO_IR.items()]})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "noir_remote/logo", vol.Required("names"): [str]})

@@ -99,6 +99,14 @@ inline void ir_nec(int address, int cmd, int repeats = 0) {
   call.set_send_times(1 + repeats);
   call.perform();
 }
+// Raw timings (us, + = mark, - = space) at a carrier, e.g. airco frames that carry the whole state
+inline void ir_raw(const std::vector<int32_t> &timings, uint32_t carrier = 38000) {
+  if (timings.empty()) return;
+  auto call = ir_tx->transmit();
+  call.get_data()->set_carrier_frequency(carrier);
+  call.get_data()->set_data(timings);
+  call.perform();
+}
 struct Ir {
   std::string protocol;
   int address{-1};
