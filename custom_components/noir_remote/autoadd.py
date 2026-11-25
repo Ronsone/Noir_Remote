@@ -13,8 +13,10 @@ from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 ESPHOME = "esphome"
+ALLOW = "allow_service_calls"   # ESPHome option: device may perform Home Assistant actions
 RETRY_S = 600          # don't try the same remote more often than this
 _last_try: dict[str, float] = {}
+_checked: set[str] = set()
 
 
 def _known(hass: HomeAssistant, device: str, host: str) -> bool:
@@ -25,9 +27,25 @@ def _known(hass: HomeAssistant, device: str, host: str) -> bool:
     return False
 
 
+def allow_actions(hass: HomeAssistant, entry, device: str) -> None:
+    """Let the remote run Home Assistant actions (lights, scenes, TV). ESPHome turns this off for new devices,
+    and without it every tile on the remote does nothing."""
+    if entry is None or getattr(entry, "domain", None) != ESPHOME:
+        entry = next((e for e in hass.config_entries.async_entries(ESPHOME) if e.data.get("device_name") == device), None)
+    if entry is None or entry.options.get(ALLOW) is True:
+        return
+    hass.config_entries.async_update_entry(entry, options={**entry.options, ALLOW: True})
+    _LOGGER.info("NOIR remote %s may now run Home Assistant actions", device)
+
+
 async def maybe_add(hass: HomeAssistant, device: str, host: str, api_key: str) -> None:
     """Add the remote at `host` to ESPHome with `api_key`, unless it is there already."""
-    if not api_key or not host or _known(hass, device, host):
+    if not api_key or not host:
+        return
+    if _known(hass, device, host):
+        if device not in _checked:   # once per start: a remote added earlier may still have actions switched off
+            _checked.add(device)
+            allow_actions(hass, None, device)
         return
     now = time.monotonic()
     if now - _last_try.get(host, -RETRY_S) < RETRY_S:
@@ -45,6 +63,7 @@ async def maybe_add(hass: HomeAssistant, device: str, host: str, api_key: str) -
 
     if result.get("type") == "create_entry":
         _LOGGER.info("NOIR remote %s (%s) added to ESPHome", device, host)
+        allow_actions(hass, result.get("result"), device)
         return
     # Anything else (wrong key, name conflict, ...): leave it to the person, don't keep a half-done flow around.
     _LOGGER.warning("NOIR remote %s (%s) could not be added to ESPHome by itself (%s %s) - add it by hand",
