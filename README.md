@@ -84,6 +84,8 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 - **Top: one tab per screen.** Change something and press **Save** – the remote picks it up within seconds (it gets a nudge from Home Assistant; otherwise within 15 minutes).
 - Everything is in Nederlands or English – switch under *Remote → Language*; the remote follows.
 
+<p align="center"><img src="docs/builder/home.png" width="100%" alt="NOIR Builder – the Home tab: the tiles of your home screen, with the preview on the left"></p>
+
 | Tab | What you do there |
 |---|---|
 | **Home** | The tiles on your home screen. **Add tile**, choose what it **opens** (TV, Audio, Lights, Scenes, Airco, All off, settings – or switch one device, or run a scene/script), give it a name and icon, half or full width. Reorder or remove them with the arrows and ×. |
@@ -95,6 +97,16 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 | **Remote** | Mode (**Full** / **Eco**), language, **Firmware** (version, **Check now**, **Update firmware**) and *First-time setup* with a link to the installer. |
 
 A screen only works once it has a tile on **Home** – e.g. add a tile *Audio screen* after setting up Audio.
+
+<details><summary><b>Screenshots of every tab</b></summary>
+
+| | |
+|---|---|
+| **TV** – your TV, brand for infrared, speaker, sources with logos<br><img src="docs/builder/tv.png" alt="TV tab"> | **Audio** – speaker, sources, now playing, subwoofer<br><img src="docs/builder/audio.png" alt="Audio tab"> |
+| **Airco** – rooms, each via Home Assistant or infrared<br><img src="docs/builder/airco.png" alt="Airco tab"> | **Remote** – mode, language, firmware updates<br><img src="docs/builder/remote.png" alt="Remote tab"> |
+| **Lights** – your lamps, dimmable or on/off<br><img src="docs/builder/lights.png" alt="Lights tab"> | **Scenes** – scenes and scripts as tiles<br><img src="docs/builder/scenes.png" alt="Scenes tab"> |
+
+</details>
 
 ## Updating
 

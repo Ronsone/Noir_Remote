@@ -189,15 +189,17 @@ class NoirBuilder extends HTMLElement {
     const u0 = units[0], c0 = u0 && st[u0.control], on = c0 && c0.state !== "off";
     const t = c0?.attributes?.temperature ?? 21, room = c0?.attributes?.current_temperature;
     const pct = Math.max(0, Math.min(1, (t - 16) / 14)), len = 270 * pct;
-    const arc = `<svg width="116" height="116" viewBox="0 0 116 116" style="position:absolute;left:50px;top:96px">
-      <circle cx="58" cy="58" r="54" fill="none" stroke="#383c43" stroke-width="4" stroke-dasharray="254.5 339.3" transform="rotate(135 58 58)" stroke-linecap="round"/>
-      <circle cx="58" cy="58" r="54" fill="none" stroke="#9fd8f0" stroke-width="5" stroke-dasharray="${(254.5 * len / 270).toFixed(1)} 339.3" transform="rotate(135 58 58)" stroke-linecap="round" opacity="${on || !c0 ? 1 : .35}"/></svg>`;
+    const arc = `<svg width="104" height="104" viewBox="0 0 104 104" style="position:absolute;left:56px;top:40px">
+      <circle cx="52" cy="52" r="48" fill="none" stroke="#383c43" stroke-width="4" stroke-dasharray="226.2 301.6" transform="rotate(135 52 52)" stroke-linecap="round"/>
+      <circle cx="52" cy="52" r="48" fill="none" stroke="#9fd8f0" stroke-width="5" stroke-dasharray="${(226.2 * len / 270).toFixed(1)} 301.6" transform="rotate(135 52 52)" stroke-linecap="round" opacity="${on || !c0 ? 1 : .35}"/></svg>`;
     const modes = ["mdi:alpha-a-circle-outline", "mdi:snowflake", "mdi:water", "mdi:fan", "mdi:white-balance-sunny"].map((ic, n) =>
-      `<span class="nvk" style="left:${n * 44}px;top:224px;width:38px;height:34px;justify-content:center;${n === 1 ? "background:#9fd8f0;color:#07080a;border-color:#9fd8f0" : ""}"><ha-icon icon="${ic}" style="--mdc-icon-size:18px"></ha-icon></span>`).join("");
+      `<span class="nvk" style="left:${n * 44}px;top:152px;width:38px;height:32px;justify-content:center;${n === 1 ? "background:#9fd8f0;color:#07080a;border-color:#9fd8f0" : ""}"><ha-icon icon="${ic}" style="--mdc-icon-size:18px"></ha-icon></span>`).join("");
     const preview = this._phone(`<b class="nvt">${esc(units.length > 1 && u0?.name ? u0.name : "Airco")}</b><small class="nvs">${on ? L("Cooling") : L("Off")}${room != null ? ` · ${L("room")} ${Math.round(room)}°` : ""}</small>`,
-      `${arc}<b style="position:absolute;left:58px;top:132px;width:100px;text-align:center;font-size:40px;font-weight:300">${Math.round(t)}°</b>
-       <span class="nvk" style="left:0;top:132px;width:44px;height:44px;border-radius:22px;justify-content:center"><ha-icon icon="mdi:minus"></ha-icon></span>
-       <span class="nvk" style="left:172px;top:132px;width:44px;height:44px;border-radius:22px;justify-content:center"><ha-icon icon="mdi:plus"></ha-icon></span>${modes}`);
+      `${arc}<b style="position:absolute;left:58px;top:68px;width:100px;text-align:center;font-size:40px;font-weight:300">${Math.round(t)}°</b>
+       <span class="nvk" style="left:0;top:70px;width:44px;height:44px;border-radius:22px;justify-content:center"><ha-icon icon="mdi:minus"></ha-icon></span>
+       <span class="nvk" style="left:172px;top:70px;width:44px;height:44px;border-radius:22px;justify-content:center"><ha-icon icon="mdi:plus"></ha-icon></span>${modes}
+       <span class="nvk" style="left:0;top:194px;width:104px;height:30px;border-radius:15px;justify-content:center;gap:6px"><ha-icon icon="mdi:fan" style="--mdc-icon-size:16px"></ha-icon>Auto</span>
+       <span class="nvk" style="left:112px;top:194px;width:104px;height:30px;border-radius:15px;justify-content:center;gap:6px"><ha-icon icon="mdi:arrow-oscillating" style="--mdc-icon-size:16px"></ha-icon>Swing</span>`);
     const c1 = `<div class="card"><h3>1 · ${L("Your aircos")}</h3>
       <p>${L("Per room: a climate entity in Home Assistant (any brand, e.g. an ESP32 module on the airco), or the remote's own infrared.")}</p>
       ${rows}<div class="bar" style="margin-top:8px"><button class="btn" data-a="add" data-l="units" ${units.length >= 4 ? "disabled" : ""}><ha-icon icon="mdi:plus"></ha-icon>${L("Add airco")}</button></div>
