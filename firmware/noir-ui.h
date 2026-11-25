@@ -997,6 +997,7 @@ namespace knoptest {
 struct Stand {
   int cur{4};
   int tel[6]{};                 // ^ v < > OK anders
+  int per[128]{};               // presses per key code (to see which key ghosts)
   int ok_op[9]{};
   int verdacht{0};
   uint32_t los_ms[128]{}, druk_ms[128]{};
@@ -1027,8 +1028,19 @@ inline void tonen() {
     lv_label_set_text_fmt(lv_obj_get_child(s.tegel[i], -1), "%d", s.ok_op[i]);
   }
   lv_label_set_text(s.info, s.laatste.c_str());
-  lv_label_set_text_fmt(s.teller, "Op %d   Neer %d   Links %d   Rechts %d\nOK %d   overige %d",
-                        s.tel[0], s.tel[1], s.tel[2], s.tel[3], s.tel[4], s.tel[5]);
+  // "overige": the four keys pressed most outside the arrows and OK, e.g. "41x18 31x8"
+  std::string top;
+  bool done[128]{};
+  for (int n = 0; n < 4; n++) {
+    int best = 0;
+    for (int t = 1; t < 128; t++)
+      if (!done[t] && t != 14 && t != 35 && t != 15 && t != 32 && t != 34 && s.per[t] > s.per[best]) best = t;
+    if (best == 0 || s.per[best] == 0) break;
+    done[best] = true;
+    top += (top.empty() ? "" : "  ") + std::to_string(best) + "x" + std::to_string(s.per[best]);
+  }
+  lv_label_set_text_fmt(s.teller, "Op %d   Neer %d   Links %d   Rechts %d\nOK %d   overige %d\n%s",
+                        s.tel[0], s.tel[1], s.tel[2], s.tel[3], s.tel[4], s.tel[5], top.c_str());
   lv_label_set_text_fmt(s.verd, "Verdacht (dubbel < 120 ms): %d", s.verdacht);
   lv_obj_set_style_text_color(s.verd, k(s.verdacht ? 0xF2F3F5 : 0x969AA3), 0);
 }
@@ -1051,6 +1063,7 @@ inline void reset() {
   Stand &s = st_();
   for (int &v : s.tel) v = 0;
   for (int &v : s.ok_op) v = 0;
+  for (int &v : s.per) v = 0;
   s.verdacht = 0;
   s.cur = 4;
   s.laatste = "Teller op nul";
@@ -1080,7 +1093,7 @@ inline bool taste(int t, bool ingedrukt) {
     case 15: s.tel[2]++; c = (c + 2) % 3; break;
     case 32: s.tel[3]++; c = (c + 1) % 3; break;
     case 34: s.tel[4]++; s.ok_op[s.cur]++; flits(s.cur); break;
-    default: s.tel[5]++; break;
+    default: s.tel[5]++; s.per[t]++; break;
   }
   s.cur = r * 3 + c;
   char b[64];
@@ -1118,7 +1131,7 @@ inline void test_bouwen(lv_obj_t *laag, const Fonts &f) {
   s.info = label(body, "", 0, 156, 216, f.f12, TEXT);
   s.teller = label(body, "", 0, 174, 216, f.f12, MUTED);
   lv_label_set_long_mode(s.teller, LV_LABEL_LONG_MODE_WRAP);
-  s.verd = label(body, "", 0, 212, 216, f.f12, MUTED);
+  s.verd = label(body, "", 0, 228, 216, f.f12, MUTED);
   knoptest::tonen();
 }
 
