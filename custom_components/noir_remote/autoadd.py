@@ -27,15 +27,17 @@ def _known(hass: HomeAssistant, device: str, host: str) -> bool:
     return False
 
 
-def allow_actions(hass: HomeAssistant, entry, device: str) -> None:
+def allow_actions(hass: HomeAssistant, entry, device: str) -> bool:
     """Let the remote run Home Assistant actions (lights, scenes, TV). ESPHome turns this off for new devices,
     and without it every tile on the remote does nothing."""
     if entry is None or getattr(entry, "domain", None) != ESPHOME:
         entry = next((e for e in hass.config_entries.async_entries(ESPHOME) if e.data.get("device_name") == device), None)
-    if entry is None or entry.options.get(ALLOW) is True:
-        return
-    hass.config_entries.async_update_entry(entry, options={**entry.options, ALLOW: True})
-    _LOGGER.info("NOIR remote %s may now run Home Assistant actions", device)
+    if entry is None:
+        return False
+    if entry.options.get(ALLOW) is not True:
+        hass.config_entries.async_update_entry(entry, options={**entry.options, ALLOW: True})
+        _LOGGER.info("NOIR remote %s may now run Home Assistant actions", device)
+    return True
 
 
 async def maybe_add(hass: HomeAssistant, device: str, host: str, api_key: str) -> None:
