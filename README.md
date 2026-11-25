@@ -113,7 +113,9 @@ Later updates are quick and need no cable: run the same command and choose **Ove
 | The remote doesn't connect to Wi-Fi | Check the Wi-Fi name and password in `secrets.yaml` (capitals count). The remote needs 2.4 GHz Wi-Fi. |
 
 ### 3 · Connect
-Home Assistant shows **New device found: NOIR Remote** → *Configure*. It asks for a key: the `noir_api_key` line from your secrets.yaml.
+Nothing to do: about a minute after the remote starts, NOIR Remote adds it to Home Assistant (ESPHome) by itself, key included.
+You find it under *Settings → Devices & services → ESPHome*.
+*Did Home Assistant already show **New device found** and ask for a key? You can ignore it – it disappears once the remote is added.*
 
 ### 4 · Your screens
 Open **NOIR Builder** in the sidebar. Each tab is one screen, the preview shows your remote. Press **Save** – the remote updates in seconds.

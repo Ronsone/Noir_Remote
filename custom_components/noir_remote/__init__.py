@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
+from .autoadd import maybe_add
 from .const import DOMAIN, PROFILES, STORE_VERSION
 from .model import normalize, payload
 from .tv import guess_logo, logo_list
@@ -83,6 +84,9 @@ class ConfigView(HomeAssistantView):
         nd: NoirData | None = request.app["hass"].data.get(DOMAIN)
         if nd is None or not _key_ok(request, nd.key):
             return web.Response(status=403)
+        if request.remote:   # the key proves this remote has our secrets.yaml: add it to ESPHome by itself
+            hass = request.app["hass"]
+            hass.async_create_task(maybe_add(hass, nd.device, request.remote, nd.entry.data.get("api_key", "")))
         return web.Response(body=json.dumps(nd.payload(), separators=(",", ":"), ensure_ascii=False).encode(),
                             content_type="application/json", headers={"Cache-Control": "no-store"})
 
