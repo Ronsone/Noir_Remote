@@ -47,7 +47,7 @@ jobs:
           fi
           build=firmware/.esphome/build/noir-remote/build
           mkdir -p out/firmware
-          cp site/* out/
+          cp -r site/. out/
           cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/
           md5=$(md5sum out/firmware/firmware.ota.bin | cut -d' ' -f1)
           cat > out/firmware/manifest.json <<JSON

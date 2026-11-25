@@ -1,6 +1,6 @@
 #pragma once
 #include "core.h"
-// Module Nav: move around the screen with the D-pad. A light focus ring sits on a button; the arrows move it to the
+// Module Nav: move around the screen with the D-pad. A light focus ring (the button's border) sits on a button; the arrows move it to the
 // nearest button in that direction, OK presses it (hold OK = long press, e.g. dim a lamp).
 // Rule: the screen you see decides - on the TV screen the D-pad goes to the TV (module Tv), on the Airco screen
 // up/down set the temperature (module Airco); everywhere else it moves around the remote. Modules before this one
@@ -33,12 +33,24 @@ struct Nav : Module {
     lv_obj_get_coords(o, &a);
     return {(a.x1 + a.x2) / 2, (a.y1 + a.y2) / 2};
   }
+  // The ring is the button's own border (an outline would be cut off at the screen edge): remember its own border
+  lv_color_t old_color{};
+  lv_opa_t old_opa{0};
+  int32_t old_width{1};
   void ring(lv_obj_t *o, bool on) {
     if (o == nullptr || !lv_obj_is_valid(o)) return;
-    lv_obj_set_style_outline_width(o, on ? 2 : 0, 0);
-    lv_obj_set_style_outline_color(o, lv_color_hex(0xE8EEF3), 0);
-    lv_obj_set_style_outline_opa(o, on ? 230 : 0, 0);
-    lv_obj_set_style_outline_pad(o, 2, 0);
+    if (on) {
+      old_color = lv_obj_get_style_border_color(o, LV_PART_MAIN);
+      old_opa = lv_obj_get_style_border_opa(o, LV_PART_MAIN);
+      old_width = lv_obj_get_style_border_width(o, LV_PART_MAIN);
+      lv_obj_set_style_border_color(o, lv_color_hex(0xE8EEF3), 0);
+      lv_obj_set_style_border_opa(o, 240, 0);
+      lv_obj_set_style_border_width(o, 2, 0);
+    } else {
+      lv_obj_set_style_border_color(o, old_color, 0);
+      lv_obj_set_style_border_opa(o, old_opa, 0);
+      lv_obj_set_style_border_width(o, old_width, 0);
+    }
   }
   void set_focus(lv_obj_t *o) {
     if (focus != nullptr && focus != o) ring(focus, false);

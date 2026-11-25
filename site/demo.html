@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NOIR Remote demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
+  <style>
+    :root { --bg:#07080a; --surf:#1a1c20; --surf2:#101114; --rand:#383c43; --text:#f2f3f5; --text2:#e4e7ec; --muted:#969aa3; --ijs:#9fd8f0; --accent:#6ebedc; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 Inter, system-ui, sans-serif; }
+    main { max-width:980px; margin:0 auto; padding:40px 16px 64px; display:flex; gap:48px; flex-wrap:wrap; align-items:flex-start; justify-content:center; }
+    .intro { flex:1 1 320px; max-width:420px; }
+    h1 { font-weight:300; letter-spacing:.35em; font-size:36px; margin:0 0 4px; }
+    .line { width:64px; height:2px; background:var(--accent); border-radius:2px; margin:0 0 22px; }
+    .intro p { color:var(--muted); margin:0 0 12px; }
+    .intro b { color:var(--text); font-weight:600; }
+    kbd { background:var(--surf); border:1px solid var(--rand); border-radius:6px; padding:1px 6px; font:12px Inter, sans-serif; color:var(--text2); }
+    .intro a { color:var(--accent); }
+    .lang { display:flex; gap:6px; margin:18px 0; }
+    .lang button { font:inherit; font-size:13px; color:var(--text2); background:transparent; border:1px solid var(--rand); border-radius:999px; padding:5px 14px; cursor:pointer; }
+    .lang button.on { background:var(--text2); color:var(--bg); border-color:var(--text2); }
+
+    /* the remote */
+    .remote { width:320px; max-width:100%; background:linear-gradient(#17191d,#0c0d10); border-radius:44px; padding:22px 20px 26px; box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); }
+    .scr-wrap { width:280px; height:373px; margin:0 auto; border-radius:14px; overflow:hidden; background:#000; box-shadow:0 0 0 2px #050607; }
+    .scr { width:240px; height:320px; transform:scale(1.1667); transform-origin:0 0; position:relative; overflow:hidden; background:var(--bg) url(img/obsidian.png) center/cover; font-size:12px; user-select:none; }
+    .bar { position:absolute; left:12px; right:12px; top:6px; display:flex; justify-content:space-between; color:var(--muted); font-size:11px; z-index:5; }
+    .page { position:absolute; left:12px; top:30px; width:216px; height:290px; display:none; }
+    .page.on { display:block; }
+    .body { position:absolute; left:0; right:0; top:0; height:230px; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }   /* same as the remote: 216 x 230 */
+    .body::-webkit-scrollbar { display:none; }
+    .t1 { font-size:20px; font-weight:400; margin:0; position:absolute; left:0; top:0; }
+    .t2 { color:var(--muted); font-size:12px; position:absolute; left:0; top:28px; }
+    .btn { position:absolute; background:linear-gradient(var(--surf),var(--surf2)); border:1px solid rgba(56,60,67,.45); border-radius:12px; color:var(--text2); display:flex; align-items:center; justify-content:center; gap:5px; cursor:pointer; transition:background .12s; }
+    .btn:active, .btn.press { background:linear-gradient(#2a2d33,#1c1e22); border-color:#aeb4bf; }
+    .btn .mdi { font-size:20px; line-height:1; }
+    .btn.focus { outline:2px solid #e8eef3; outline-offset:-2px; }
+    .tile { flex-direction:column; align-items:flex-start; justify-content:space-between; padding:9px 12px; border-radius:16px; }
+    .tile .n { font-size:14px; color:var(--text2); }
+    .foot { position:absolute; left:0; right:0; top:240px; height:42px; }
+    .toast { position:absolute; left:50%; bottom:64px; transform:translateX(-50%); background:rgba(26,28,32,.96); border:1px solid var(--rand); color:var(--text); border-radius:10px; padding:6px 12px; font-size:12px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:9; white-space:nowrap; }
+    .toast.on { opacity:1; }
+    .src img { width:34px; height:34px; }
+    .lamp.on { border-color:rgba(232,238,243,.55); }
+    .lamp.off .lbl { opacity:.55; }
+    .sel { border-color:#bfc2c9 !important; }
+    .modeb.act { background:var(--ijs); border-color:var(--ijs); color:var(--bg); }
+    .pill { border-radius:16px; justify-content:flex-start; padding-left:12px; }
+    .power.lit { background:#e8eef3; color:var(--bg); }
+    .slider { position:absolute; left:6px; right:6px; height:6px; background:var(--surf); border-radius:3px; cursor:pointer; }
+    .slider i { position:absolute; left:0; top:0; bottom:0; background:#bfc2c9; border-radius:3px; }
+    .slider b { position:absolute; top:-5px; width:16px; height:16px; margin-left:-8px; background:var(--text); border-radius:50%; }
+    .lab { position:absolute; left:0; font-size:12px; color:var(--muted); }
+    .val { position:absolute; right:0; font-size:12px; color:var(--text2); }
+    .dim { position:absolute; inset:0; background:rgba(7,8,10,.86); display:none; z-index:8; }
+    .dim.on { display:block; }
+
+    /* keys under the screen */
+    .keys { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:22px 8px 0; align-items:center; justify-items:center; }
+    .k { width:58px; height:38px; border-radius:12px; background:linear-gradient(#1d1f24,#121317); border:1px solid #2a2d33; color:var(--text2); display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; }
+    .k:active { background:#2a2d33; }
+    .dpad { grid-column:1 / span 3; position:relative; width:150px; height:150px; border-radius:50%; background:linear-gradient(#1d1f24,#121317); border:1px solid #2a2d33; }
+    .dpad .k { position:absolute; width:46px; height:46px; border:0; background:transparent; }
+    .dpad .up { left:52px; top:4px; } .dpad .down { left:52px; bottom:4px; } .dpad .left { left:4px; top:52px; } .dpad .right { right:4px; top:52px; }
+    .dpad .ok { left:45px; top:45px; width:60px; height:60px; border-radius:50%; background:linear-gradient(#24272c,#16181b); border:1px solid #33363c; font:600 13px Inter, sans-serif; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="intro">
+    <h1>NOIR</h1>
+    <div class="line"></div>
+    <p data-t="intro1">Probeer de remote voordat je hem flasht. Dit zijn de schermen van de firmware, met voorbeelddata.</p>
+    <p data-t="intro2">Tik op de tegels, of gebruik de toetsen onder het scherm. Toetsenbord: <kbd>←↑→↓</kbd> navigeren, <kbd>Enter</kbd> OK, <kbd>Backspace</kbd> terug, <kbd>H</kbd> home.</p>
+    <p data-t="intro3">Op het TV-scherm gaan de pijltjes naar de tv; op de andere schermen beweegt een focusrand over de knoppen. Lamp vasthouden (of OK vasthouden) = dimmen.</p>
+    <div class="lang"><button data-l="nl" class="on">Nederlands</button><button data-l="en">English</button></div>
+    <p><a href="./" data-t="install">→ Naar de installer</a> · <a href="https://github.com/ronsone/Noir_Remote">GitHub</a></p>
+  </section>
+
+  <div class="remote">
+    <div class="scr-wrap"><div class="scr" id="scr">
+      <div class="bar"><span id="clock">20:53</span><span><span class="mdi mdi-wifi"></span> 78%</span></div>
+      <div class="toast" id="toast"></div>
+    </div></div>
+    <div class="keys">
+      <div class="k" data-key="back" title="Back"><span class="mdi mdi-arrow-left"></span></div>
+      <div class="k" data-key="home" title="Home"><span class="mdi mdi-home-outline"></span></div>
+      <div class="k" data-key="menu" title="Menu"><span class="mdi mdi-menu"></span></div>
+      <div class="dpad">
+        <div class="k up" data-key="up"><span class="mdi mdi-chevron-up"></span></div>
+        <div class="k left" data-key="left"><span class="mdi mdi-chevron-left"></span></div>
+        <div class="k ok" data-key="ok">OK</div>
+        <div class="k right" data-key="right"><span class="mdi mdi-chevron-right"></span></div>
+        <div class="k down" data-key="down"><span class="mdi mdi-chevron-down"></span></div>
+      </div>
+      <div class="k" data-key="voldown" title="Volume -"><span class="mdi mdi-volume-minus"></span></div>
+      <div class="k" data-key="play" title="Play/pause"><span class="mdi mdi-play-pause"></span></div>
+      <div class="k" data-key="volup" title="Volume +"><span class="mdi mdi-volume-plus"></span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ---- texts (NL / EN) ----
+const T = {
+  nl: { home:"Thuis", back:"Terug", tv:"TV", audio:"Audio", lights:"Verlichting", scenes:"Scènes", airco:"Airco", alloff:"Alles uit",
+    settings:"Instellingen", on:"Aan", off:"Uit", mode:"Modus", skin:"Skin", wifi:"Wi-Fi", test:"Knoppentest", input:"Ingang", level:"Niveau",
+    volume:"Volume", sub:"Subwoofer", nothing:"Niets aan het afspelen", room:"kamer", cool:"Koelen", auto:"Automatisch", dry:"Ontvochtigen",
+    fan:"Ventileren", heat:"Verwarmen", movie:"Film", dinner:"Diner", evening:"Avond", tvsend:"→ tv", sent:"Verstuurd naar de tv",
+    allofft:"Alles uit", dimh:"Lang drukken = dimmen", ready:"Gereed", soon:"In de demo niet beschikbaar",
+    intro1:"Probeer de remote voordat je hem flasht. Dit zijn de schermen van de firmware, met voorbeelddata.",
+    intro2:"Tik op de tegels, of gebruik de toetsen onder het scherm. Toetsenbord: <kbd>←↑→↓</kbd> navigeren, <kbd>Enter</kbd> OK, <kbd>Backspace</kbd> terug, <kbd>H</kbd> home.",
+    intro3:"Op het TV-scherm gaan de pijltjes naar de tv; op de andere schermen beweegt een focusrand over de knoppen. Lamp vasthouden (of OK vasthouden) = dimmen.",
+    install:"→ Naar de installer", lamps:["Woonkamer","Eettafel","Keuken","Hal","Tuin"] },
+  en: { home:"Home", back:"Back", tv:"TV", audio:"Audio", lights:"Lights", scenes:"Scenes", airco:"Airco", alloff:"All off",
+    settings:"Settings", on:"On", off:"Off", mode:"Mode", skin:"Skin", wifi:"Wi-Fi", test:"Button test", input:"Input", level:"Level",
+    volume:"Volume", sub:"Subwoofer", nothing:"Nothing playing", room:"room", cool:"Cooling", auto:"Auto", dry:"Drying",
+    fan:"Fan", heat:"Heating", movie:"Movie", dinner:"Dinner", evening:"Evening", tvsend:"→ TV", sent:"Sent to the TV",
+    allofft:"All off", dimh:"Hold = dim", ready:"Done", soon:"Not in the demo",
+    intro1:"Try the remote before you flash it. These are the firmware's screens, with sample data.",
+    intro2:"Tap the tiles, or use the keys under the screen. Keyboard: <kbd>←↑→↓</kbd> move, <kbd>Enter</kbd> OK, <kbd>Backspace</kbd> back, <kbd>H</kbd> home.",
+    intro3:"On the TV screen the arrows go to the TV; on the other screens a focus ring moves over the buttons. Hold a lamp (or hold OK) = dim.",
+    install:"→ To the installer", lamps:["Living room","Dining table","Kitchen","Hall","Garden"] },
+};
+let lang = "nl";
+const L = (k) => T[lang][k] ?? k;
+
+// ---- sample state ----
+const S = {
+  page: "home", tvOn: true, tvSrc: "PS5",
+  lamps: [{ on:true, b:80 }, { on:false, b:60 }, { on:false, b:100 }, { on:true, b:40 }, { on:false, b:100 }],
+  audio: { on:true, src:1, vol:32, sub:2, playing:true, title:"Midnight City", artist:"M83" },
+  ac: { on:true, mode:1, temp:21, room:23, fan:0, swing:false },
+};
+const FANS = ["Auto","1","2","3","4"];
+const SOURCES = [["PS5","playstation"],["Netflix","netflix"],["YouTube","youtube"],["Xbox","game"],["Live TV","tv"],["HDMI 2","hdmi"]];
+const ASRC = ["Wi-Fi","TV","Bluetooth","Optisch","Aux","USB"];
+
+const scr = document.getElementById("scr");
+const el = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const btn = (x, y, w, h, act, inner, cls = "", style = "") => `<div class="btn ${cls}" data-act="${act}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${style}">${inner}</div>`;
+const foot = () => `<div class="foot">${btn(0,0,104,42,"back",`<span class="mdi mdi-arrow-left"></span>${L("back")}`)}${btn(112,0,104,42,"home",`<span class="mdi mdi-home"></span>${L("home")}`)}</div>`;
+const slider = (y, label, val, min, max, act) => { const p = (val - min) / (max - min) * 100;
+  return `<span class="lab" style="top:${y}px">${label}</span><span class="val" style="top:${y}px">${act === "sub" ? (val > 0 ? "+" : "") + val + " dB" : val}</span>
+  <div class="slider" data-sl="${act}" data-min="${min}" data-max="${max}" style="top:${y + 24}px"><i style="width:${p}%"></i><b style="left:${p}%"></b></div>`; };
+
+// ---- screens ----
+const pages = {
+  home: () => {
+    const tiles = [["tv","mdi-television","tv"],["audio","mdi-waveform","audio"],["lights","mdi-lightbulb-outline","lights"],["scenes","mdi-layers-outline","scenes"]];
+    let h = `<span class="t1">NOIR / SIGNATURE</span><span class="t2">Home Control</span>` + btn(170, 0, 46, 34, "settings", `<span class="mdi mdi-cog"></span>`);
+    tiles.forEach(([k, ic, act], i) => { h += btn((i % 2) * 112, 52 + Math.floor(i / 2) * 64, 104, 56, act, `<span class="mdi ${ic}"></span><span class="n">${L(k)}</span>`, "tile"); });
+    h += btn(0, 180, 104, 56, "airco", `<span class="mdi mdi-snowflake"></span><span class="n">${L("airco")}</span>`, "tile");
+    h += btn(112, 180, 104, 56, "alloff", `<span class="mdi mdi-power"></span><span class="n">${L("alloff")}</span>`, "tile");
+    return h;
+  },
+  tv: () => {
+    let h = `<span class="t1">TV</span><span class="t2">● ${S.tvOn ? L("on") + " · " + S.tvSrc : L("off")}</span>` + btn(164, 0, 52, 34, "tvpower", `<span class="mdi mdi-power"></span>`);
+    SOURCES.forEach(([n, logo], i) => { h += btn((i % 2) * 112, 48 + Math.floor(i / 2) * 82, 104, 76, "src:" + n,
+      `<img src="logos/${logo}.png" alt="" style="width:34px;height:34px;margin-top:8px"><span style="font-size:12px;color:#bfc2c9;margin-top:auto;margin-bottom:7px">${n}</span>`,
+      "src" + (S.tvOn && S.tvSrc === n ? " sel" : ""), "flex-direction:column;border-radius:16px"); });
+    return h;
+  },
+  lights: () => {
+    let h = `<span class="t1">${L("lights")}</span><span class="t2">${L("dimh")}</span>`;
+    S.lamps.forEach((l, i) => { h += btn(0, 52 + i * 52, 216, 44, "lamp:" + i, `<span class="lbl">${T[lang].lamps[i]} · ${l.on ? l.b + "%" : L("off")}</span>`, "lamp " + (l.on ? "on" : "off")); });
+    return h;
+  },
+  scenes: () => {
+    const sc = [["alloff","mdi-power"],["movie","mdi-movie-open-outline"],["dinner","mdi-silverware-fork-knife"],["evening","mdi-weather-night"]];
+    let h = `<span class="t1">${L("scenes")}</span>`;
+    sc.forEach(([k, ic], i) => { h += btn((i % 2) * 112, 40 + Math.floor(i / 2) * 64, 104, 56, "scene:" + k, `<span class="mdi ${ic}"></span><span class="n">${L(k)}</span>`, "tile"); });
+    return h;
+  },
+  audio: () => {
+    const a = S.audio;
+    let h = `<span class="t1">Audio</span><span class="t2">Woonkamer · ${a.on ? ASRC[a.src] : L("off")}</span>` + btn(164, 0, 52, 34, "apower", `<span class="mdi mdi-power"></span>`, a.on ? "power lit" : "power");
+    h += btn(0, 48, 216, 76, "aplay", `<span class="mdi mdi-music-note" style="position:absolute;left:24px;top:26px;font-size:24px"></span>
+      <span style="position:absolute;left:76px;top:9px;font-size:11px;color:#bfc2c9">${lang === "en" ? "MUSIC" : "MUZIEK"}</span>
+      <span style="position:absolute;left:76px;top:25px;font-size:14px">${a.playing ? a.title : L("nothing")}</span>
+      <span style="position:absolute;left:76px;top:45px;color:var(--muted)">${a.playing ? a.artist : ""}</span>`);
+    h += `<span class="lab" style="top:136px;color:var(--text);font-size:14px">${L("input")}</span>`;
+    ASRC.forEach((n, i) => { h += btn((i % 3) * 74, 158 + Math.floor(i / 3) * 38, 68, 32, "asrc:" + i, n, a.on && a.src === i ? "sel" : ""); });
+    h += `<span class="lab" style="top:242px;color:var(--text);font-size:14px">${L("level")}</span>` + slider(266, L("volume"), a.vol, 0, 100, "vol") + slider(310, L("sub"), a.sub, -10, 10, "sub");
+    return h + `<div style="position:absolute;top:350px;height:1px;width:1px"></div>`;
+  },
+  airco: () => {
+    const a = S.ac, pct = Math.max(0, Math.min(1, (a.temp - 16) / 14));
+    let h = `<span class="t1">${L("airco")}</span><span class="t2">${a.on ? L(["auto","cool","dry","fan","heat"][a.mode]) : L("off")} · ${L("room")} ${a.room}°</span>`
+      + btn(164, 0, 52, 34, "acpower", `<span class="mdi mdi-power"></span>`, a.on ? "power lit" : "power");
+    h += `<svg width="104" height="104" viewBox="0 0 104 104" style="position:absolute;left:56px;top:40px"><circle cx="52" cy="52" r="48" fill="none" stroke="#383c43" stroke-width="4" stroke-dasharray="226.2 301.6" transform="rotate(135 52 52)" stroke-linecap="round"/>
+      <circle cx="52" cy="52" r="48" fill="none" stroke="#9fd8f0" stroke-width="5" stroke-dasharray="${(226.2 * pct).toFixed(1)} 301.6" transform="rotate(135 52 52)" stroke-linecap="round" opacity="${a.on ? 1 : .35}"/></svg>
+      <span style="position:absolute;left:58px;top:64px;width:100px;text-align:center;font-size:48px;font-weight:300;line-height:56px;opacity:${a.on ? 1 : .45}">${a.temp}<sup style="font-size:20px;vertical-align:28px">°</sup></span>`;
+    h += btn(0, 70, 44, 44, "acmin", `<span class="mdi mdi-minus"></span>`, "", "border-radius:22px") + btn(172, 70, 44, 44, "acplus", `<span class="mdi mdi-plus"></span>`, "", "border-radius:22px");
+    ["mdi-alpha-a-circle-outline","mdi-snowflake","mdi-water","mdi-fan","mdi-white-balance-sunny"].forEach((ic, i) => {
+      h += btn(i * 44, 152, 38, 32, "acmode:" + i, `<span class="mdi ${ic}"></span>`, "modeb" + (a.on && a.mode === i ? " act" : "")); });
+    h += btn(0, 194, 104, 30, "acfan", `<span class="mdi mdi-fan"></span><span style="margin-left:8px">${FANS[a.fan]}</span>`, "pill")
+      + btn(112, 194, 104, 30, "acswing", `<span class="mdi mdi-arrow-oscillating"></span><span style="margin-left:8px">${a.swing ? "Swing " + L("on") : "Swing"}</span>`, "pill" + (a.swing ? " sel" : ""));
+    return h;
+  },
+  settings: () => {
+    let h = `<span class="t1">${L("settings")}</span><span class="lab" style="top:34px">${L("mode")}</span>`;
+    h += btn(0, 52, 104, 40, "mode:full", "Full", S.eco ? "" : "sel") + btn(112, 52, 104, 40, "mode:eco", "Eco", S.eco ? "sel" : "");
+    h += `<span class="lab" style="top:104px">${L("skin")}</span>` + btn(0, 122, 216, 38, "skin", `<span style="margin-right:auto;padding-left:12px">NOIR / Obsidian</span><span class="mdi mdi-chevron-down" style="padding-right:10px"></span>`);
+    h += btn(0, 170, 104, 40, "wifi", L("wifi")) + btn(112, 170, 104, 40, "test", L("test"));
+    return h;
+  },
+};
+
+// ---- render ----
+function render() {
+  scr.querySelectorAll(".page").forEach((p) => p.remove());
+  const p = el(`<div class="page on"><div class="body">${pages[S.page]()}</div>${foot()}<div class="dim" id="dim"></div></div>`);
+  scr.appendChild(p);
+  if (focusIdx != null) { const all = buttons(); if (all[focusIdx]) all[focusIdx].classList.add("focus"); }
+}
+function toast(t) { const e = document.getElementById("toast"); e.textContent = t; e.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 1400); }
+function go(page) { S.page = page; focusIdx = null; render(); }
+
+// ---- actions (what a tap does) ----
+function act(a, long = false) {
+  const [k, v] = a.split(":");
+  if (k === "back") return go(S.page === "home" ? "home" : "home");
+  if (k === "home") return go("home");
+  if (["tv","audio","lights","scenes","airco","settings"].includes(k)) return go(k);
+  if (k === "alloff" || (k === "scene" && v === "alloff")) { S.tvOn = false; S.audio.on = false; S.ac.on = false; S.lamps.forEach((l) => l.on = false); toast(L("allofft")); return render(); }
+  if (k === "scene") { toast(L(v)); return; }
+  if (k === "tvpower") { S.tvOn = !S.tvOn; toast(S.tvOn ? "TV " + L("on").toLowerCase() : "TV " + L("off").toLowerCase()); return render(); }
+  if (k === "src") { S.tvOn = true; S.tvSrc = v; toast(v); return render(); }
+  if (k === "lamp") { const l = S.lamps[+v];
+    if (long) { l.on = true; l.b = l.b >= 100 ? 20 : l.b + 20; toast(`${T[lang].lamps[+v]} · ${l.b}%`); } else l.on = !l.on;
+    return render(); }
+  if (k === "apower") { S.audio.on = !S.audio.on; return render(); }
+  if (k === "aplay") { S.audio.playing = !S.audio.playing; return render(); }
+  if (k === "asrc") { S.audio.on = true; S.audio.src = +v; return render(); }
+  if (k === "acpower") { S.ac.on = !S.ac.on; return render(); }
+  if (k === "acmin" || k === "acplus") { S.ac.temp = Math.max(16, Math.min(30, S.ac.temp + (k === "acplus" ? 1 : -1))); S.ac.on = true; return render(); }
+  if (k === "acmode") { S.ac.mode = +v; S.ac.on = true; return render(); }
+  if (k === "acfan") { S.ac.fan = (S.ac.fan + 1) % FANS.length; return render(); }
+  if (k === "acswing") { S.ac.swing = !S.ac.swing; return render(); }
+  if (k === "mode") { S.eco = v === "eco"; return render(); }
+  toast(L("soon"));
+}
+
+// taps (hold 500 ms = long press)
+let downAt = 0, downEl = null;
+scr.addEventListener("pointerdown", (e) => { downEl = e.target.closest("[data-act]"); downAt = Date.now(); const sl = e.target.closest("[data-sl]"); if (sl) slide(sl, e); });
+scr.addEventListener("pointerup", (e) => { const b = e.target.closest("[data-act]"); if (b && b === downEl) act(b.dataset.act, Date.now() - downAt >= 500); downEl = null; });
+function slide(sl, e) {
+  const r = sl.getBoundingClientRect(), min = +sl.dataset.min, max = +sl.dataset.max;
+  const v = Math.round(min + Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (max - min));
+  if (sl.dataset.sl === "vol") S.audio.vol = v; else S.audio.sub = v;
+  render();
+}
+
+// ---- D-pad: the screen you see decides ----
+let focusIdx = null, focusTimer = null;
+const buttons = () => [...scr.querySelectorAll(".page.on [data-act]")];
+const centre = (b) => { const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+function setFocus(i) {
+  buttons().forEach((b) => b.classList.remove("focus"));
+  focusIdx = i;
+  const b = buttons()[i];
+  if (b) { b.classList.add("focus"); b.scrollIntoView({ block: "nearest" }); }
+  clearTimeout(focusTimer); focusTimer = setTimeout(() => { focusIdx = null; buttons().forEach((x) => x.classList.remove("focus")); }, 8000);
+}
+function move(dir) {
+  const all = buttons();
+  if (!all.length) return;
+  if (focusIdx == null || !all[focusIdx]) { // first press: top left
+    let best = 0; all.forEach((b, i) => { const c = centre(b), d = centre(all[best]); if (c.y < d.y - 8 || (Math.abs(c.y - d.y) <= 8 && c.x < d.x)) best = i; });
+    return setFocus(best);
+  }
+  const f = centre(all[focusIdx]); let best = null, score = 0;
+  all.forEach((b, i) => {
+    if (i === focusIdx) return;
+    const c = centre(b), dx = c.x - f.x, dy = c.y - f.y;
+    const [along, across] = dir === "up" ? [-dy, Math.abs(dx)] : dir === "down" ? [dy, Math.abs(dx)] : dir === "left" ? [-dx, Math.abs(dy)] : [dx, Math.abs(dy)];
+    if (along <= 4) return;
+    const s = along + 2 * across;
+    if (best == null || s < score) { best = i; score = s; }
+  });
+  if (best != null) setFocus(best);
+}
+let okAt = 0;
+function key(k, down) {
+  if (k === "volup" || k === "voldown") { if (down) { S.audio.vol = Math.max(0, Math.min(100, S.audio.vol + (k === "volup" ? 2 : -2))); toast(`${L("volume")} ${S.audio.vol}`); if (S.page === "audio") render(); } return; }
+  if (k === "play") { if (down) { S.audio.playing = !S.audio.playing; if (S.page === "audio") render(); toast(S.audio.playing ? "▶" : "❚❚"); } return; }
+  if (k === "back" || k === "home") { if (!down) act(k); return; }   // act on release, like the firmware
+  if (k === "menu") { if (!down) go("settings"); return; }
+  const dirs = ["up","down","left","right"];
+  if (S.page === "tv" && (dirs.includes(k) || k === "ok")) { if (down) toast(`${k.toUpperCase()} ${L("tvsend")}`); return; }
+  if (S.page === "airco" && dirs.includes(k)) {
+    if (!down) return;
+    if (k === "up" || k === "down") act(k === "up" ? "acplus" : "acmin");
+    else { S.ac.mode = (S.ac.mode + (k === "right" ? 1 : 4)) % 5; S.ac.on = true; render(); }
+    return;
+  }
+  if (S.page === "airco" && k === "ok") { if (down) act("acpower"); return; }
+  if (dirs.includes(k)) { if (down) move(k); return; }
+  if (k === "ok") {
+    const b = buttons()[focusIdx];
+    if (down) { if (!b) { move("up"); okAt = 0; } else okAt = Date.now(); return; }
+    if (b && okAt) { b.classList.add("press"); setTimeout(() => b.classList.remove("press"), 120); act(b.dataset.act, Date.now() - okAt >= 500); }
+    okAt = 0;
+  }
+}
+document.querySelectorAll(".keys [data-key]").forEach((k) => {
+  k.addEventListener("pointerdown", (e) => { e.preventDefault(); key(k.dataset.key, true); });
+  k.addEventListener("pointerup", () => key(k.dataset.key, false));
+});
+const KB = { ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right", Enter:"ok", " ":"ok", Backspace:"back", Escape:"back", h:"home", H:"home", m:"menu", "+":"volup", "-":"voldown", p:"play" };
+document.addEventListener("keydown", (e) => { const k = KB[e.key]; if (!k) return; e.preventDefault(); if (!e.repeat) key(k, true); else if (["up","down","left","right"].includes(k)) key(k, true); });
+document.addEventListener("keyup", (e) => { const k = KB[e.key]; if (k) key(k, false); });
+
+// language
+document.querySelectorAll(".lang button").forEach((b) => b.addEventListener("click", () => {
+  lang = b.dataset.l; document.documentElement.lang = lang;
+  document.querySelectorAll(".lang button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll("[data-t]").forEach((x) => { x.innerHTML = L(x.dataset.t); });
+  render();
+}));
+setInterval(() => { const d = new Date(); document.getElementById("clock").textContent = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; }, 10000);
+render();
+</script>
+</body>
+</html>

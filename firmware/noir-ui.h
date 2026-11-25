@@ -974,8 +974,8 @@ inline void airco_bouwen(lv_obj_t *laag, const Fonts &f) {
   u.aan_i = lv_obj_get_child(u.aan, -1);
   // dial arc (270 degrees) with the temperature in the middle
   u.boog = lv_arc_create(body);
-  lv_obj_set_size(u.boog, 116, 116);
-  lv_obj_set_pos(u.boog, 50, 44);
+  lv_obj_set_size(u.boog, 104, 104);   // everything fits the 230 px body: arc 40-144, modes 152-184, pills 194-224
+  lv_obj_set_pos(u.boog, 56, 40);
   lv_arc_set_bg_angles(u.boog, 135, 45);
   lv_arc_set_range(u.boog, 0, 100);
   lv_obj_remove_style(u.boog, nullptr, LV_PART_KNOB);
@@ -986,21 +986,21 @@ inline void airco_bouwen(lv_obj_t *laag, const Fonts &f) {
   lv_obj_set_style_arc_color(u.boog, k(airco::IJS), LV_PART_INDICATOR);
   lv_obj_set_style_arc_rounded(u.boog, true, LV_PART_INDICATOR);
   const lv_font_t *groot = f.groot != nullptr ? f.groot : (f.f20 != nullptr ? f.f20 : f.f16);
-  u.temp = label(body, "", 58, 44 + (116 - lv_font_get_line_height(groot)) / 2, 100, groot, TEXT);
+  u.temp = label(body, "", 58, 40 + (104 - lv_font_get_line_height(groot)) / 2, 100, groot, TEXT);
   lv_obj_set_style_text_align(u.temp, LV_TEXT_ALIGN_CENTER, 0);
-  u.graad = label(body, "\xC2\xB0", 138, 64, 16, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
-  u.min = icoon_knop_(body, 0, 80, 44, 44, AIRCO_MIN, ICO_MIN, f);
-  u.plus = icoon_knop_(body, 172, 80, 44, 44, AIRCO_PLUS, ICO_PLUS, f);
+  u.graad = label(body, "\xC2\xB0", 136, 58, 16, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
+  u.min = icoon_knop_(body, 0, 70, 44, 44, AIRCO_MIN, ICO_MIN, f);
+  u.plus = icoon_knop_(body, 172, 70, 44, 44, AIRCO_PLUS, ICO_PLUS, f);
   lv_obj_set_style_radius(u.min, 22, 0);
   lv_obj_set_style_radius(u.plus, 22, 0);
   // modes as icons
   const int bw = (216 - 4 * 6) / 5;
   for (int i = 0; i < airco::MODI; i++) {
-    u.modus[i] = icoon_knop_(body, i * (bw + 6), 172, bw, 34, AIRCO_MODUS + i, airco::MODUS_ICO[i], f);
+    u.modus[i] = icoon_knop_(body, i * (bw + 6), 152, bw, 32, AIRCO_MODUS + i, airco::MODUS_ICO[i], f);
     lv_obj_set_style_radius(u.modus[i], 12, 0);
   }
-  u.fan = pil_(body, 0, 216, 104, 32, AIRCO_FAN, ICO_FAN, f);
-  u.swing = pil_(body, 112, 216, 104, 32, AIRCO_SWING, ICO_SWING, f);
+  u.fan = pil_(body, 0, 194, 104, 30, AIRCO_FAN, ICO_FAN, f);
+  u.swing = pil_(body, 112, 194, 104, 30, AIRCO_SWING, ICO_SWING, f);
   airco::tonen();
 }
 

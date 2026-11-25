@@ -6,7 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="#setup--about-30-minutes-most-of-it-waiting-for-the-first-build"><b>Get started</b></a> ·
+  <a href="https://ronsone.github.io/Noir_Remote/demo.html"><b>Try the demo</b></a> ·
+  <a href="#setup--about-15-minutes"><b>Get started</b></a> ·
+  <a href="#the-noir-builder">NOIR Builder</a> ·
   <a href="docs/tv.md">TV</a> ·
   <a href="#inside">How it works</a>
 </p>
@@ -15,7 +17,7 @@
 
 | ✦ **Simple** | ✦ **Yours** | ✦ **Open** |
 |---|---|---|
-| One screen per task. Text only where it helps. Nederlands or English. | Build your screens in the **NOIR Builder** – what you see is what the remote shows. | Any TV in Home Assistant. Free, MIT licensed, every feature a small module. |
+| One screen per task. Text only where it helps. Nederlands or English. | Build your screens in the **NOIR Builder** – what you see is what the remote shows. | Any TV, speaker, light or airco in Home Assistant. One firmware for everyone, free, MIT licensed, every feature a small module. |
 
 <p align="center"><img src="docs/screens.png" width="100%" alt="Home, TV, Lights, Scenes, Settings"></p>
 
@@ -33,6 +35,8 @@
 | **Modes** | **Full** – always ready. **Eco** – longer battery. |
 
 Netflix comes next – as its own module. Which tiles your home screen shows is up to you: add and remove them in the NOIR Builder.
+
+**Try it first:** the **[demo](https://ronsone.github.io/Noir_Remote/demo.html)** shows the remote's screens in your browser, with sample data – tap the tiles or use the D-pad under the screen (or the arrow keys and Enter on your keyboard).
 
 ## Setup – about 15 minutes
 
@@ -70,9 +74,27 @@ Within a minute Home Assistant adds the remote by itself – the encryption key,
 You find it under *Settings → Devices & services → ESPHome*.
 
 ### 5 · Your screens
-Open **NOIR Builder** in the sidebar. Each tab is one screen, the preview shows your remote. Press **Save** – the remote updates in seconds.
+Open **NOIR Builder** in the sidebar and make the remote yours – see below.
 
-**TV in four steps:** choose your TV → choose its brand and press **Test** → (optional) your speaker → tap the inputs and apps you want. Logos are picked for you. More in [docs/tv.md](docs/tv.md).
+## The NOIR Builder
+
+The NOIR Builder is the page in Home Assistant's sidebar where you build your remote. No code, no files: you pick things from lists.
+
+- **Left: the preview.** What you see is what the remote shows.
+- **Top: one tab per screen.** Change something and press **Save** – the remote picks it up within seconds (it gets a nudge from Home Assistant; otherwise within 15 minutes).
+- Everything is in Nederlands or English – switch under *Remote → Language*; the remote follows.
+
+| Tab | What you do there |
+|---|---|
+| **Home** | The tiles on your home screen. **Add tile**, choose what it **opens** (TV, Audio, Lights, Scenes, Airco, All off, settings – or switch one device, or run a scene/script), give it a name and icon, half or full width. Reorder or remove them with the arrows and ×. |
+| **Lights** | Add your lamps. Tap = on/off, hold = dim (for dimmable lights). |
+| **Scenes** | Your scenes and scripts as tiles. *All off* is always there. |
+| **TV** | 1 your TV · 2 its brand for infrared – press **Test · On** to check · 3 your speaker (optional, with *Switch it on with: source* for speakers that wake up that way) · 4 tap the inputs and apps you want; logos are picked for you. Your TV must be on to see its inputs. More in [docs/tv.md](docs/tv.md). |
+| **Audio** | 1 your speaker · 2 tap its sources (up to 6), rename them · 3 *Now playing* from another player (optional, e.g. Music Assistant) · 4 a subwoofer level (optional). |
+| **Airco** | Per room: a name and how it is controlled – a **climate entity** in Home Assistant (any brand) or the remote's **own infrared** (Mitsubishi Heavy). Up to 4 rooms; on the remote you switch between them. |
+| **Remote** | Mode (**Full** / **Eco**), language, **Firmware** (version, **Check now**, **Update firmware**) and *First-time setup* with a link to the installer. |
+
+A screen only works once it has a tile on **Home** – e.g. add a tile *Audio screen* after setting up Audio.
 
 ## Updating
 
@@ -104,9 +126,10 @@ firmware/
 custom_components/noir_remote/
   NOIR Builder panel, config + state endpoints for the remote
   link.py             links the remote by itself (confirm, actions, host + key)
+  frontend/           the NOIR Builder (one file, noir-builder.js)
   profiles.json       infrared codes per TV brand
   logos.json          which source name gets which logo
-site/                 the installer page (GitHub Pages)
+site/                 the installer page and the demo (GitHub Pages)
 simulator/            all screens on your PC (SDL2 + LVGL)
 ```
 
