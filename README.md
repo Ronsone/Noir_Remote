@@ -43,12 +43,12 @@ Audio, Netflix and Airco come next – each as its own module.
 3. Restart Home Assistant.
    *Or with HACS:* ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add** → search **NOIR Remote** → *Download* → restart.
 4. *Settings → Devices & services → Add integration → NOIR Remote*.
-5. You get a short text: your **secrets.yaml**. Keep this screen open.
+5. Open **NOIR Builder** (sidebar) → tab *Remote* → *First-time setup*: fill in your Wi-Fi and press **Download secrets.yaml**.
 
 ### 2 · Firmware
 1. Use the same unzipped download from step 1.1.
-2. In the folder `firmware`, make a file `secrets.yaml`, paste the text from step 1.5 and fill in your Wi-Fi.
-   Lost it? *NOIR Builder* (sidebar) → tab *Remote* → *First-time setup* → **Copy**.
+2. Put the downloaded `secrets.yaml` in the folder `firmware` (next to `noir-remote.yaml`).
+   Your Wi-Fi is only written into this file, Home Assistant does not store it. Keep the file to yourself.
 3. Connect the remote by USB. Open a terminal in the `firmware` folder:
    ```
    pip install esphome

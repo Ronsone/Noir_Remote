@@ -10,7 +10,7 @@
       },
       "keys": {
         "title": "Je secrets.yaml",
-        "description": "Bewaar dit als **secrets.yaml** in de map `firmware`. Vul alleen je wifi in.\n\n```\n{block}\n```\n\nJe ziet het later ook in de NOIR Builder (tab Remote)."
+        "description": "Het makkelijkst: open **NOIR Builder** (zijbalk) → tab *Remote* → *Eerste keer instellen*, vul je wifi in en druk op **Download secrets.yaml**. Zet het in de map `firmware`.\n\nOf bewaar deze tekst zelf als **secrets.yaml** in de map `firmware` en vul je wifi in.\n\n```\n{block}\n```\n\nJe ziet het later ook in de NOIR Builder (tab Remote)."
       }
     },
     "abort": {

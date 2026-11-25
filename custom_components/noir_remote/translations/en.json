@@ -10,7 +10,7 @@
       },
       "keys": {
         "title": "Your secrets.yaml",
-        "description": "Save this as **secrets.yaml** in the `firmware` folder. Only fill in your Wi-Fi.\n\n```\n{block}\n```\n\nYou can see it again later in the NOIR Builder (tab Remote)."
+        "description": "Easiest: open **NOIR Builder** (sidebar) → tab *Remote* → *First-time setup*, fill in your Wi-Fi and press **Download secrets.yaml**. Put it in the `firmware` folder.\n\nOr save this text yourself as **secrets.yaml** in the `firmware` folder and fill in your Wi-Fi.\n\n```\n{block}\n```\n\nYou can see it again later in the NOIR Builder (tab Remote)."
       }
     },
     "abort": {
