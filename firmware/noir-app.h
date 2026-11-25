@@ -70,16 +70,63 @@ inline void build(lv_obj_t *home, const noir::Fonts &f, const Images &b) {
 
 inline void touched() { app().last_input = millis(); app().wake = true; }
 
+// ---- key filter: the Rev6 matrix sometimes reports a key you did not press ----------------------------------
+// Seen in the logs: Home (41) "pressed" for seconds on its own, and a neighbour key coming along with a real press.
+//  - Home, Back, Menu change the screen: they act on release, only after a normal short press (80-800 ms; a real press takes about 200 ms) during
+//    which no other key went down. A key that hangs or flickers does nothing.
+//  - Other keys act right away (arrows and volume repeat while held), but a second key that goes down within 80 ms of
+//    the first is taken as a ghost of the first and ignored - with its release.
+struct KeyFilter {
+  uint32_t down_ms[128]{};
+  bool passed[128]{};      // press was passed on, so pass its release too
+  bool spoiled[128]{};     // a slow key during which another key went down
+  int last_key{0};
+  uint32_t last_ms{0};
+};
+inline KeyFilter &kf() { static KeyFilter f; return f; }
+inline bool slow_key(int k) { return k == 41 || k == 13 || k == 3; }
+
+inline void key_to_modules_(int k, bool pressed) {
+  for (Module *m : modules()) if (m->key(k, pressed)) return;
+}
+
 inline void key(int k, bool pressed, bool held_long) {
   (void) held_long;
   App &a = app();
   const bool was_dark = !screen_on();
   a.last_input = millis();
   a.wake = true;
-  if (pressed && was_dark && k != 102 && k != 33 && k != 43 && k != 44) return;   // first press only wakes the display
-  // Button test (Settings): every key only shows its name and number; Terug on the screen leaves the test
+  // Button test (Settings): every key shows its name and number unfiltered, so ghosts are visible; Terug leaves it
   if (noir::st().seite == noir::S_TEST && k != 102) { noir::knoptest::taste(k, pressed); return; }
-  for (Module *m : modules()) if (m->key(k, pressed)) return;
+  if (k < 1 || k > 127) { key_to_modules_(k, pressed); return; }   // power key (GPI) etc.
+  KeyFilter &f = kf();
+  const uint32_t now = millis();
+  if (pressed) {
+    for (int i = 1; i < 128; i++) if (i != k && slow_key(i) && f.down_ms[i] != 0) f.spoiled[i] = true;   // another key during a slow key
+    f.down_ms[k] = now;
+    f.passed[k] = false;
+    f.spoiled[k] = false;
+    if (f.last_key != 0 && f.last_key != k && now - f.last_ms < 80) {
+      ESP_LOGD("noir", "Key %d ignored: within 80 ms of key %d", k, f.last_key);
+      return;
+    }
+    f.last_key = k;
+    f.last_ms = now;
+    if (was_dark && k != 102 && k != 33 && k != 43 && k != 44) return;   // first press only wakes the display (power and volume work dark)
+    if (slow_key(k)) return;                                 // acts on release
+    f.passed[k] = true;
+    key_to_modules_(k, true);
+    return;
+  }
+  // released
+  const uint32_t held = f.down_ms[k] != 0 ? now - f.down_ms[k] : 0;
+  f.down_ms[k] = 0;
+  if (slow_key(k) && f.last_key == k) {
+    if (held >= 80 && held <= 800 && !f.spoiled[k] && !was_dark) { key_to_modules_(k, true); key_to_modules_(k, false); }
+    else ESP_LOGD("noir", "Key %d ignored: held %u ms%s", k, (unsigned) held, f.spoiled[k] ? ", other key during it" : "");
+    return;
+  }
+  if (f.passed[k]) { f.passed[k] = false; key_to_modules_(k, false); }
 }
 
 // Every 100 ms

@@ -15,7 +15,7 @@
 substitutions:
   device_name: noir-remote
   friendly_name: NOIR Remote
-  version: "0.3.0"
+  version: "0.3.1"
   manifest: https://ronsone.github.io/Noir_Remote/firmware/manifest.json
 
 packages:
@@ -196,7 +196,7 @@ tca8418:
   rows: 5
   columns: 5
   extra_gpi_pins: [5]
-  debounce: 12ms
+  debounce: 25ms
   long_press: 500ms
   on_key:
     - then:
