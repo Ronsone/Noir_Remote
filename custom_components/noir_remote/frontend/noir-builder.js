@@ -25,9 +25,9 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const haIcon = (i) => ({ "noir:tv": "mdi:television", "noir:audio": "mdi:waveform", "noir:licht": "mdi:floor-lamp-outline", "noir:scenes": "mdi:layers-outline" }[i] || i || "mdi:square-rounded-outline");
 
 const CSS = `
-:host { display:block; min-height:100vh; background:var(--primary-background-color); color:var(--primary-text-color); font-family:var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+:host { display:block; height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; background:var(--primary-background-color); color:var(--primary-text-color); font-family:var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
 .wrap { max-width:1200px; padding:20px 24px; }
-h1 { margin:0 0 2px; font-size:24px; font-weight:600; } .sub { margin:0 0 16px; color:var(--secondary-text-color); }
+.top { display:flex; align-items:center; gap:4px; } h1 { margin:0 0 2px; font-size:24px; font-weight:600; } .sub { margin:0 0 16px; color:var(--secondary-text-color); }
 .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
 .tab { display:inline-flex; align-items:center; gap:7px; padding:8px 15px; border-radius:999px; border:1px solid var(--divider-color); background:var(--card-background-color); color:var(--primary-text-color); font:inherit; cursor:pointer; }
 .tab ha-icon { --mdc-icon-size:18px; opacity:.8; } .tab.on { background:var(--primary-text-color); color:var(--card-background-color); border-color:var(--primary-text-color); font-weight:600; }
@@ -43,7 +43,6 @@ h1 { margin:0 0 2px; font-size:24px; font-weight:600; } .sub { margin:0 0 16px; 
 .row.sel { background:rgba(59,130,246,.10); border-radius:10px; box-shadow:inset 3px 0 0 #3b82f6; }
 input, select { width:100%; box-sizing:border-box; min-width:0; padding:7px 9px; border-radius:9px; border:1px solid var(--divider-color); background:var(--secondary-background-color, #111); color:var(--primary-text-color); font:inherit; }
 input[type=checkbox] { width:auto; }
-.wifi { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .ico { position:relative; display:inline-flex; align-items:center; justify-content:center; width:44px; height:34px; border-radius:9px; border:1px solid var(--divider-color); }
 .ico select { position:absolute; inset:0; opacity:0; cursor:pointer; } .ico ha-icon { --mdc-icon-size:20px; }
 .acts { display:flex; gap:2px; justify-content:flex-end; } .muted { color:var(--secondary-text-color); }
@@ -97,7 +96,7 @@ class NoirBuilder extends HTMLElement {
     }
   }
   set panel(p) { this._panel = p; }
-  set narrow(n) { this._narrow = n; }
+  set narrow(n) { const was = this._narrow; this._narrow = n; if (was !== n && this._painted) this._render(); }
 
   async _load() {
     try {
@@ -302,16 +301,18 @@ class NoirBuilder extends HTMLElement {
     if (!m) { this.shadowRoot.innerHTML = `<style>${CSS}</style><div class="wrap"><h1>NOIR Builder</h1><p class="sub">${esc(this.s.msg || "Loading…")}</p></div>`; return; }
     LANG = m.lang === "en" ? "en" : "nl";
     const t = { home: this._home, lights: this._lights, scenes: this._scenes, tv: this._tv, remote: this._remote }[this.s.tab].call(this);
-    const y = window.scrollY;
+    const y = this.scrollTop;   // the panel scrolls itself (Home Assistant gives it a fixed height)
     this.shadowRoot.innerHTML = `<style>${CSS}</style><div class="wrap">
-      <h1>NOIR Builder</h1><p class="sub">${L("What you see left is what your remote shows.")}</p>
+      <div class="top">${this._narrow ? "<ha-menu-button></ha-menu-button>" : ""}<h1>NOIR Builder</h1></div><p class="sub">${L("What you see left is what your remote shows.")}</p>
       <div class="tabs">${TABS.map(([k, l, ic]) => `<button class="tab ${k === this.s.tab ? "on" : ""}" data-a="tab" data-t="${k}"><ha-icon icon="${ic}"></ha-icon>${L(l)}</button>`).join("")}</div>
       <div class="main"><div class="phone">${t.preview}<small class="hint">${t.hint}</small></div>
         <div class="ed">${t.body}
           <div class="bar"><button class="btn primary" data-a="save" ${this.s.dirty ? "" : "disabled"}><ha-icon icon="mdi:content-save"></ha-icon>${L("Save")}</button>
             ${this.s.dirty ? `<span class="dirty">${L("Unsaved changes")}</span>` : this.s.msg ? `<span class="ok">${esc(this.s.msg)}</span>` : ""}</div></div></div>
       ${this._list("dl-toggle", ["light", "switch", "input_boolean", "fan"])}${this._list("dl-run", ["scene", "script"])}</div>`;
-    window.scrollTo(0, y);
+    this.scrollTop = y;
+    const mb = this.shadowRoot.querySelector("ha-menu-button");   // phone: the sidebar opens from here
+    if (mb) { mb.hass = this._hass; mb.narrow = true; }
   }
 
   _click(e) {
