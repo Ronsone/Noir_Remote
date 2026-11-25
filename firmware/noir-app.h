@@ -41,9 +41,9 @@ inline void start(const char *host, const char *key) {
   nvs_load();   // last known screens, so the remote works right away
 }
 
-struct Images { const esphome::image::Image *wall, *tv, *audio, *licht, *scenes; };
+struct Images { esphome::image::Image *wall, *tv, *audio, *licht, *scenes; };
 // Logos for the TV source tiles (registered by logos.yaml, before build)
-inline void logo(const char *key, const esphome::image::Image *img) { noir::logos()[key] = img->get_lv_image_dsc(); }
+inline void logo(const char *key, esphome::image::Image *img) { noir::logos()[key] = img->get_lv_image_dsc(); }
 inline void build(lv_obj_t *home, const noir::Fonts &f, const Images &b) {
   noir::Beelden bl;
   bl.wall = b.wall->get_lv_image_dsc();

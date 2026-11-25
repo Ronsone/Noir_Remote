@@ -272,3 +272,17 @@ lvgl:
       pad_top: 10
       scrollbar_mode: "off"
       scrollable: false
+    # Never shown. The screens are built in C++ (noir-ui.h); ESPHome only switches on the LVGL parts
+    # it sees in this file. This page tells it which widgets, fonts and images the screens use.
+    - id: page_parts
+      skip: true
+      widgets:
+        - label: {hidden: true, text: "", text_font: f12}
+        - label: {hidden: true, text: "", text_font: f14}
+        - label: {hidden: true, text: "", text_font: f16}
+        - label: {hidden: true, text: "", text_font: f20}
+        - label: {hidden: true, text: "", text_font: f48}
+        - label: {hidden: true, text: "", text_font: ico20}
+        - image: {hidden: true, src: img_wall}
+        - button: {hidden: true}
+        - slider: {hidden: true}
