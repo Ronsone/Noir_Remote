@@ -13,6 +13,7 @@ struct Tv : Module {
   int on{-1}, off{-1}, power{-1};
   std::map<int, int> keys;          // Rev6 keycode -> IR command
   std::string speaker, apps_sig;
+  std::string speaker_source;   // some speakers (KEF LSX II) only wake up by choosing a source
   int held{0};
   uint32_t held_next{0};
 
@@ -29,7 +30,10 @@ struct Tv : Module {
     if (on >= 0) ir.send(on);
     else if (power >= 0 && !noir::tv_aan()) ir.send(power);
     else if (!entity().empty()) ha("media_player.turn_on", {{"entity_id", entity()}});
-    if (!speaker.empty()) ha("media_player.turn_on", {{"entity_id", speaker}});
+    if (!speaker.empty()) {
+      if (!speaker_source.empty()) ha("media_player.select_source", {{"entity_id", speaker}, {"source", speaker_source}});
+      else ha("media_player.turn_on", {{"entity_id", speaker}});
+    }
   }
   void power_off() {
     if (off >= 0) ir.send(off);
@@ -56,6 +60,7 @@ struct Tv : Module {
     JsonObjectConst tv = cfg["tv"];
     noir::tv::entiteit() = tv["entity"] | "";
     speaker = tv["speaker"] | (tv["kef"] | "");          // "kef" = name before 0.2
+    speaker_source = tv["speaker_source"] | "";
     noir::kef::entiteit() = speaker;                       // volume keys -> the speaker
     JsonObjectConst r = tv["ir"];
     ir = Ir{r["p"] | "", r["a"] | -1};

@@ -29,5 +29,5 @@ DEFAULT_MODEL = {
     "scenes": [],
     # profile: key in profiles.json, "" = no infrared (Home Assistant only)
     # apps: [{"name": "PS5", "source": "PS5 Gameconsole", "logo": "playstation"}]
-    "tv": {"entity": "", "speaker": "", "profile": "", "apps": []},
+    "tv": {"entity": "", "speaker": "", "speaker_source": "", "profile": "", "apps": []},
 }

@@ -63,6 +63,7 @@ def payload(model: dict, version: str) -> dict:
         "lights": lights,
         "scenes": scenes,
         "tv": {"entity": tv.get("entity", ""), "speaker": tv.get("speaker", ""),
+               "speaker_source": str(tv.get("speaker_source", ""))[:40],   # some speakers (KEF LSX II) only wake up by choosing a source
                "ir": ir_block(tv.get("profile", "")) if tv.get("profile") in PROFILES else {},
                "apps": clean_apps(tv.get("apps"))},
     }
