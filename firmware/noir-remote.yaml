@@ -4,7 +4,7 @@
 # Version 0.2: Home tiles, Lights, Scenes, TV (any TV in HA; keys by infrared from a brand profile).
 # Everything you see is set up in Home Assistant: NOIR Builder (integration noir_remote).
 #
-# Build: put your secrets.yaml next to this file, then:  esphome run noir-remote.yaml
+# Build: put your secrets.yaml next to this file, then:  esphome run noir-remote.yaml   (tested with ESPHome 2026.11)
 #
 # ---- Copy these lines to secrets.yaml (same folder as this file) ------------------------------------------
 # Easiest: Home Assistant fills them in for you - copy, paste, add your Wi-Fi. Where:
@@ -178,6 +178,12 @@ remote_transmitter:
   carrier_duty_percent: 50%
   non_blocking: true
 
+# Never run. ESPHome only builds the infrared protocols it sees in this file; Ir::send (modules/core.h) uses NEC.
+script:
+  - id: ir_protocols
+    then:
+      - remote_transmitter.transmit_nec: {transmitter_id: ir_tx, address: 0, command: 0}
+
 # ---- Keys (TCA8418 5x5 matrix) ----------------------------------------------------------------------------------
 tca8418:
   id: keypad
@@ -272,3 +278,18 @@ lvgl:
       pad_top: 10
       scrollbar_mode: "off"
       scrollable: false
+    # Never shown. The screens are built in C++ (noir-ui.h); ESPHome only switches on the LVGL parts
+    # it sees in this file. This page tells it which widgets, fonts and images the screens use.
+    - id: page_parts
+      skip: true
+      widgets:
+        - label: {hidden: true, text: "", text_font: f12}
+        - label: {hidden: true, text: "", text_font: f14}
+        - label: {hidden: true, text: "", text_font: f16}
+        - label: {hidden: true, text: "", text_font: f20}
+        - label: {hidden: true, text: "", text_font: f48}
+        - label: {hidden: true, text: "", text_font: ico20}
+        - image: {hidden: true, src: img_wall}
+        - button: {hidden: true}
+        - slider: {hidden: true}
+        - obj: {hidden: true, layout: {type: flex, flex_flow: row}, widgets: [label: {text: ""}]}
