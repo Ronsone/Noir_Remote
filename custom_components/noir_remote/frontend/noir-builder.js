@@ -17,7 +17,7 @@ const ICONS = ["noir:tv", "noir:audio", "noir:licht", "noir:scenes", "mdi:power"
   "mdi:door", "mdi:lock", "mdi:home", "mdi:cog", "mdi:heart", "mdi:star", "mdi:leaf", "mdi:flash", "mdi:speaker"];
 const LOGO_URL = (k) => `/noir_remote_static/logos/${k}.png`;
 const NL = {"Home": "Home", "Lights": "Verlichting", "Scenes": "Scènes", "TV": "TV", "Remote": "Remote", "TV screen": "TV", "Lights screen": "Verlichting", "Scenes screen": "Scènes", "All off": "Alles uit", "TV on/off": "TV aan/uit", "Remote settings": "Instellingen remote", "Toggle an entity": "Iets aan/uit zetten", "Run a scene or script": "Scène of script starten", "Audio (coming soon)": "Audio (binnenkort)", "Netflix (coming soon)": "Netflix (binnenkort)", "Airco (coming soon)": "Airco (binnenkort)", "Tiles on your home screen": "Tegels op je startscherm", "Add tile": "Tegel toevoegen", "Add light": "Lamp toevoegen", "Add scene": "Scène toevoegen", "Name": "Naam", "Opens": "Opent", "Entity": "Entiteit", "Size": "Maat", "Half": "Half", "Full": "Vol", "Dimmable": "Dimbaar", "On/off": "Aan/uit", "Scene or script": "Scène of script", "Also used by": "Ook gebruikt door", "App tiles": "App-tegels", "Your TV": "Je tv", "Speaker (on with the TV, volume keys)": "Speaker (aan met de tv, volumetoetsen)", "Advanced · infrared codes (LG is filled in)": "Geavanceerd · infraroodcodes (LG staat ingevuld)", "Address": "Adres", "Command": "Commando", "Power on": "Aan", "Power off": "Uit", "Power toggle": "Aan/uit", "Mode": "Modus", "Language": "Taal", "Always ready": "Altijd klaar", "Longer battery": "Langer op de accu", "First-time setup": "Eerste keer instellen", "Copy": "Kopiëren", "Copied": "Gekopieerd", "Save": "Opslaan", "Unsaved changes": "Niet opgeslagen", "Saved – the remote updates in a few seconds.": "Opgeslagen – de remote past zich zo aan.", "What you see left is what your remote shows.": "Links zie je wat je remote laat zien.", "Tap a tile to edit it": "Tik op een tegel om hem aan te passen", "Tap = on/off · hold = dim": "Tikken = aan/uit · vasthouden = dimmen", "New tile": "Nieuwe tegel", "Up": "Omhoog", "Down": "Omlaag", "Remove": "Verwijderen", "Icon": "Icoon", "TV input / app": "Tv-ingang / app", "Settings": "Instellingen", "Loading…": "Laden…", "Copy into your ESPHome": "Kopieer naar je ESPHome", "Your remote YAML:": "YAML van je remote:", "Flash via USB, then add it in Home Assistant (ESPHome) – it asks for": "Flash via USB en voeg hem toe in Home Assistant (ESPHome) – die vraagt om",
-  "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Add": "Toevoegen", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "tested": "getest", "— none —": "— geen —", "Save as": "Bewaar als", "and fill in your Wi-Fi": "en vul je wifi in", "Connect the remote by USB and run in the firmware folder:": "Sluit de remote aan via USB en voer uit in de map firmware:", "Home Assistant finds the remote (ESPHome) – it asks for": "Home Assistant vindt de remote (ESPHome) – die vraagt om"};
+  "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Add": "Toevoegen", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "tested": "getest", "— none —": "— geen —", "Save as": "Bewaar als", "and fill in your Wi-Fi": "en vul je wifi in", "Connect the remote by USB and run in the firmware folder:": "Sluit de remote aan via USB en voer uit in de map firmware:", "Home Assistant finds the remote (ESPHome) – it asks for": "Home Assistant vindt de remote (ESPHome) – die vraagt om", "Your Wi-Fi (only used for this file, not stored):": "Je wifi (alleen voor dit bestand, wordt niet opgeslagen):", "Wi-Fi name": "Wifi-naam", "Wi-Fi password": "Wifi-wachtwoord", "Download secrets.yaml": "Download secrets.yaml", "Put the file in the folder": "Zet het bestand in de map", "Show the text": "Toon de tekst"};
 let LANG = "nl";
 const L = (en) => (LANG === "nl" && NL[en]) || en;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -42,6 +42,7 @@ h1 { margin:0 0 2px; font-size:24px; font-weight:600; } .sub { margin:0 0 16px; 
 .row.sel { background:rgba(59,130,246,.10); border-radius:10px; box-shadow:inset 3px 0 0 #3b82f6; }
 input, select { width:100%; box-sizing:border-box; min-width:0; padding:7px 9px; border-radius:9px; border:1px solid var(--divider-color); background:var(--secondary-background-color, #111); color:var(--primary-text-color); font:inherit; }
 input[type=checkbox] { width:auto; }
+.wifi { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .ico { position:relative; display:inline-flex; align-items:center; justify-content:center; width:44px; height:34px; border-radius:9px; border:1px solid var(--divider-color); }
 .ico select { position:absolute; inset:0; opacity:0; cursor:pointer; } .ico ha-icon { --mdc-icon-size:20px; }
 .acts { display:flex; gap:2px; justify-content:flex-end; } .muted { color:var(--secondary-text-color); }
@@ -273,8 +274,13 @@ class NoirBuilder extends HTMLElement {
         <div class="mode ${LANG === "nl" ? "on" : ""}" data-a="lang" data-v="nl"><b>Nederlands</b><span>Remote + Builder</span></div>
         <div class="mode ${LANG === "en" ? "on" : ""}" data-a="lang" data-v="en"><b>English</b><span>Remote + Builder</span></div></div></div>
       <div class="card"><details><summary>${L("First-time setup")}</summary>
-        <p><b>1</b> · ${L("Save as")} <code>firmware/secrets.yaml</code> ${L("and fill in your Wi-Fi")}:</p>
-        <pre>${esc(this.s.secrets)}</pre><button class="btn" data-a="copy"><ha-icon icon="mdi:content-copy"></ha-icon>${L("Copy")}</button>
+        <p><b>1</b> · ${L("Your Wi-Fi (only used for this file, not stored):")}</p>
+        <div class="wifi"><input data-w="ssid" placeholder="${L("Wi-Fi name")}" autocomplete="off">
+          <input data-w="pass" type="password" placeholder="${L("Wi-Fi password")}" autocomplete="new-password"></div>
+        <p><button class="btn primary" data-a="download"><ha-icon icon="mdi:download"></ha-icon>${L("Download secrets.yaml")}</button></p>
+        <p>${L("Put the file in the folder")} <code>firmware</code>.</p>
+        <details><summary>${L("Show the text")}</summary>
+        <pre>${esc(this.s.secrets)}</pre><button class="btn" data-a="copy"><ha-icon icon="mdi:content-copy"></ha-icon>${L("Copy")}</button></details>
         <p><b>2</b> · ${L("Connect the remote by USB and run in the firmware folder:")}</p>
         <pre>esphome run noir-remote.yaml</pre>
         <p><b>3</b> · ${L("Home Assistant finds the remote (ESPHome) – it asks for")} <code>noir_api_key</code>.</p></details></div>` };
@@ -317,6 +323,7 @@ class NoirBuilder extends HTMLElement {
     else if (a === "test") { this._test(b.dataset.k); return; }
     else if (a === "addsrc") { this._addSource(b.dataset.v); return; }
     else if (a === "copy") { navigator.clipboard?.writeText(this.s.secrets); b.textContent = L("Copied"); return; }
+    else if (a === "download") { this._download(); return; }
     else if (a === "save") { this._save(); return; }
     else if (a === "add") {
       if (l === "tiles") { m.tiles.push({ icon: "mdi:lightbulb", label: L("New tile"), opens: "toggle", entity: "", size: "half" }); this.s.sel = m.tiles.length - 1; }
@@ -333,6 +340,18 @@ class NoirBuilder extends HTMLElement {
     } else return;
     this._render();
   }
+  _download() {   // secrets.yaml with the Wi-Fi filled in; the Wi-Fi never leaves this browser
+    const w = (k) => this.shadowRoot.querySelector(`[data-w="${k}"]`)?.value || "";
+    let text = this.s.secrets;
+    if (w("ssid")) text = text.replace(/^wifi_ssid:.*$/m, `wifi_ssid: ${JSON.stringify(w("ssid"))}`);
+    if (w("pass")) text = text.replace(/^wifi_password:.*$/m, `wifi_password: ${JSON.stringify(w("pass"))}`);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text + "\n"], { type: "text/yaml" }));
+    a.download = "secrets.yaml";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
   _change(e) {
     const t = e.target, l = t.dataset.l, f = t.dataset.f;
     if (!l || !f) return;

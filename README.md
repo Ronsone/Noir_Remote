@@ -31,26 +31,76 @@
 
 Audio, Netflix and Airco come next – each as its own module.
 
-## Setup – about 30 minutes, most of it waiting for the first build
+## Setup – about 45 minutes, most of it waiting for the first build
 
-**You need:** an OpenRemote Rev6 with a USB-C cable · Home Assistant with [HACS](https://hacs.xyz) · a PC with Python 3.
+**You need:** an OpenRemote Rev6 with a USB-C cable that carries data (not a charge-only cable) · Home Assistant · a Windows PC, Mac or Linux PC.
+No programming needed – you only copy a few lines into a terminal.
 
 ### 1 · Home Assistant
-1. HACS → ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add**.
-2. Search **NOIR Remote** → *Download* → restart Home Assistant.
-3. *Settings → Devices & services → Add integration → NOIR Remote*.
-4. You get a short text: your **secrets.yaml**. Keep this screen open.
+1. On this page: **Code → Download ZIP**. Unzip it, for example in *Downloads*. You get a folder `Noir_Remote-main`.
+2. Copy the folder `custom_components/noir_remote` into the `custom_components` folder of your Home Assistant config
+   (the folder with `configuration.yaml`; make `custom_components` if it is not there). Use the *Samba share* or *File editor* add-on, or SSH.
+   You now have `config/custom_components/noir_remote/manifest.json`.
+3. Restart Home Assistant.
+   *Or with HACS:* ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add** → search **NOIR Remote** → *Download* → restart.
+4. *Settings → Devices & services → Add integration → NOIR Remote*.
+5. Open **NOIR Builder** (sidebar) → tab *Remote* → *First-time setup*: fill in your Wi-Fi and press **Download secrets.yaml**.
 
 ### 2 · Firmware
-1. On this page: **Code → Download ZIP**, unzip it.
-2. In the folder `firmware`, make a file `secrets.yaml`, paste the text from step 1.4 and fill in your Wi-Fi.
-   Lost it? *NOIR Builder* (sidebar) → tab *Remote* → *First-time setup* → **Copy**.
-3. Connect the remote by USB. Open a terminal in the `firmware` folder:
-   ```
-   pip install esphome
-   esphome run noir-remote.yaml
-   ```
-   Choose the USB port. The first build takes 10–20 minutes; later builds are quick and go over Wi-Fi.
+The firmware is the software that runs on the remote. Your PC builds it once and puts it on the remote over USB.
+
+**2.1 · Put secrets.yaml in place**
+Move the downloaded `secrets.yaml` into `Noir_Remote-main/firmware` – next to `noir-remote.yaml`.
+It holds your Wi-Fi and the keys of your remote: keep it to yourself.
+
+**2.2 · Install Python** (once – skip if you have it)
+ESPHome, the tool that builds the firmware, runs on Python.
+- **Windows:** download Python from [python.org/downloads](https://www.python.org/downloads/) and run it.
+  On the first screen tick **Add python.exe to PATH**, then *Install Now*.
+- **Mac:** download Python from [python.org/downloads](https://www.python.org/downloads/) and run the installer.
+- **Linux:** Python is already there.
+
+**2.3 · Open a terminal in the firmware folder**
+A terminal is a window where you type commands. It must be opened *in* the folder `firmware`, otherwise it can't find the files.
+- **Windows:** open the folder `firmware` in Explorer. Click in the address bar at the top, type `cmd` and press Enter.
+- **Mac:** in Finder, right-click the folder `firmware` → *New Terminal at Folder*.
+  (Not in the menu? *System Settings → Keyboard → Keyboard Shortcuts → Services → Files and Folders* → tick *New Terminal at Folder*.)
+- **Linux:** right-click in the folder `firmware` → *Open in Terminal*.
+
+Check: type `dir` (Windows) or `ls` (Mac/Linux) and press Enter. You should see `noir-remote.yaml` and `secrets.yaml`.
+
+**2.4 · Install ESPHome** (once)
+Copy this line into the terminal and press Enter. It downloads ESPHome onto your PC – takes a minute.
+
+| Windows | Mac / Linux |
+|---|---|
+| `python -m pip install esphome` | `python3 -m pip install esphome` |
+
+**2.5 · Build and flash**
+Connect the remote to your PC with the USB-C cable. Then:
+
+| Windows | Mac / Linux |
+|---|---|
+| `python -m esphome run noir-remote.yaml` | `python3 -m esphome run noir-remote.yaml` |
+
+What happens:
+1. ESPHome builds the firmware. **The first time this takes 10–20 minutes** – lots of text scrolls by, that is normal.
+2. It asks where to send it. Choose the **USB port** – on Windows `COM3` or similar, on Mac `/dev/cu.usbmodem…`, on Linux `/dev/ttyACM0`.
+   Type its number and press Enter.
+3. The remote restarts with NOIR on its screen and connects to your Wi-Fi. You can close the terminal.
+
+Later updates are quick and need no cable: run the same command and choose **Over The Air** (your remote's name).
+
+**Something wrong?**
+
+| You see | Do this |
+|---|---|
+| `No such file or directory: 'noir-remote.yaml'` | The terminal is not in the folder `firmware`. Go back to 2.3. |
+| `'python' is not recognized` (Windows) | Python is not on PATH. Run the Python installer again → *Modify* → tick *Add Python to environment variables*. Close and reopen the terminal. |
+| `externally-managed-environment` (Linux) | Install with `pipx install esphome`, then use `esphome run noir-remote.yaml`. |
+| `No such file or directory: 'secrets.yaml'` or `Secret ... not defined` | `secrets.yaml` is missing or not next to `noir-remote.yaml`. Go back to 2.1. |
+| No USB port in the list | Try another cable (many only charge) or another USB port. On Linux: `sudo usermod -aG dialout $USER`, then log out and in. |
+| The remote doesn't connect to Wi-Fi | Check the Wi-Fi name and password in `secrets.yaml` (capitals count). The remote needs 2.4 GHz Wi-Fi. |
 
 ### 3 · Connect
 Home Assistant shows **New device found: NOIR Remote** → *Configure*. It asks for a key: the `noir_api_key` line from your secrets.yaml.
