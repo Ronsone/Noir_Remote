@@ -33,34 +33,33 @@ Audio, Netflix and Airco come next – each as its own module.
 
 ## Setup – about 45 minutes, most of it waiting for the first build
 
-**You need:** an OpenRemote Rev6 with a USB-C cable that carries data (not a charge-only cable) · Home Assistant · a Windows PC, Mac or Linux PC.
-No programming needed – you only copy a few lines into a terminal.
+**You need:** an OpenRemote Rev6 with a USB-C cable that carries data (not a charge-only cable) · Home Assistant with [HACS](https://hacs.xyz) · a Windows PC, Mac or Linux PC.
+No programming needed.
 
 ### 1 · Home Assistant
-1. On this page: **Code → Download ZIP**. Unzip it, for example in *Downloads*. You get a folder `Noir_Remote-main`.
-2. Copy the folder `custom_components/noir_remote` into the `custom_components` folder of your Home Assistant config
-   (the folder with `configuration.yaml`; make `custom_components` if it is not there).
-   Easiest with the **Samba share** add-on: then the config folder shows up on your PC (Windows: `\\homeassistant.local\config` in Explorer)
-   and you drag the whole folder in. *(The File editor add-on can only do one file at a time.)*
-   Or in the **Terminal & SSH** add-on: paste these lines one at a time (Enter after each):
-   ```
-   cd /homeassistant || cd /config
-   wget -O /tmp/noir.zip https://github.com/ronsone/Noir_Remote/archive/refs/heads/main.zip
-   unzip -o /tmp/noir.zip -d /tmp
-   mkdir -p custom_components
-   rm -rf custom_components/noir_remote
-   cp -r /tmp/Noir_Remote-main/custom_components/noir_remote custom_components/
-   ```
-   You now have `config/custom_components/noir_remote/manifest.json`.
-3. Restart Home Assistant.
-   *Or with HACS:* ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add** → search **NOIR Remote** → *Download* → restart.
-4. *Settings → Devices & services → Add integration → NOIR Remote*.
-5. Open **NOIR Builder** (sidebar) → tab *Remote* → *First-time setup*: fill in your Wi-Fi and press **Download secrets.yaml**.
+1. Click this button – it opens HACS in your own Home Assistant with NOIR Remote filled in:
+
+   [![Open NOIR Remote in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ronsone&repository=Noir_Remote&category=integration)
+
+   Press **Download** (bottom right) → **Download**. Then restart Home Assistant: *Settings → System → ⏻ Restart*.
+2. Click this button and press **Submit**:
+
+   [![Add NOIR Remote](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=noir_remote)
+
+   *(Or: Settings → Devices & services → Add integration → NOIR Remote.)*
+3. Open **NOIR Builder** (sidebar) → tab *Remote* → *First-time setup*: fill in your Wi-Fi and press **Download secrets.yaml**.
+
+<details><summary>Without HACS</summary>
+
+Install the **Samba share** add-on. The config folder of Home Assistant then opens on your PC (Windows Explorer: `\\homeassistant.local\config`).
+Download this page (**Code → Download ZIP**), unzip it and drag the folder `custom_components/noir_remote` into `config/custom_components`. Restart Home Assistant.
+</details>
 
 ### 2 · Firmware
 The firmware is the software that runs on the remote. Your PC builds it once and puts it on the remote over USB.
 
-**2.1 · Put secrets.yaml in place**
+**2.1 · Download the firmware and put secrets.yaml in place**
+On this page: **Code → Download ZIP**. Unzip it, for example in *Downloads*. You get a folder `Noir_Remote-main`.
 Move the downloaded `secrets.yaml` into `Noir_Remote-main/firmware` – next to `noir-remote.yaml`.
 It holds your Wi-Fi and the keys of your remote: keep it to yourself.
 
@@ -123,14 +122,11 @@ Open **NOIR Builder** in the sidebar. Each tab is one screen, the preview shows 
 
 ## Updating to a new version
 
-When there is a new version, update both parts. Your screens and settings stay.
+Your screens and settings stay.
 
-1. **Download:** on this page **Code → Download ZIP**, unzip it.
-2. **Home Assistant:** copy the folder `custom_components/noir_remote` again into `config/custom_components/`, the same way as in step 1.2.
-   Choose **Replace** when asked. Restart Home Assistant, then reload the NOIR Builder page.
-   *With HACS:* HACS shows the update – press *Update* and restart.
-3. **Remote:** move your `secrets.yaml` into the new `firmware` folder. Open a terminal there (step 2.3) and run the build command from step 2.5.
-   Choose **Over The Air** – no cable needed.
+1. **Home Assistant:** HACS shows the update – press **Update**, then restart Home Assistant.
+2. **Remote:** download this page again (**Code → Download ZIP**), move your `secrets.yaml` into the new `firmware` folder,
+   open a terminal there (step 2.3) and run the build command from step 2.5. Choose **Over The Air** – no cable needed.
 
 ## Inside
 
