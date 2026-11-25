@@ -190,7 +190,7 @@ void FT63X6Touchscreen::update_touches() {
   this->w_dy_ = dy;
   this->w_ms_ = this->zuletzt_ms_ - this->start_ms_;
   if (this->max_weg_ > 30 || this->luecken_ > 0) {
-    ESP_LOGI(TAG, "Wisch: %d ms, %d/%d px (roh), weg %u, %u Abfragen, %u neue Punkte, %u Luecken ueberbrueckt, %u Lesefehler",
+    ESP_LOGD(TAG, "Swipe: %d ms, %d/%d px (raw), path %u, %u reads, %u new points, %u gaps bridged, %u read errors",
              (int) (this->zuletzt_ms_ - this->start_ms_), dx, dy, this->max_weg_, this->abfragen_, this->punkte_,
              this->luecken_, this->fehler_);
   }

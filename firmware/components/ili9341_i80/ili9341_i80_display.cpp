@@ -153,7 +153,7 @@ void ILI9341I80Display::setup() {
     esp_lcd_panel_io_tx_param(this->io_handle_, inv_cmd, nullptr, 0);
   }
 
-  if (this->dunkel_starten_) ESP_LOGI(TAG, "Panel: dunkel gestartet (bleibt im Schlaf)");
+  if (this->dunkel_starten_) ESP_LOGI(TAG, "Panel: started dark (stays asleep)");
 
   this->init_internal_(static_cast<uint32_t>(this->width_) * this->height_ * BYTES_PER_PIXEL);
   if (this->buffer_ == nullptr) {
