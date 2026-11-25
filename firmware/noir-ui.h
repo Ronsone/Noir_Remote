@@ -377,6 +377,36 @@ inline const void *noir_beeld(const char *icon, const Beelden &bl) {
 }
 
 // Een tegel uit een item (JSON uit de configurator) op de NOIR-maat
+// Airco tile on Home: mini dial with the temperature + the mode (design B). Filled by airco::tonen().
+struct AircoTegel { lv_obj_t *boog{nullptr}, *temp{nullptr}, *stand{nullptr}; };
+inline AircoTegel &airco_tegel() { static AircoTegel t; return t; }
+inline void airco_tegel_maken(lv_obj_t *b, int w, const Fonts &f) {
+  AircoTegel &t = airco_tegel();
+  lv_obj_t *naam0 = lv_obj_get_child(b, -1);   // the name label tegel() made last
+  t.boog = lv_arc_create(b);
+  lv_obj_set_size(t.boog, 36, 36);
+  lv_obj_set_pos(t.boog, w - 44, 6);
+  lv_arc_set_bg_angles(t.boog, 135, 45);
+  lv_arc_set_range(t.boog, 0, 100);
+  lv_obj_remove_style(t.boog, nullptr, LV_PART_KNOB);
+  lv_obj_remove_flag(t.boog, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_style_arc_width(t.boog, 3, LV_PART_MAIN);
+  lv_obj_set_style_arc_color(t.boog, k(RAND), LV_PART_MAIN);
+  lv_obj_set_style_arc_width(t.boog, 3, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_color(t.boog, k(0x9FD8F0), LV_PART_INDICATOR);
+  lv_obj_set_style_arc_rounded(t.boog, true, LV_PART_INDICATOR);
+  t.temp = label(b, "", w - 44, 15, 36, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
+  lv_obj_set_style_text_align(t.temp, LV_TEXT_ALIGN_CENTER, 0);
+  // name a bit higher (tegel() put it at the bottom), the mode underneath: icon / name / mode
+  lv_obj_t *naam = naam0;
+  lv_obj_update_layout(b);
+  const int h = lv_obj_get_height(b);
+  lv_obj_t *icoon = lv_obj_get_child(b, 0);
+  if (icoon != nullptr && icoon != naam) lv_obj_set_y(icoon, 4);   // three lines in 56 px: icon 4-24, name 22-39, mode 40-55
+  if (naam != nullptr && lv_obj_check_type(naam, &lv_label_class)) lv_obj_set_y(naam, h - 34);
+  t.stand = label(b, "", 12, h - 17, w - 56, f.f12, MUTED);
+  lv_label_set_long_mode(t.stand, LV_LABEL_LONG_MODE_CLIP);
+}
 inline void item_tegel(lv_obj_t *body, JsonObjectConst it, int index, const Fonts &f, const Beelden &bl) {
   const int x = std::max(0, std::min(5, (int) (it["x"] | 0))), w = std::max(1, std::min(6 - x, (int) (it["w"] | 6)));
   const int y = std::max(0, (int) (it["y"] | 0)), h = std::max(1, std::min(6, (int) (it["h"] | 2)));
@@ -393,7 +423,8 @@ inline void item_tegel(lv_obj_t *body, JsonObjectConst it, int index, const Font
   const void *beeld = noir_beeld(icon, bl);
   const std::string teken = beeld == nullptr ? mdi_teken(icon) : std::string();
   if (ph >= 46) {   // groot: icoon linksboven, naam linksonder (zoals de simulator)
-    tegel(body, label_t, px, py, ITEM + index, beeld, f, pw, ph, teken.empty() ? nullptr : teken.c_str());
+    lv_obj_t *b = tegel(body, label_t, px, py, ITEM + index, beeld, f, pw, ph, teken.empty() ? nullptr : teken.c_str());
+    if (std::string(it["fn"] | "") == "airco") airco_tegel_maken(b, pw, f);
     return;
   }
   // klein (1 rij): icoon en naam naast elkaar
@@ -416,6 +447,7 @@ inline void item_tegel(lv_obj_t *body, JsonObjectConst it, int index, const Font
 // items = tegels van de configuratorpagina "noir" (leeg = de ingebouwde tegels)
 inline void thuis_bouwen(lv_obj_t *laag, const Fonts &f, const Beelden &bl, JsonArrayConst items = JsonArrayConst()) {
   Stand &s = st();
+  airco_tegel() = AircoTegel();   // the home tiles are rebuilt: the old airco tile is gone
   lv_obj_t *body = s.thuis_body = body_maken(laag, true);
   lv_obj_set_height(body, 236);
   label(body, "NOIR / SIGNATURE", 0, 5, 180, f.f16, TEXT);
@@ -826,7 +858,19 @@ struct Ui {
 inline Ui &ui() { static Ui x; return x; }
 static const uint32_t IJS = 0x9FD8F0;   // icy blue: arc and the active mode
 
+inline void tegel_tonen() {   // the airco tile on Home
+  AircoTegel &t = airco_tegel();
+  if (t.boog == nullptr) return;
+  Unit &n = u();
+  const int span = std::max(1, n.tmax - n.tmin);
+  lv_arc_set_value(t.boog, std::max(0, std::min(100, (n.temp - n.tmin) * 100 / span)));
+  lv_obj_set_style_arc_opa(t.boog, n.aan ? 255 : 90, LV_PART_INDICATOR);
+  lv_label_set_text(t.temp, std::to_string(n.temp).c_str());
+  lv_obj_set_style_text_opa(t.temp, n.aan ? 255 : 120, 0);
+  lv_label_set_text(t.stand, !n.bekend ? tr("Niet bereikbaar") : n.aan ? tr(MODUS_LANG[n.modus]) : tr("Uit"));
+}
 inline void tonen() {
+  tegel_tonen();
   Ui &x = ui();
   if (x.temp == nullptr) return;
   Unit &n = u();
