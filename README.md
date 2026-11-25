@@ -39,7 +39,13 @@ No programming needed – you only copy a few lines into a terminal.
 ### 1 · Home Assistant
 1. On this page: **Code → Download ZIP**. Unzip it, for example in *Downloads*. You get a folder `Noir_Remote-main`.
 2. Copy the folder `custom_components/noir_remote` into the `custom_components` folder of your Home Assistant config
-   (the folder with `configuration.yaml`; make `custom_components` if it is not there). Use the *Samba share* or *File editor* add-on, or SSH.
+   (the folder with `configuration.yaml`; make `custom_components` if it is not there).
+   Easiest with the **Samba share** add-on: then the config folder shows up on your PC (Windows: `\\homeassistant.local\config` in Explorer)
+   and you drag the whole folder in. *(The File editor add-on can only do one file at a time.)*
+   Or in the **Terminal & SSH** add-on, one line downloads and copies it:
+   ```
+   cd /config && wget -qO /tmp/noir.zip https://github.com/ronsone/Noir_Remote/archive/refs/heads/main.zip && unzip -qo /tmp/noir.zip -d /tmp && mkdir -p custom_components && rm -rf custom_components/noir_remote && cp -r /tmp/Noir_Remote-main/custom_components/noir_remote custom_components/ && echo OK
+   ```
    You now have `config/custom_components/noir_remote/manifest.json`.
 3. Restart Home Assistant.
    *Or with HACS:* ⋮ → *Custom repositories* → `https://github.com/ronsone/Noir_Remote`, type *Integration* → **Add** → search **NOIR Remote** → *Download* → restart.
