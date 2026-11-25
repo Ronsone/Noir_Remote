@@ -87,7 +87,7 @@ inline int rnd(int r) { return r >= 10 && r < LV_RADIUS_CIRCLE ? thema().radius 
 
 enum Actie : int { TERUG = 1, THUIS = 100, TV = 101, AUDIO = 102, LICHT = 103, SCENES = 104, AIRCO = 105, INSTELLINGEN = 113,
                    INST_AFRONDING = 129, INST_REMOTE = 130, INST_WIFI = 131, INST_FULL = 132, INST_ECO = 133, DIM_GEREED = 128,
-                   AIRCO_AANUIT = 140, AIRCO_MIN = 141, AIRCO_PLUS = 142, AIRCO_FAN = 143, AIRCO_SWING = 144, AIRCO_HI = 145, AIRCO_ECO = 146, KNOPTEST = 160, TEST_RESET = 161, SCENE_ALLES_UIT = 170,
+                   AIRCO_AANUIT = 140, AIRCO_MIN = 141, AIRCO_PLUS = 142, AIRCO_FAN = 143, AIRCO_SWING = 144, AIRCO_HI = 145, AIRCO_ECO = 146, AIRCO_UNIT = 147, KNOPTEST = 160, TEST_RESET = 161, SCENE_ALLES_UIT = 170,
                    NETFLIX = 106, NF_AFSPELEN = 186,
                    AUDIO_MUZIEK = 107, AUDIO_AANUIT = 189, SP_SHUFFLE = 187, SP_REPEAT = 188,
                    ZOEK_OPEN = 108, ZOEK_WIS = 190, ZOEK_SPATIE = 191, ZOEK_GA = 192, ZOEK_VELD = 193,
@@ -162,6 +162,8 @@ inline const char *tr(const char *nl) {
     {"Ingang", "Input"}, {"Niveau", "Level"}, {"Niets aan het afspelen", "Nothing playing"}, {"MUZIEK", "MUSIC"},
     {"Volumetoetsen op de remote regelen deze speaker.", "The volume keys control this speaker."},
     {"uit", "off"}, {"aan", "on"}, {"niet bereikbaar", "unreachable"},
+    {"Automatisch", "Auto"}, {"Koelen", "Cooling"}, {"Ontvochtigen", "Drying"}, {"Ventileren", "Fan"}, {"Verwarmen", "Heating"},
+    {"kamer", "room"},
   };
   for (const auto &r : T) if (strcmp(r[0], nl) == 0) return r[1];
   return nl;
@@ -782,167 +784,142 @@ inline void licht_bouwen(lv_obj_t *laag, const Fonts &f) {
 // github.com/peterhinch/micropython_ir issue 46). Timing: kop 3200/1600 us, bit = 400 us aan + 1200 (1) of 430 (0) uit.
 // De remote kan de stand van de airco niet uitlezen - hij onthoudt zelf wat hij het laatst stuurde (global).
 namespace airco {
-
-// fan: 0 auto, 1-4 stand, 5 HI POWER, 6 ECONO (zoals de knoppen HI en ECO op de afstandsbediening)
-struct Stand { bool aan{false}; int modus{1}; int temp{22}; int fan{0}; int swing{0}; int fan_normaal{0}; };
-inline Stand &st_() { static Stand s; return s; }
-static const char *MODUS_NAAM[5] = {"Auto", "Koel", "Droog", "Fan", "Warm"};
-static const char *MODUS_LANG[5] = {"Automatisch", "Koelen", "Ontvochtigen", "Ventileren", "Verwarmen"};
-static const char *FAN_NAAM[7] = {"Auto", "1", "2", "3", "4", "HI", "Eco"};
-static const char *SWING_NAAM[4] = {"Uit", "Op/neer", "Links/rechts", "Alles"};
-static const int TEMP_MIN = 16, TEMP_MAX = 31;   // grenzen van het protocol; het bereik zelf staat in inst()
-
-// Instellingen uit de configurator (cfg.noir_airco, 2026-11-22) - aanpassen zonder te compileren.
-// Standaard = getest op de SRK..ZS met RLA502A704A.
-struct Inst {
-  int hi{9}, eco{6};          // fan-code van HI POWER en ECONO
-  int hor{3}, ver{6};         // lamelstand zonder swing (horizontaal 0-8, verticaal 0-12)
-  int hor_sw{0}, ver_sw{0};   // lamelstand bij swing
-  int tmin{18}, tmax{30};     // temperatuurbereik
-  int start{3200};            // startpuls in us
+// NOIR Airco - brand-free. Up to 4 units (rooms). Each unit is driven by its module (modules/airco.h):
+//   a climate entity in Home Assistant (any brand: ESPHome module, Daikin, SmartIR, ...) - the screen shows the modes,
+//   fan and swing settings that entity has; or the remote's own infrared with a brand profile (now: Mitsubishi Heavy).
+// The screen only reads and changes st(); the module sends it (debounced) and fills in what the unit can do.
+static const int MODI = 5;   // 0 auto, 1 cool, 2 dry, 3 fan, 4 heat
+static const char *MODUS_LANG[MODI] = {"Automatisch", "Koelen", "Ontvochtigen", "Ventileren", "Verwarmen"};
+static const char *MODUS_ICO[MODI] = {"\U000F0B09", "\U000F0717", "\U000F058C", "\U000F0210", "\U000F05A8"};   // alpha-a-circle-outline, snowflake, water, fan, sunny
+static const int MAX_UNITS = 4;
+struct Unit {
+  std::string naam;                 // "Woonkamer"
+  bool aan{false};
+  int modus{1}, temp{22};
+  int fan{0}, swing{0};             // index in fans / swings
+  int kamer{-1000};                 // room temperature (unknown = -1000)
+  bool modi[MODI]{true, true, true, true, true};   // what the unit can do
+  std::vector<std::string> fans{"Auto"}, swings{"Uit", "Aan"};
+  int tmin{16}, tmax{30};
+  bool bekend{true};                // state known (HA: after the first poll)
 };
-inline Inst &inst() { static Inst i; return i; }
-inline void inst_laden(JsonObjectConst o) {
-  Inst n;
-  if (!o.isNull()) {
-    auto lees = [&](const char *k, int &v, int lo, int hi) { if (o[k].is<int>()) v = std::max(lo, std::min(hi, (int) o[k])); };
-    lees("hi", n.hi, 0, 15); lees("eco", n.eco, 0, 15);
-    lees("hor", n.hor, 0, 8); lees("ver", n.ver, 0, 12);
-    lees("hor_sw", n.hor_sw, 0, 8); lees("ver_sw", n.ver_sw, 0, 12);
-    lees("tmin", n.tmin, TEMP_MIN, TEMP_MAX); lees("tmax", n.tmax, TEMP_MIN, TEMP_MAX);
-    lees("start", n.start, 1000, 6000);
-    if (n.tmax < n.tmin) std::swap(n.tmin, n.tmax);
-  }
-  inst() = n;
-}
-
-inline std::function<void(const std::string &)> &zender() { static std::function<void(const std::string &)> z; return z; }   // IR-stap (JSON)
-inline std::function<void(int)> &opslaan() { static std::function<void(int)> z; return z; }
-
-inline int inpakken() {
-  const Stand &s = st_();
-  return (s.aan ? 1 : 0) | (s.modus & 7) << 1 | ((s.temp - 16) & 31) << 4 | (s.fan & 7) << 9 | (s.swing & 3) << 12 | 1 << 15;
-}
-inline void uitpakken(int v) {
-  if (!(v & (1 << 15))) return;   // nog nooit bewaard: standaard
-  Stand &s = st_();
-  s.aan = v & 1;
-  s.modus = std::min(4, (v >> 1) & 7);
-  s.temp = std::max(inst().tmin, std::min(inst().tmax, ((v >> 4) & 31) + 16));
-  s.fan = std::min(6, (v >> 9) & 7);
-  s.fan_normaal = std::min(4, s.fan);
-  s.swing = (v >> 12) & 3;
-}
-
-// n bits van v, minst significante eerst (zoals de afstandsbediening)
-inline std::string lsb_(int v, int n) { std::string o; for (int i = 0; i < n; i++) o += (v >> i) & 1 ? '1' : '0'; return o; }
-inline std::string paar_(const std::string &b) { std::string o; for (char c : b) o += c == '1' ? '0' : '1'; return o + b; }
-
-// Frame als bitreeks (zendvolgorde)
-inline std::string bits() {
-  const Stand &s = st_();
-  std::string b = "0100101001110101110000110101100010100111";   // kop
-  b += paar_(lsb_(s.modus, 3) + (s.aan ? "1" : "0") + "0000");
-  b += paar_(lsb_(std::max(TEMP_MIN, std::min(TEMP_MAX, s.temp)) - 17, 4) + "0000");   // codeert 17 + 0..15
-  b += paar_(lsb_(s.fan <= 4 ? s.fan : s.fan == 5 ? inst().hi : inst().eco, 4) + "0000");   // standaard HI = 9, ECO = 6 (getest)
-  // lamellen: horizontaal 0 = zwenken, 3 = midden; verticaal 0 = zwenken, 6 = midden
-  const int hor = (s.swing & 2) ? inst().hor_sw : inst().hor, ver = (s.swing & 1) ? inst().ver_sw : inst().ver;
-  const std::string paneel = lsb_(hor, 4) + lsb_(ver, 4);
-  b += paar_("00000" + paneel.substr(5));   // 3D-auto uit
-  b += paar_(paneel);
-  b += "11111111000000001111111000000001";   // staart
-  return b;
-}
-// IR-stap voor tasten_konfig (zelfde sendweg als de andere IR-knoppen: zelf, dock of HA-blaster)
-inline std::string ir_json() {
-  std::string j = "{\"t\":\"ir\",\"f\":38000,\"raw\":[" + std::to_string(inst().start) + ",-1600";
-  for (char c : bits()) { j += ",400,"; j += c == '1' ? "-1200" : "-430"; }
-  j += ",400]}";
-  return j;
-}
+struct Data { std::vector<Unit> units{Unit{}}; int cur{0}; };
+inline Data &d() { static Data x; return x; }
+inline Unit &u() { Data &x = d(); if (x.units.empty()) x.units.push_back(Unit{}); x.cur = std::max(0, std::min(x.cur, (int) x.units.size() - 1)); return x.units[x.cur]; }
+// The module sends unit i (after a change, debounced). Simulator: prints.
+inline std::function<void(int)> &wijziging() { static std::function<void(int)> f; return f; }
+inline std::function<void(const std::string &)> &zender() { static std::function<void(const std::string &)> z; return z; }   // simulator
 
 inline lv_timer_t *&timer_() { static lv_timer_t *t = nullptr; return t; }
-inline void nu_sturen() {
-  if (zender()) zender()(ir_json());
-  if (opslaan()) opslaan()(inpakken());
-}
-// Na een wijziging kort wachten (vasthouden van + stuurt niet elke stap)
-inline void sturen(uint32_t ms = 600) {
+inline void nu_sturen() { if (wijziging()) wijziging()(d().cur); }
+inline void sturen(uint32_t ms = 600) {   // wait a moment: holding + does not send every step
   if (timer_() != nullptr) { lv_timer_reset(timer_()); return; }
   timer_() = lv_timer_create([](lv_timer_t *) { timer_() = nullptr; nu_sturen(); }, ms, nullptr);
   lv_timer_set_repeat_count(timer_(), 1);
 }
 
-// Scherm-objecten
-struct Ui { lv_obj_t *temp{nullptr}, *status{nullptr}, *aan{nullptr}, *fan{nullptr}, *swing{nullptr}, *hi{nullptr}, *eco{nullptr}; lv_obj_t *modus[5]{}; };
-inline Ui &ui() { static Ui u; return u; }
+struct Ui {
+  lv_obj_t *titel{nullptr}, *status{nullptr}, *aan{nullptr}, *aan_i{nullptr}, *wissel{nullptr}, *boog{nullptr}, *temp{nullptr}, *graad{nullptr};
+  lv_obj_t *min{nullptr}, *plus{nullptr}, *fan{nullptr}, *swing{nullptr};
+  lv_obj_t *modus[MODI]{};
+};
+inline Ui &ui() { static Ui x; return x; }
+static const uint32_t IJS = 0x9FD8F0;   // icy blue: arc and the active mode
 
 inline void tonen() {
-  Ui &u = ui();
-  const Stand &s = st_();
-  if (u.temp == nullptr) return;
-  char t[48];
-  snprintf(t, sizeof(t), "%d", s.temp);
-  lv_label_set_text(u.temp, t);
-  lv_obj_set_style_text_opa(u.temp, s.aan ? 255 : 110, 0);
-  if (!s.aan) snprintf(t, sizeof(t), "Uit");
-  else if (s.fan == 5) snprintf(t, sizeof(t), "%s \xC2\xB7 HI POWER", MODUS_LANG[s.modus]);
-  else if (s.fan == 6) snprintf(t, sizeof(t), "%s \xC2\xB7 Eco", MODUS_LANG[s.modus]);
-  else snprintf(t, sizeof(t), "%s \xC2\xB7 fan %s", MODUS_LANG[s.modus], FAN_NAAM[s.fan]);
-  lv_label_set_text(u.status, t);
-  lv_obj_set_style_border_color(u.aan, k(s.aan ? 0xBFC2C9 : RAND), 0);
-  lv_obj_set_style_border_opa(u.aan, s.aan ? 220 : 115, 0);
-  for (int i = 0; i < 5; i++) {
-    if (u.modus[i] == nullptr) continue;
-    const bool sel = i == s.modus;
-    lv_obj_set_style_border_color(u.modus[i], k(sel ? 0xBFC2C9 : RAND), 0);
-    lv_obj_set_style_border_opa(u.modus[i], sel ? 220 : 115, 0);
-    lv_obj_t *l = lv_obj_get_child(u.modus[i], -1);
-    if (l != nullptr) lv_obj_set_style_text_opa(l, sel ? 255 : 160, 0);
-  }
-  for (int i = 0; i < 2; i++) {   // HI / ECO: lichte rand als actief
-    lv_obj_t *b = i == 0 ? u.hi : u.eco;
+  Ui &x = ui();
+  if (x.temp == nullptr) return;
+  Unit &n = u();
+  const bool meer = d().units.size() > 1;
+  lv_label_set_text(x.titel, meer && !n.naam.empty() ? n.naam.c_str() : "Airco");
+  if (x.wissel != nullptr) { if (meer) lv_obj_remove_flag(x.wissel, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(x.wissel, LV_OBJ_FLAG_HIDDEN); }
+  char t[64];
+  lv_label_set_text(x.temp, std::to_string(n.temp).c_str());
+  lv_obj_set_style_text_opa(x.temp, n.aan ? 255 : 110, 0);
+  lv_obj_set_style_text_opa(x.graad, n.aan ? 220 : 90, 0);
+  std::string st = !n.bekend ? std::string(tr("Niet bereikbaar")) : n.aan ? std::string(tr(MODUS_LANG[n.modus])) : std::string(tr("Uit"));
+  if (n.kamer > -1000) { snprintf(t, sizeof(t), " \xC2\xB7 %s %d\xC2\xB0", tr("kamer"), n.kamer); st += t; }
+  lv_label_set_text(x.status, st.c_str());
+  // power: light pill when on
+  lv_obj_set_style_bg_color(x.aan, k(n.aan ? 0xE8EEF3 : SURF), 0);
+  lv_obj_set_style_bg_grad_color(x.aan, k(n.aan ? 0xD9E2EA : SURF2), 0);
+  lv_obj_set_style_text_color(x.aan_i, k(n.aan ? BG : TEXT2), 0);
+  // arc: where the set temperature is between min and max
+  const int span = std::max(1, n.tmax - n.tmin);
+  lv_arc_set_value(x.boog, std::max(0, std::min(100, (n.temp - n.tmin) * 100 / span)));
+  lv_obj_set_style_arc_opa(x.boog, n.aan ? 255 : 90, LV_PART_INDICATOR);
+  for (int i = 0; i < MODI; i++) {
+    lv_obj_t *b = x.modus[i];
     if (b == nullptr) continue;
-    const bool sel = s.fan == 5 + i;
-    lv_obj_set_style_border_color(b, k(sel ? 0xBFC2C9 : RAND), 0);
-    lv_obj_set_style_border_opa(b, sel ? 220 : 115, 0);
+    const bool sel = n.aan && i == n.modus;
+    if (n.modi[i]) { lv_obj_remove_flag(b, LV_OBJ_FLAG_HIDDEN); } else { lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN); continue; }
+    lv_obj_set_style_bg_color(b, k(sel ? IJS : SURF), 0);
+    lv_obj_set_style_bg_grad_color(b, k(sel ? 0x86C9E6 : SURF2), 0);
+    lv_obj_set_style_border_opa(b, sel ? 0 : 115, 0);
+    lv_obj_t *l = lv_obj_get_child(b, -1);
+    if (l != nullptr) lv_obj_set_style_text_color(l, k(sel ? BG : TEXT2), 0);
   }
-  snprintf(t, sizeof(t), "Fan  %s", FAN_NAAM[s.fan <= 4 ? s.fan : s.fan_normaal]);
-  lv_label_set_text(lv_obj_get_child(u.fan, -1), t);
-  snprintf(t, sizeof(t), "Swing  %s", SWING_NAAM[s.swing]);
-  lv_label_set_text(lv_obj_get_child(u.swing, -1), t);
+  if (!n.fans.empty()) lv_label_set_text(lv_obj_get_child(x.fan, -1), n.fans[std::min<int>(n.fan, n.fans.size() - 1)].c_str());
+  if (n.fans.size() > 1) lv_obj_remove_flag(x.fan, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(x.fan, LV_OBJ_FLAG_HIDDEN);
+  if (!n.swings.empty()) {
+    snprintf(t, sizeof(t), "Swing %s", n.swings[std::min<int>(n.swing, n.swings.size() - 1)].c_str());
+    lv_label_set_text(lv_obj_get_child(x.swing, -1), n.swing == 0 ? "Swing" : t);
+    lv_obj_set_style_border_color(x.swing, k(n.swing ? 0xBFC2C9 : RAND), 0);
+  }
+  if (n.swings.size() > 1) lv_obj_remove_flag(x.swing, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(x.swing, LV_OBJ_FLAG_HIDDEN);
 }
 
-// Acties (AIRCO_* in Actie)
-inline void temp_stap(int d) {
-  Stand &s = st_();
-  s.temp = std::max(inst().tmin, std::min(inst().tmax, s.temp + d));
-  if (!s.aan) s.aan = true;
-  tonen();
-  sturen();
+// ---- actions (AIRCO_* in Actie) ----
+inline void temp_stap(int dt) { Unit &n = u(); n.temp = std::max(n.tmin, std::min(n.tmax, n.temp + dt)); if (!n.aan) n.aan = true; tonen(); sturen(); }
+inline void aanuit() { u().aan = !u().aan; tonen(); sturen(150); }
+inline void uit() { u().aan = false; tonen(); sturen(150); }   // always send off (state may have changed elsewhere)
+inline void modus(int m) { if (m < 0 || m >= MODI || !u().modi[m]) return; u().modus = m; u().aan = true; tonen(); sturen(150); }
+inline void fan_volgende() { Unit &n = u(); if (n.fans.size() < 2) return; n.fan = (n.fan + 1) % n.fans.size(); tonen(); sturen(); }
+inline void swing_volgende() { Unit &n = u(); if (n.swings.size() < 2) return; n.swing = (n.swing + 1) % n.swings.size(); tonen(); sturen(); }
+inline void fan_speciaal(int) {}   // before 0.4 (HI/ECO buttons); now part of the fan list of the profile
+inline void unit_volgende() { Data &x = d(); if (x.units.size() < 2) return; x.cur = (x.cur + 1) % x.units.size(); tonen(); }
+
+// ---- Mitsubishi Heavy (SRK..ZS, remote RLA502A704A) - infrared profile "mhi" -----------------------------------
+// One frame carries the whole state. Fan list of this profile: Auto, 1, 2, 3, 4, HI, Eco.
+namespace mhi {
+struct Inst {
+  int hi{9}, eco{6};          // fan code of HI POWER and ECONO
+  int hor{3}, ver{6};         // louvres without swing (horizontal 0-8, vertical 0-12)
+  int hor_sw{0}, ver_sw{0};   // louvres with swing
+  int start{3200};            // start pulse in us
+};
+inline Inst &inst() { static Inst i; return i; }
+inline const std::vector<std::string> &fans() { static std::vector<std::string> v{"Auto", "1", "2", "3", "4", "HI", "Eco"}; return v; }
+inline const std::vector<std::string> &swings() { static std::vector<std::string> v{"Uit", "Op/neer", "Links/rechts", "Alles"}; return v; }
+inline std::string lsb_(int v, int n) { std::string o; for (int i = 0; i < n; i++) o += (v >> i) & 1 ? '1' : '0'; return o; }
+inline std::string paar_(const std::string &b) { std::string o; for (char c : b) o += c == '1' ? '0' : '1'; return o + b; }
+// mode index (auto, cool, dry, fan, heat) is the protocol's own order
+inline std::string bits(const Unit &s) {
+  std::string b = "0100101001110101110000110101100010100111";   // header
+  b += paar_(lsb_(s.modus, 3) + (s.aan ? "1" : "0") + "0000");
+  b += paar_(lsb_(std::max(17, std::min(31, s.temp)) - 17, 4) + "0000");   // 17 + 0..15
+  b += paar_(lsb_(s.fan <= 4 ? s.fan : s.fan == 5 ? inst().hi : inst().eco, 4) + "0000");
+  const int hor = (s.swing & 2) ? inst().hor_sw : inst().hor, ver = (s.swing & 1) ? inst().ver_sw : inst().ver;
+  const std::string paneel = lsb_(hor, 4) + lsb_(ver, 4);
+  b += paar_("00000" + paneel.substr(5));   // 3D auto off
+  b += paar_(paneel);
+  b += "11111111000000001111111000000001";   // tail
+  return b;
 }
-inline void aanuit() { st_().aan = !st_().aan; tonen(); sturen(150); }
-// Altijd uit sturen, ook als de remote denkt dat hij al uit staat (bv. aangezet met de originele afstandsbediening).
-// Het MHI-frame bevat de volledige stand, dus nogmaals 'uit' sturen is onschuldig.
-inline void uit() { st_().aan = false; tonen(); sturen(150); }
-inline void modus(int m) { st_().modus = m; st_().aan = true; tonen(); sturen(150); }
-inline void fan_volgende() {
-  Stand &s = st_();
-  s.fan = s.fan <= 4 ? (s.fan + 1) % 5 : s.fan_normaal;   // uit HI/ECO terug naar de gewone stand
-  s.fan_normaal = s.fan;
-  tonen();
-  sturen();
+inline std::vector<int32_t> timings(const Unit &s) {
+  std::vector<int32_t> t{inst().start, -1600};
+  for (char c : bits(s)) { t.push_back(400); t.push_back(c == '1' ? -1200 : -430); }
+  t.push_back(400);
+  return t;
 }
-// HI POWER / ECONO aan of uit (n = 5 of 6); uit = terug naar de laatste gewone fanstand
-inline void fan_speciaal(int n) {
-  Stand &s = st_();
-  if (s.fan <= 4) s.fan_normaal = s.fan;
-  s.fan = s.fan == n ? s.fan_normaal : n;
-  if (!s.aan) s.aan = true;
-  tonen();
-  sturen(150);
+// state <-> int (flash: infrared gets no feedback, so the remote remembers what it sent)
+inline int inpakken(const Unit &s) { return (s.aan ? 1 : 0) | (s.modus & 7) << 1 | ((s.temp - 16) & 31) << 4 | (s.fan & 7) << 9 | (s.swing & 3) << 12 | 1 << 15; }
+inline void uitpakken(Unit &s, int v) {
+  if (!(v & (1 << 15))) return;
+  s.aan = v & 1; s.modus = std::min(4, (v >> 1) & 7); s.temp = std::max(s.tmin, std::min(s.tmax, ((v >> 4) & 31) + 16));
+  s.fan = std::min(6, (v >> 9) & 7); s.swing = (v >> 12) & 3;
 }
-inline void swing_volgende() { st_().swing = (st_().swing + 1) % 4; tonen(); sturen(); }
+}  // namespace mhi
 
 }  // namespace airco
 
@@ -968,27 +945,62 @@ inline lv_obj_t *tekst_knop_(lv_obj_t *p, int x, int y, int w, int h, int actie,
   return b;
 }
 
-// NOIR Airco: titel + aan/uit, status, - temperatuur +, modus (5), fan en swing (wisselknoppen)
+// NOIR Airco, design B "Boog": title + power, status, a dial arc around the temperature with - and +,
+// the modes as icons, fan and swing. More units: the swap button next to power picks the next room.
+static const char *ICO_WISSEL = "\U000F04E1", *ICO_SWING = "\U000F0C47", *ICO_FAN = "\U000F0210";   // swap-vertical, arrow-oscillating, fan
+inline lv_obj_t *pil_(lv_obj_t *p, int x, int y, int w, int h, int actie, const char *ico, const Fonts &f) {
+  lv_obj_t *b = knop(p, x, y, w, h, actie);
+  lv_obj_set_style_radius(b, h / 2, 0);
+  if (f.ico != nullptr) {
+    lv_obj_t *i = lv_label_create(b);
+    lv_label_set_text(i, ico);
+    lv_obj_set_style_text_font(i, f.ico, 0);
+    lv_obj_set_style_text_color(i, k(TEXT2), 0);
+    lv_obj_align(i, LV_ALIGN_LEFT_MID, 14, 0);
+  }
+  lv_obj_t *l = label(b, "", 0, 0, w - 46, f.f12, TEXT2);
+  lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_CLIP);
+  lv_obj_align(l, LV_ALIGN_LEFT_MID, 40, 0);
+  return b;
+}
 inline void airco_bouwen(lv_obj_t *laag, const Fonts &f) {
   airco::Ui &u = airco::ui();
   lv_obj_t *body = body_maken(laag, false);
-  label(body, "Airco", 0, 0, 150, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
-  u.status = label(body, "", 0, 26, 160, f.f12, MUTED);
+  u.titel = label(body, "Airco", 0, 0, 120, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
+  u.status = label(body, "", 0, 26, 150, f.f12, MUTED);
+  u.wissel = icoon_knop_(body, 120, 0, 38, 34, AIRCO_UNIT, ICO_WISSEL, f);
   u.aan = icoon_knop_(body, 164, 0, 52, 34, AIRCO_AANUIT, ICO_POWER, f);
-  icoon_knop_(body, 0, 46, 58, 58, AIRCO_MIN, ICO_MIN, f);
-  icoon_knop_(body, 158, 46, 58, 58, AIRCO_PLUS, ICO_PLUS, f);
+  lv_obj_set_style_radius(u.aan, 17, 0);
+  u.aan_i = lv_obj_get_child(u.aan, -1);
+  // dial arc (270 degrees) with the temperature in the middle
+  u.boog = lv_arc_create(body);
+  lv_obj_set_size(u.boog, 116, 116);
+  lv_obj_set_pos(u.boog, 50, 44);
+  lv_arc_set_bg_angles(u.boog, 135, 45);
+  lv_arc_set_range(u.boog, 0, 100);
+  lv_obj_remove_style(u.boog, nullptr, LV_PART_KNOB);
+  lv_obj_remove_flag(u.boog, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_style_arc_width(u.boog, 4, LV_PART_MAIN);
+  lv_obj_set_style_arc_color(u.boog, k(RAND), LV_PART_MAIN);
+  lv_obj_set_style_arc_width(u.boog, 5, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_color(u.boog, k(airco::IJS), LV_PART_INDICATOR);
+  lv_obj_set_style_arc_rounded(u.boog, true, LV_PART_INDICATOR);
   const lv_font_t *groot = f.groot != nullptr ? f.groot : (f.f20 != nullptr ? f.f20 : f.f16);
-  u.temp = label(body, "", 62, 46 + (58 - lv_font_get_line_height(groot)) / 2, 82, groot, TEXT);
+  u.temp = label(body, "", 58, 44 + (116 - lv_font_get_line_height(groot)) / 2, 100, groot, TEXT);
   lv_obj_set_style_text_align(u.temp, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_t *graad = label(body, "\xC2\xB0" "C", 140, 52, 20, f.f12, MUTED);
-  (void) graad;
-  const int bw = (216 - 4 * 4) / 5;
-  for (int i = 0; i < 5; i++)
-    u.modus[i] = tekst_knop_(body, i * (bw + 4), 114, bw, 34, AIRCO_MODUS + i, airco::MODUS_NAAM[i], f);
-  u.fan = tekst_knop_(body, 0, 158, 104, 34, AIRCO_FAN, "", f);
-  u.swing = tekst_knop_(body, 112, 158, 104, 34, AIRCO_SWING, "", f);
-  u.hi = tekst_knop_(body, 0, 198, 104, 30, AIRCO_HI, "HI POWER", f);
-  u.eco = tekst_knop_(body, 112, 198, 104, 30, AIRCO_ECO, "ECO", f);
+  u.graad = label(body, "\xC2\xB0", 138, 64, 16, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
+  u.min = icoon_knop_(body, 0, 80, 44, 44, AIRCO_MIN, ICO_MIN, f);
+  u.plus = icoon_knop_(body, 172, 80, 44, 44, AIRCO_PLUS, ICO_PLUS, f);
+  lv_obj_set_style_radius(u.min, 22, 0);
+  lv_obj_set_style_radius(u.plus, 22, 0);
+  // modes as icons
+  const int bw = (216 - 4 * 6) / 5;
+  for (int i = 0; i < airco::MODI; i++) {
+    u.modus[i] = icoon_knop_(body, i * (bw + 6), 172, bw, 34, AIRCO_MODUS + i, airco::MODUS_ICO[i], f);
+    lv_obj_set_style_radius(u.modus[i], 12, 0);
+  }
+  u.fan = pil_(body, 0, 216, 104, 32, AIRCO_FAN, ICO_FAN, f);
+  u.swing = pil_(body, 112, 216, 104, 32, AIRCO_SWING, ICO_SWING, f);
   airco::tonen();
 }
 
