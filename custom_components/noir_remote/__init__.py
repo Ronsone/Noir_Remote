@@ -188,9 +188,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC, os.path.join(os.path.dirname(__file__), "frontend"), cache_headers=False)])
     if PANEL not in hass.data.get("frontend_panels", {}):
+        # cache-buster follows the file itself, so a new Builder always loads after an update
+        js = os.path.join(os.path.dirname(__file__), "frontend", "noir-builder.js")
+        stamp = int(await hass.async_add_executor_job(os.path.getmtime, js))
         await panel_custom.async_register_panel(
             hass, webcomponent_name="noir-builder", frontend_url_path=PANEL,
-            module_url=f"{STATIC}/noir-builder.js?v={nd.version}", sidebar_title="NOIR Builder",
+            module_url=f"{STATIC}/noir-builder.js?v={stamp}", sidebar_title="NOIR Builder",
             sidebar_icon="mdi:view-grid-outline", require_admin=True)
     return True
 
