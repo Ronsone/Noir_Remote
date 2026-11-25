@@ -117,8 +117,8 @@ void TCA8418Component::loop() {
     }
     if (weg && !losgelassen) this->loslassen_ignorieren_ = this->weck_taste_;
     else if (extra_gedrueckt) this->loslassen_ignorieren_ = this->weck_taste_;   // haelt sie noch: Loslassen nicht werten
-    if (extra) ESP_LOGI(TAG, "Weck-Taste %u: %u weitere(r) Druck/Druecke beim Start nicht gewertet", this->weck_taste_, extra);
-    if (weg) ESP_LOGI(TAG, this->weck_erledigt_ ? "Weck-Taste %u schon beim Start gesendet" : "Weck-Taste %u verworfen (nur wecken)",
+    if (extra) ESP_LOGI(TAG, "Wake key %u: %u more press(es) at start ignored", this->weck_taste_, extra);
+    if (weg) ESP_LOGI(TAG, this->weck_erledigt_ ? "Wake key %u already sent at start" : "Wake key %u dropped (wake only)",
                       this->weck_taste_);
     this->weck_ereignisse_.clear();
     this->fifo_wake_ = false;
@@ -162,8 +162,8 @@ bool TCA8418Component::configure_() {
       if ((e & 0x80) && this->weck_taste_ == 0) this->weck_taste_ = e & 0x7F;
     }
     if (g_frueh_tasten.gesendet && this->weck_taste_ != 0) this->weck_erledigt_ = true;
-    ESP_LOGI(TAG, "Schnellweg: %u Tastenereignis(se) uebernommen, Weck-Taste %u %s", (unsigned) g_frueh_tasten.n,
-             this->weck_taste_, g_frueh_tasten.gesendet ? "schon gesendet" : "normal");
+    ESP_LOGI(TAG, "Fast path: %u key event(s) taken over, wake key %u %s", (unsigned) g_frueh_tasten.n,
+             this->weck_taste_, g_frueh_tasten.gesendet ? "already sent" : "normal");
   }
   if (esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_UNDEFINED) {
     uint8_t n = 0;
@@ -176,7 +176,7 @@ bool TCA8418Component::configure_() {
       if ((e & 0x80) && this->weck_taste_ == 0) this->weck_taste_ = e & 0x7F;   // erstes Druecken = Weck-Taste
     }
     if (!this->weck_ereignisse_.empty())
-      ESP_LOGI(TAG, "Aufgewacht: %u Tastenereignis(se) gesichert", (unsigned) this->weck_ereignisse_.size());
+      ESP_LOGI(TAG, "Woke up: %u key event(s) kept", (unsigned) this->weck_ereignisse_.size());
   }
   if (this->rows_ > 8 || this->columns_ > 10) {
     ESP_LOGE(TAG, "TCA8418 supports at most 8 rows and 10 columns (got %u x %u)", this->rows_, this->columns_);
@@ -297,7 +297,7 @@ void TCA8418Component::handle_event_(uint8_t event) {
       if (this->los_wartet_[keycode]) {   // Loslassen + Druecken im Fenster = Prellen
         this->los_wartet_[keycode] = false;
         if (this->los_wartend_ > 0) this->los_wartend_--;
-        ESP_LOGD(TAG, "Taste %u: Prellen ausgefiltert", keycode);
+        ESP_LOGD(TAG, "Key %u: bounce filtered", keycode);
         return;
       }
       if (this->pressed_state_[keycode] && now - this->press_start_ms_[keycode] < 150) return;   // doppelt gelesen
