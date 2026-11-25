@@ -76,8 +76,10 @@ inline void touched() { app().last_input = millis(); app().wake = true; }
 //    which no other key went down. A key that hangs or flickers does nothing.
 //  - Other keys act right away (arrows and volume repeat while held), but a second key that goes down within 80 ms of
 //    the first is taken as a ghost of the first and ignored - with its release.
+//  - The same key again within 120 ms of its release is contact bounce: ignored.
 struct KeyFilter {
   uint32_t down_ms[128]{};
+  uint32_t up_ms[128]{};   // last release (bounce: the same key again within 120 ms)
   bool passed[128]{};      // press was passed on, so pass its release too
   bool spoiled[128]{};     // a slow key during which another key went down
   int last_key{0};
@@ -103,6 +105,12 @@ inline void key(int k, bool pressed, bool held_long) {
   const uint32_t now = millis();
   if (pressed) {
     for (int i = 1; i < 128; i++) if (i != k && slow_key(i) && f.down_ms[i] != 0) f.spoiled[i] = true;   // another key during a slow key
+    if (f.up_ms[k] != 0 && now - f.up_ms[k] < 120) {   // nobody presses that fast: contact bounce
+      ESP_LOGD("noir", "Key %d ignored: bounce", k);
+      f.passed[k] = false;
+      f.down_ms[k] = 0;
+      return;
+    }
     f.down_ms[k] = now;
     f.passed[k] = false;
     f.spoiled[k] = false;
@@ -119,6 +127,7 @@ inline void key(int k, bool pressed, bool held_long) {
     return;
   }
   // released
+  f.up_ms[k] = now;
   const uint32_t held = f.down_ms[k] != 0 ? now - f.down_ms[k] : 0;
   f.down_ms[k] = 0;
   if (slow_key(k) && f.last_key == k) {
