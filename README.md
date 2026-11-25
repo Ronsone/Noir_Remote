@@ -110,6 +110,17 @@ Open **NOIR Builder** in the sidebar. Each tab is one screen, the preview shows 
 
 **TV in four steps:** choose your TV → choose its brand and press **Test** → (optional) your speaker → tap the inputs and apps you want. Logos are picked for you. More in [docs/tv.md](docs/tv.md).
 
+## Updating to a new version
+
+When there is a new version, update both parts. Your screens and settings stay.
+
+1. **Download:** on this page **Code → Download ZIP**, unzip it.
+2. **Home Assistant:** copy the folder `custom_components/noir_remote` again into `config/custom_components/`, the same way as in step 1.2.
+   Choose **Replace** when asked. Restart Home Assistant, then reload the NOIR Builder page.
+   *With HACS:* HACS shows the update – press *Update* and restart.
+3. **Remote:** move your `secrets.yaml` into the new `firmware` folder. Open a terminal there (step 2.3) and run the build command from step 2.5.
+   Choose **Over The Air** – no cable needed.
+
 ## Inside
 
 ```
