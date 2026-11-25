@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 
-from .const import DEFAULT_MODEL, PROFILES
+from .const import DEFAULT_MODEL, MAX_AUDIO_SOURCES, PROFILES
 from .tv import clean_apps, ir_block
 
 FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "netflix", "airco"}
@@ -19,11 +19,26 @@ def normalize(model: dict | None) -> dict:
                 m["tv"]["speaker"] = v["kef"]
             if "on" in v and "profile" not in v:           # before 0.2: LG codes were filled in
                 m["tv"]["profile"] = "lg"
+        elif k == "audio" and isinstance(v, dict):
+            m["audio"].update(v)
         elif k in m:
             m[k] = v
     m["tv"] = {k: m["tv"].get(k, d) for k, d in DEFAULT_MODEL["tv"].items()}   # drop old keys
     m["tv"]["apps"] = clean_apps(m["tv"]["apps"])
+    m["audio"] = {k: m["audio"].get(k, d) for k, d in DEFAULT_MODEL["audio"].items()}
+    m["audio"]["sources"] = clean_sources(m["audio"]["sources"])
     return m
+
+
+def clean_sources(sources) -> list:
+    """Audio sources: [{"name", "source"}], name defaults to the source, at most MAX_AUDIO_SOURCES."""
+    out = []
+    for s in sources if isinstance(sources, list) else []:
+        if not isinstance(s, dict) or not str(s.get("source", "")).strip():
+            continue
+        src = str(s["source"]).strip()[:40]
+        out.append({"name": (str(s.get("name", "")).strip() or src)[:14], "source": src})
+    return out[:MAX_AUDIO_SOURCES]
 
 
 def payload(model: dict, version: str) -> dict:
@@ -66,4 +81,11 @@ def payload(model: dict, version: str) -> dict:
                "speaker_source": str(tv.get("speaker_source", ""))[:40],   # some speakers (KEF LSX II) only wake up by choosing a source
                "ir": ir_block(tv.get("profile", "")) if tv.get("profile") in PROFILES else {},
                "apps": clean_apps(tv.get("apps"))},
+        "audio": audio_block(m["audio"]),
     }
+
+
+def audio_block(a: dict) -> dict:
+    """What the remote's Audio module needs; the name on the screen comes from the speaker in Home Assistant."""
+    return {"speaker": a.get("speaker", ""), "name": a.get("name", ""), "sources": a.get("sources", []),
+            "music": a.get("music", ""), "sub": a.get("sub", "")}

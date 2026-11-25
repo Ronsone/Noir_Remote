@@ -69,7 +69,11 @@ class NoirData:
             _LOGGER.info("esphome.%s not found - the remote picks up the new screens within 15 min or after a restart", svc)
 
     def payload(self) -> dict:
-        return payload(self.model, self.version)
+        p = payload(self.model, self.version)
+        sp = self.hass.states.get(p["audio"]["speaker"]) if p["audio"]["speaker"] else None
+        if sp is not None:   # name on the Audio screen: the speaker as Home Assistant calls it
+            p["audio"]["name"] = str(sp.attributes.get("friendly_name") or "")[:24]
+        return p
 
 
 def _key_ok(request: web.Request, key: str) -> bool:

@@ -50,6 +50,30 @@ inline uint32_t off_s() { return app().eco ? 20 : 60; }
 inline bool screen_on() { return idle_ms() < off_s() * 1000; }
 inline JsonArrayConst list_of(const char *name) { return app().cfg[name].as<JsonArrayConst>(); }
 
+// ---- extra states in the lamp poll (/states): every module can add its entities --------------------------------
+// The screens have one "extra" slot (licht_http::extra_*); this shares it between modules (TV, Audio, ...).
+struct Poll {
+  std::function<bool()> open;                    // poll now? (e.g. its screen is visible)
+  std::function<std::string()> entities;         // "a,b,"
+  std::function<void(JsonDocument &)> read;      // states arrived
+};
+inline std::map<std::string, Poll> &polls() { static std::map<std::string, Poll> p; return p; }
+inline void poll_set(const std::string &name, Poll p) {
+  polls()[name] = std::move(p);
+  noir::licht_http::extra_open() = []() {
+    for (auto &kv : polls()) if (kv.second.open && kv.second.open()) return true;
+    return false;
+  };
+  noir::licht_http::extra_e() = []() {
+    std::string e;
+    for (auto &kv : polls()) if (kv.second.open && kv.second.open() && kv.second.entities) e += kv.second.entities();
+    return e;
+  };
+  noir::licht_http::extra_lees() = [](JsonDocument &doc) {
+    for (auto &kv : polls()) if (kv.second.read) kv.second.read(doc);
+  };
+}
+
 // ---- Home Assistant ------------------------------------------------------------------------------------------
 inline void ha(const std::string &svc, const std::map<std::string, std::string> &data) {
   static esphome::api::CustomAPIDevice dev;
