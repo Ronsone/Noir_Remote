@@ -1006,9 +1006,14 @@ struct Stand {
   int flits_tegel{-1};
 };
 inline Stand &st_() { static Stand s; return s; }
-inline const char *naam_(int t) {
+inline const char *naam_(int t) {   // names as used by NOIR (const.py KEYCODES, modules/*.h)
   switch (t) { case 14: return "Op"; case 35: return "Neer"; case 15: return "Links"; case 32: return "Rechts";
-               case 34: return "OK"; default: return nullptr; }
+               case 34: return "OK"; case 13: return "Terug"; case 3: return "Menu"; case 31: return "Info";
+               case 41: return "Home"; case 2: return "Play"; case 5: return "Stop"; case 4: return "Terugspoelen";
+               case 11: return "Vooruitspoelen"; case 42: return "Kanaal +"; case 22: return "Kanaal -";
+               case 23: return "Rood"; case 25: return "Groen"; case 24: return "Geel"; case 21: return "Blauw";
+               case 33: return "Volume +"; case 43: return "Volume -"; case 44: return "Mute"; case 102: return "Aan/uit";
+               default: return nullptr; }
 }
 inline void tonen() {
   Stand &s = st_();
@@ -1053,7 +1058,7 @@ inline void reset() {
 }
 // Uit on_key (via tv::taste). true = afgehandeld; de menutoets (31) blijft vrij om eruit te komen.
 inline bool taste(int t, bool ingedrukt) {
-  if (t == 31 || t < 1 || t > 127) return false;
+  if (t < 1 || t > 127) return false;
   Stand &s = st_();
   const uint32_t nu = lv_tick_get();
   if (!ingedrukt) {
@@ -1080,7 +1085,7 @@ inline bool taste(int t, bool ingedrukt) {
   s.cur = r * 3 + c;
   char b[64];
   const char *n = naam_(t);
-  if (n) snprintf(b, sizeof(b), "%s ingedrukt%s", n, dubbel ? "  \xE2\x80\x94 VERDACHT" : "");
+  if (n) snprintf(b, sizeof(b), "%s (%d) ingedrukt%s", n, t, dubbel ? "  \xE2\x80\x94 VERDACHT" : "");
   else snprintf(b, sizeof(b), "Toets %d ingedrukt%s", t, dubbel ? "  \xE2\x80\x94 VERDACHT" : "");
   s.laatste = b;
   if (s.groot != nullptr) {   // laatste knop groot in beeld (rood-wit bij verdacht)
@@ -2296,7 +2301,8 @@ inline void inst_bouwen(lv_obj_t *laag, const Fonts &f) {
   modus(112, INST_ECO, "Eco", eco_mode());
   label(body, "Skin", 0, 104, 216, f.f12, MUTED);
   keuzelijst_(body, 122, 0, f);
-  knop_tekst_(knop(body, 0, 170, 216, 40, INST_WIFI), "Wi-Fi herstellen", f);
+  knop_tekst_(knop(body, 0, 170, 104, 40, INST_WIFI), "Wi-Fi", f);
+  knop_tekst_(knop(body, 112, 170, 104, 40, KNOPTEST), "Knoppentest", f);
 }
 
 // Lagen over page_home bouwen (eenmalig). home = page_home->obj.
