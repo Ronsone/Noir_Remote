@@ -15,9 +15,10 @@ const ICONS = ["noir:tv", "noir:audio", "noir:licht", "noir:scenes", "mdi:power"
   "mdi:sony-playstation", "mdi:nintendo-switch", "mdi:netflix", "mdi:youtube", "mdi:play", "mdi:weather-night", "mdi:white-balance-sunny",
   "mdi:silverware-fork-knife", "mdi:coffee", "mdi:fan", "mdi:air-conditioner", "mdi:thermometer", "mdi:blinds", "mdi:window-shutter",
   "mdi:door", "mdi:lock", "mdi:home", "mdi:cog", "mdi:heart", "mdi:star", "mdi:leaf", "mdi:flash", "mdi:speaker"];
+const INSTALL_URL = "https://ronsone.github.io/Noir_Remote/";
 const LOGO_URL = (k) => `/noir_remote_static/logos/${k}.png`;
 const NL = {"Home": "Home", "Lights": "Verlichting", "Scenes": "Scènes", "TV": "TV", "Remote": "Remote", "TV screen": "TV", "Lights screen": "Verlichting", "Scenes screen": "Scènes", "All off": "Alles uit", "TV on/off": "TV aan/uit", "Remote settings": "Instellingen remote", "Toggle an entity": "Iets aan/uit zetten", "Run a scene or script": "Scène of script starten", "Audio (coming soon)": "Audio (binnenkort)", "Netflix (coming soon)": "Netflix (binnenkort)", "Airco (coming soon)": "Airco (binnenkort)", "Tiles on your home screen": "Tegels op je startscherm", "Add tile": "Tegel toevoegen", "Add light": "Lamp toevoegen", "Add scene": "Scène toevoegen", "Name": "Naam", "Opens": "Opent", "Entity": "Entiteit", "Size": "Maat", "Half": "Half", "Full": "Vol", "Dimmable": "Dimbaar", "On/off": "Aan/uit", "Scene or script": "Scène of script", "Also used by": "Ook gebruikt door", "App tiles": "App-tegels", "Your TV": "Je tv", "Speaker (on with the TV, volume keys)": "Speaker (aan met de tv, volumetoetsen)", "Advanced · infrared codes (LG is filled in)": "Geavanceerd · infraroodcodes (LG staat ingevuld)", "Address": "Adres", "Command": "Commando", "Power on": "Aan", "Power off": "Uit", "Power toggle": "Aan/uit", "Mode": "Modus", "Language": "Taal", "Always ready": "Altijd klaar", "Longer battery": "Langer op de accu", "First-time setup": "Eerste keer instellen", "Copy": "Kopiëren", "Copied": "Gekopieerd", "Save": "Opslaan", "Unsaved changes": "Niet opgeslagen", "Saved – the remote updates in a few seconds.": "Opgeslagen – de remote past zich zo aan.", "What you see left is what your remote shows.": "Links zie je wat je remote laat zien.", "Tap a tile to edit it": "Tik op een tegel om hem aan te passen", "Tap = on/off · hold = dim": "Tikken = aan/uit · vasthouden = dimmen", "New tile": "Nieuwe tegel", "Up": "Omhoog", "Down": "Omlaag", "Remove": "Verwijderen", "Icon": "Icoon", "TV input / app": "Tv-ingang / app", "Settings": "Instellingen", "Loading…": "Laden…", "Copy into your ESPHome": "Kopieer naar je ESPHome", "Your remote YAML:": "YAML van je remote:", "Flash via USB, then add it in Home Assistant (ESPHome) – it asks for": "Flash via USB en voeg hem toe in Home Assistant (ESPHome) – die vraagt om",
-  "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Add": "Toevoegen", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "tested": "getest", "— none —": "— geen —", "Save as": "Bewaar als", "and fill in your Wi-Fi": "en vul je wifi in", "Connect the remote by USB and run in the firmware folder:": "Sluit de remote aan via USB en voer uit in de map firmware:", "Home Assistant finds the remote (ESPHome) – it asks for": "Home Assistant vindt de remote (ESPHome) – die vraagt om", "Your Wi-Fi (only used for this file, not stored):": "Je wifi (alleen voor dit bestand, wordt niet opgeslagen):", "Wi-Fi name": "Wifi-naam", "Wi-Fi password": "Wifi-wachtwoord", "Download secrets.yaml": "Download secrets.yaml", "Put the file in the folder": "Zet het bestand in de map", "Show the text": "Toon de tekst", "Switch your TV on – its inputs and apps then appear here.": "Zet je tv aan – dan verschijnen zijn ingangen en apps hier.", "Done: the remote is added to Home Assistant (ESPHome) by itself, about a minute after it starts.": "Klaar: de remote wordt vanzelf aan Home Assistant (ESPHome) toegevoegd, ongeveer een minuut nadat hij start."};
+  "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Add": "Toevoegen", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "tested": "getest", "— none —": "— geen —", "Save as": "Bewaar als", "and fill in your Wi-Fi": "en vul je wifi in", "Connect the remote by USB and run in the firmware folder:": "Sluit de remote aan via USB en voer uit in de map firmware:", "Home Assistant finds the remote (ESPHome) – it asks for": "Home Assistant vindt de remote (ESPHome) – die vraagt om", "Your Wi-Fi (only used for this file, not stored):": "Je wifi (alleen voor dit bestand, wordt niet opgeslagen):", "Wi-Fi name": "Wifi-naam", "Wi-Fi password": "Wifi-wachtwoord", "Download secrets.yaml": "Download secrets.yaml", "Put the file in the folder": "Zet het bestand in de map", "Show the text": "Toon de tekst", "Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.": "Installeer de firmware vanuit je browser (Chrome of Edge): sluit de remote aan via USB en druk op Installeren.", "Open the installer": "Open de installer", "Connect your phone to the Wi-Fi network “noir-remote setup” and choose your own Wi-Fi.": "Verbind je telefoon met het wifi-netwerk “noir-remote setup” en kies je eigen wifi.", "Done: Home Assistant adds the remote by itself – no keys, no files.": "Klaar: Home Assistant voegt de remote vanzelf toe – geen sleutels, geen bestanden.", "Firmware": "Firmware", "No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.": "Nog geen update gevonden op je remote. Een remote met firmware 0.2 installeert de nieuwe firmware één keer via de installer (USB); daarna komen updates hier, met één knop.", "Updating…": "Bijwerken…", "keep the remote close to your Wi-Fi.": "houd de remote in de buurt van je wifi.", "New firmware": "Nieuwe firmware", "now": "nu", "Up to date": "Up-to-date", "Update firmware": "Firmware bijwerken", "Started – the remote restarts when it is done.": "Gestart – de remote herstart als hij klaar is.", "Switch your TV on – its inputs and apps then appear here.": "Zet je tv aan – dan verschijnen zijn ingangen en apps hier.", "Done: the remote is added to Home Assistant (ESPHome) by itself, about a minute after it starts.": "Klaar: de remote wordt vanzelf aan Home Assistant (ESPHome) toegevoegd, ongeveer een minuut nadat hij start."};
 let LANG = "nl";
 const L = (en) => (LANG === "nl" && NL[en]) || en;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -87,8 +88,9 @@ class NoirBuilder extends HTMLElement {
     if (first) { this._load(); return; }
     if (!this._painted) { this._render(); return; }
     // TV tab: redraw when the TV switches on/off, so its inputs appear (not while you are typing)
-    const e = this.s.tab === "tv" && this.s.model?.tv?.entity, st = e && h.states[e];
-    const sig = st ? `${st.state}|${(st.attributes.source_list || []).length}|${st.attributes.source || ""}` : "";
+    const e = this.s.tab === "tv" ? this.s.model?.tv?.entity : this.s.tab === "remote" ? this._fwEntity() : "", st = e && h.states[e];
+    const at = st?.attributes || {};
+    const sig = st ? `${e}|${st.state}|${(at.source_list || []).length}|${at.source || ""}|${at.in_progress}|${at.update_percentage}|${at.installed_version}` : "";
     if (sig !== this._tvSig) {
       this._tvSig = sig;
       if (e && !this.shadowRoot.activeElement) this._render();
@@ -100,7 +102,7 @@ class NoirBuilder extends HTMLElement {
   async _load() {
     try {
       const r = await this._hass.callWS({ type: "noir_remote/get" });
-      this.s.model = r.model; this.s.device = r.device; this.s.secrets = r.secrets || ""; this.s.profiles = r.profiles || []; this.s.logos = r.logos || [];
+      this.s.model = r.model; this.s.device = r.device; this.s.profiles = r.profiles || []; this.s.logos = r.logos || [];
     } catch (e) { this.s.msg = `Could not load: ${e.message || e}`; }
     this._render();
   }
@@ -285,17 +287,12 @@ class NoirBuilder extends HTMLElement {
       <div class="card"><h3>${L("Language")}</h3><div class="modes">
         <div class="mode ${LANG === "nl" ? "on" : ""}" data-a="lang" data-v="nl"><b>Nederlands</b><span>Remote + Builder</span></div>
         <div class="mode ${LANG === "en" ? "on" : ""}" data-a="lang" data-v="en"><b>English</b><span>Remote + Builder</span></div></div></div>
+      ${this._firmware()}
       <div class="card"><details><summary>${L("First-time setup")}</summary>
-        <p><b>1</b> · ${L("Your Wi-Fi (only used for this file, not stored):")}</p>
-        <div class="wifi"><input data-w="ssid" placeholder="${L("Wi-Fi name")}" autocomplete="off">
-          <input data-w="pass" type="password" placeholder="${L("Wi-Fi password")}" autocomplete="new-password"></div>
-        <p><button class="btn primary" data-a="download"><ha-icon icon="mdi:download"></ha-icon>${L("Download secrets.yaml")}</button></p>
-        <p>${L("Put the file in the folder")} <code>firmware</code>.</p>
-        <details><summary>${L("Show the text")}</summary>
-        <pre>${esc(this.s.secrets)}</pre><button class="btn" data-a="copy"><ha-icon icon="mdi:content-copy"></ha-icon>${L("Copy")}</button></details>
-        <p><b>2</b> · ${L("Connect the remote by USB and run in the firmware folder:")}</p>
-        <pre>esphome run noir-remote.yaml</pre>
-        <p><b>3</b> · ${L("Done: the remote is added to Home Assistant (ESPHome) by itself, about a minute after it starts.")}</p></details></div>` };
+        <p><b>1</b> · ${L("Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.")}</p>
+        <p><a class="btn primary" href="${INSTALL_URL}" target="_blank" rel="noopener"><ha-icon icon="mdi:usb"></ha-icon>${L("Open the installer")}</a></p>
+        <p><b>2</b> · ${L("Connect your phone to the Wi-Fi network “noir-remote setup” and choose your own Wi-Fi.")}</p>
+        <p><b>3</b> · ${L("Done: Home Assistant adds the remote by itself – no keys, no files.")}</p></details></div>` };
   }
 
   _render() {
@@ -334,8 +331,7 @@ class NoirBuilder extends HTMLElement {
     else if (a === "profile") { m.tv.profile = b.dataset.v; this.s.testMsg = ""; this._touch(); }
     else if (a === "test") { this._test(b.dataset.k); return; }
     else if (a === "addsrc") { this._addSource(b.dataset.v); return; }
-    else if (a === "copy") { navigator.clipboard?.writeText(this.s.secrets); b.textContent = L("Copied"); return; }
-    else if (a === "download") { this._download(); return; }
+    else if (a === "fw_install") { this._fwInstall(); return; }
     else if (a === "save") { this._save(); return; }
     else if (a === "add") {
       if (l === "tiles") { m.tiles.push({ icon: "mdi:lightbulb", label: L("New tile"), opens: "toggle", entity: "", size: "half" }); this.s.sel = m.tiles.length - 1; }
@@ -352,16 +348,35 @@ class NoirBuilder extends HTMLElement {
     } else return;
     this._render();
   }
-  _download() {   // secrets.yaml with the Wi-Fi filled in; the Wi-Fi never leaves this browser
-    const w = (k) => this.shadowRoot.querySelector(`[data-w="${k}"]`)?.value || "";
-    let text = this.s.secrets;
-    if (w("ssid")) text = text.replace(/^wifi_ssid:.*$/m, `wifi_ssid: ${JSON.stringify(w("ssid"))}`);
-    if (w("pass")) text = text.replace(/^wifi_password:.*$/m, `wifi_password: ${JSON.stringify(w("pass"))}`);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text + "\n"], { type: "text/yaml" }));
-    a.download = "secrets.yaml";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  // The remote's firmware update (ESPHome update entity, e.g. update.noir_remote_firmware)
+  _fwEntity() {
+    const dev = (this.s.device || "noir-remote").replace(/-/g, "_");
+    const st = this._hass?.states || {};
+    return st[`update.${dev}_firmware`] ? `update.${dev}_firmware` : Object.keys(st).find((e) => e.startsWith(`update.${dev}`)) || "";
+  }
+  _firmware() {
+    const e = this._fwEntity(), st = e && this._hass.states[e];
+    if (!st) return `<div class="card"><h3>${L("Firmware")}</h3>
+      <p>${L("No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.")}</p>
+      <p><a class="btn" href="${INSTALL_URL}" target="_blank" rel="noopener"><ha-icon icon="mdi:usb"></ha-icon>${L("Open the installer")}</a></p></div>`;
+    const a = st.attributes, busy = a.in_progress === true || typeof a.in_progress === "number" || a.update_percentage != null;
+    const pct = typeof a.update_percentage === "number" ? a.update_percentage : (typeof a.in_progress === "number" ? a.in_progress : null);
+    const avail = st.state === "on";
+    const line = busy ? `${L("Updating…")}${pct != null ? " " + pct + "%" : ""} – ${L("keep the remote close to your Wi-Fi.")}`
+      : avail ? `${L("New firmware")}: <b>${esc(a.latest_version || "")}</b> (${L("now")} ${esc(a.installed_version || "?")})`
+      : `${L("Up to date")} · ${esc(a.installed_version || "?")}`;
+    return `<div class="card"><h3>${L("Firmware")}</h3><p>${line}</p>
+      <div class="bar"><button class="btn ${avail ? "primary" : ""}" data-a="fw_install" ${avail && !busy ? "" : "disabled"}><ha-icon icon="mdi:update"></ha-icon>${L("Update firmware")}</button>
+      ${this.s.fwMsg ? `<span class="${this.s.fwErr ? "dirty" : "ok"}">${esc(this.s.fwMsg)}</span>` : ""}</div></div>`;
+  }
+  async _fwInstall() {
+    const e = this._fwEntity();
+    if (!e) return;
+    this.s.fwErr = false; this.s.fwMsg = L("Started – the remote restarts when it is done.");
+    this._render();
+    try { await this._hass.callService("update", "install", { entity_id: e }); }
+    catch (err) { this.s.fwErr = true; this.s.fwMsg = String(err?.message || err); }
+    this._render();
   }
 
   _change(e) {

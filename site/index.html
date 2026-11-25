@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NOIR Remote installer</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js?module"></script>
+  <style>
+    :root { --bg: #07080a; --surface: #14161a; --text: #f2f3f5; --muted: #969aa3; --accent: #6ebedc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 48px 16px 64px; }
+    h1 { font-weight: 300; letter-spacing: .35em; font-size: 40px; margin: 0 0 4px; }
+    .line { width: 64px; height: 2px; background: var(--accent); border-radius: 2px; margin: 0 0 28px; }
+    p { color: var(--muted); margin: 0 0 12px; }
+    ol { padding-left: 20px; margin: 24px 0; }
+    li { margin: 0 0 14px; }
+    li b { color: var(--text); font-weight: 600; }
+    .card { background: var(--surface); border-radius: 16px; padding: 24px; margin: 24px 0; }
+    esp-web-install-button button[slot="activate"] {
+      font: inherit; font-weight: 600; color: #07080a; background: var(--accent); border: 0; border-radius: 12px;
+      padding: 12px 22px; cursor: pointer; }
+    .en { border-top: 1px solid #23262c; margin-top: 40px; padding-top: 24px; font-size: 14px; }
+    code { color: var(--text); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>NOIR</h1>
+  <div class="line"></div>
+  <p>Firmware voor de OpenRemote Rev6. Eén keer installeren via USB, daarna komen updates vanzelf via Home Assistant.</p>
+
+  <div class="card">
+    <ol>
+      <li><b>Sluit de remote aan</b> op je pc met een USB-C-kabel die data doet. Gebruik Chrome of Edge.</li>
+      <li><b>Druk op Installeren</b> en kies de poort van de remote.
+        <p style="margin-top:12px">
+          <esp-web-install-button manifest="firmware/manifest.json">
+            <button slot="activate">Installeren</button>
+            <span slot="unsupported">Je browser kan dit niet. Gebruik Chrome of Edge op een pc of Mac.</span>
+            <span slot="not-allowed">Open deze pagina via https.</span>
+          </esp-web-install-button>
+        </p>
+      </li>
+      <li><b>Wifi instellen:</b> verbind je telefoon met het netwerk <code>noir-remote setup</code> en kies je eigen wifi (2,4 GHz).</li>
+      <li><b>Klaar.</b> Heb je de integratie NOIR Remote in Home Assistant, dan wordt de remote vanzelf toegevoegd. Je schermen maak je in de NOIR Builder.</li>
+    </ol>
+  </div>
+
+  <div class="en">
+    <p><b>English</b> · Connect the remote by USB (Chrome or Edge), press <b>Installeren</b>, then connect your phone to <code>noir-remote setup</code> and choose your Wi-Fi. Home Assistant with the NOIR Remote integration adds the remote by itself.</p>
+    <p><a href="https://github.com/ronsone/Noir_Remote" style="color:var(--accent)">github.com/ronsone/Noir_Remote</a></p>
+  </div>
+</main>
+</body>
+</html>

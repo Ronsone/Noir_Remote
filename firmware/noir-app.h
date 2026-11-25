@@ -17,7 +17,7 @@
 
 namespace noirapp {
 
-inline void start(const char *host, const char *key) {
+inline void start(const std::string &host, const std::string &key) {   // host + key: kept in flash (noir_setup)
   static Tv tv;
   static Lights lights;
   static Scenes scenes;
@@ -39,6 +39,16 @@ inline void start(const char *host, const char *key) {
     return "http://" + app().host + "/api/noir_remote/states?k=" + app().key;
   };
   nvs_load();   // last known screens, so the remote works right away
+  if (a.host.empty()) ESP_LOGI("noir", "Not set up yet - waiting for NOIR Remote in Home Assistant (action noir_setup)");
+}
+// From NOIR Remote (action noir_setup): where Home Assistant is + the shared key. Fetch the screens right away.
+inline void setup(const std::string &host, const std::string &key) {
+  App &a = app();
+  const bool changed = host != a.host || key != a.key;
+  a.host = host;
+  a.key = key;
+  ESP_LOGI("noir", "Set up by Home Assistant (%s)", host.c_str());
+  if (changed && a.built) fetch_config();
 }
 
 struct Images { esphome::image::Image *wall, *tv, *audio, *licht, *scenes; };

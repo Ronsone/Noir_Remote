@@ -1,0 +1,74 @@
+# Builds the NOIR firmware and publishes it on GitHub Pages:
+#   https://ronsone.github.io/Noir_Remote/                         installer (USB, from the browser)
+#   https://ronsone.github.io/Noir_Remote/firmware/manifest.json   updates (the remote checks this)
+# Runs when the firmware changes on main, or by hand (Actions > Firmware > Run workflow).
+# The remote only updates when the version in firmware/noir-remote.yaml (substitutions: version) is new.
+name: Firmware
+
+on:
+  push:
+    branches: [main]
+    paths: ["firmware/**", "site/**", ".github/workflows/firmware.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ESPHome
+        run: pip install esphome==2026.11.1
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/esphome
+          key: esphome-2026.11.1
+      - name: Build
+        run: esphome compile firmware/noir-remote.yaml
+      - name: Site and manifest
+        run: |
+          version=$(sed -n 's/^  version: "\(.*\)"/\1/p' firmware/noir-remote.yaml)
+          build=firmware/.esphome/build/noir-remote/build
+          mkdir -p out/firmware
+          cp site/* out/
+          cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/
+          md5=$(md5sum out/firmware/firmware.ota.bin | cut -d' ' -f1)
+          cat > out/firmware/manifest.json <<JSON
+          {
+            "name": "NOIR Remote",
+            "version": "$version",
+            "home_assistant_domain": "esphome",
+            "new_install_prompt_erase": true,
+            "builds": [{
+              "chipFamily": "ESP32-S3",
+              "ota": {"path": "firmware.ota.bin", "md5": "$md5", "summary": "NOIR Remote $version",
+                      "release_url": "https://github.com/${{ github.repository }}"},
+              "parts": [{"path": "firmware.factory.bin", "offset": 0}]
+            }]
+          }
+          JSON
+          cat out/firmware/manifest.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

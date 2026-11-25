@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
+from . import link
 from .autoadd import maybe_add
 from .const import DOMAIN, PROFILES, STORE_VERSION
 from .model import normalize, payload
@@ -126,11 +127,8 @@ class StatesView(HomeAssistantView):
 @websocket_api.async_response
 async def ws_get(hass, connection, msg):
     nd: NoirData = hass.data[DOMAIN]
-    from .config_flow import ha_host, secrets_block
-    d = nd.entry.data
-    block = secrets_block(d, ha_host(hass)) if d.get("api_key") else f'noir_key: "{nd.key}"'
     profiles = [{"key": k, "name": v["name"], "tested": v.get("tested", "")} for k, v in PROFILES.items()]
-    connection.send_result(msg["id"], {"model": nd.model, "version": nd.version, "device": nd.device, "secrets": block,
+    connection.send_result(msg["id"], {"model": nd.model, "version": nd.version, "device": nd.device,
                                        "profiles": profiles, "logos": logo_list()})
 
 
@@ -191,6 +189,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         websocket_api.async_register_command(hass, ws_test)
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC, os.path.join(os.path.dirname(__file__), "frontend"), cache_headers=False)])
+    from .config_flow import ha_host
+    entry.async_on_unload(link.start(hass, nd.device, ha_host, nd.key))   # the remote links itself
     if PANEL not in hass.data.get("frontend_panels", {}):
         # cache-buster follows the file itself, so a new Builder always loads after an update
         js = os.path.join(os.path.dirname(__file__), "frontend", "noir-builder.js")
