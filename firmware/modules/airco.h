@@ -174,12 +174,21 @@ struct Airco : Module {
     }
   }
 
+  // up/down = temperature, left/right = mode (only the ones the unit has), OK = on/off
   bool key(int k, bool pressed) override {
-    if (!on_screen() || (k != 14 && k != 35 && k != 34)) return false;
+    namespace ac = noir::airco;
+    if (!on_screen() || (k != 14 && k != 35 && k != 15 && k != 32 && k != 34)) return false;
     if (!pressed) return true;
-    if (k == 14) noir::airco::temp_stap(1);
-    else if (k == 35) noir::airco::temp_stap(-1);
-    else noir::airco::aanuit();
+    if (k == 14) ac::temp_stap(1);
+    else if (k == 35) ac::temp_stap(-1);
+    else if (k == 34) ac::aanuit();
+    else {
+      const ac::Unit &n = ac::u();
+      for (int step = 1; step < ac::MODI; step++) {
+        const int m = (n.modus + (k == 32 ? step : ac::MODI - step)) % ac::MODI;
+        if (n.modi[m]) { ac::modus(m); break; }
+      }
+    }
     return true;
   }
 

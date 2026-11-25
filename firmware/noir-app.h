@@ -16,17 +16,19 @@
 #include "modules/tv.h"
 #include "modules/audio.h"
 #include "modules/airco.h"
+#include "modules/nav.h"
 
 namespace noirapp {
 
 inline void start(const std::string &host, const std::string &key) {   // host + key: kept in flash (noir_setup)
   static Airco airco;
+  static Nav nav;
   static Audio audio;
   static Tv tv;
   static Lights lights;
   static Scenes scenes;
   static Home home;
-  modules() = {&airco, &audio, &tv, &lights, &scenes, &home};   // screen modules first (their keys on their screen), audio before tv
+  modules() = {&airco, &audio, &tv, &lights, &scenes, &home, &nav};   // screen modules first (their keys on their screen), audio before tv
 
   App &a = app();
   a.host = host;
