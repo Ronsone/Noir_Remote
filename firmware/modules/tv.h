@@ -61,7 +61,7 @@ struct Tv : Module {
     noir::tv::entiteit() = tv["entity"] | "";
     speaker = tv["speaker"] | (tv["kef"] | "");          // "kef" = name before 0.2
     speaker_source = tv["speaker_source"] | "";
-    noir::kef::entiteit() = speaker;                       // volume keys -> the speaker
+    if (noir::audio::d().kef.empty()) noir::kef::entiteit() = speaker;   // volume keys -> the speaker (Audio's speaker wins)
     JsonObjectConst r = tv["ir"];
     ir = Ir{r["p"] | "", r["a"] | -1};
     on = r["on"] | -1; off = r["off"] | -1; power = r["power"] | -1;
@@ -81,12 +81,12 @@ struct Tv : Module {
       if (app().built) noir::alles_herbouwen();
     }
     // TV state in the same poll as the lamps (while the display is on)
-    noir::licht_http::extra_open() = []() { return !entity().empty() && screen_on(); };
-    noir::licht_http::extra_e() = []() { return entity().empty() ? std::string() : entity() + ","; };
-    noir::licht_http::extra_lees() = [](JsonDocument &doc) {
-      JsonArrayConst v = doc[entity()];
-      if (!v.isNull()) noir::tv_status(v[0] | "", v[10] | "");
-    };
+    poll_set("tv", {[]() { return !entity().empty() && screen_on(); },
+                    []() { return entity().empty() ? std::string() : entity() + ","; },
+                    [](JsonDocument &doc) {
+                      JsonArrayConst v = doc[entity()];
+                      if (!v.isNull()) noir::tv_status(v[0] | "", v[10] | "");
+                    }});
   }
   bool action(int a) override {
     if (a >= noir::TV_APP && a < noir::TV_APP + 8) { app_tile(a - noir::TV_APP); return true; }

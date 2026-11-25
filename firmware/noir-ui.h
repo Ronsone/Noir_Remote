@@ -159,6 +159,9 @@ inline const char *tr(const char *nl) {
     {"Eigen sc\xC3\xA8nes: configurator \xE2\x86\x92 NOIR \xE2\x86\x92 Sc\xC3\xA8nes.", "Add scenes in the NOIR Builder."},
     {"Apparaten en apps", "Devices and apps"}, {"Wordt geladen\xE2\x80\xA6", "Loading\xE2\x80\xA6"},
     {"TV aan", "TV on"}, {"TV uit", "TV off"}, {"Volle helderheid", "Full brightness"},
+    {"Ingang", "Input"}, {"Niveau", "Level"}, {"Niets aan het afspelen", "Nothing playing"}, {"MUZIEK", "MUSIC"},
+    {"Volumetoetsen op de remote regelen deze speaker.", "The volume keys control this speaker."},
+    {"uit", "off"}, {"aan", "on"}, {"niet bereikbaar", "unreachable"},
   };
   for (const auto &r : T) if (strcmp(r[0], nl) == 0) return r[1];
   return nl;
@@ -1594,12 +1597,13 @@ inline void nf_detail_bouwen(lv_obj_t *laag, const Fonts &f) {
 // Bediening gaat via ha() (media_player.*) en - voor wat per integratie verschilt (subwoofer, muzieklijsten) - via
 // de callbacks hieronder, zodat de keuze voor KEF- en muziekintegratie later kan vallen zonder het scherm te wijzigen.
 namespace audio {
-static const int BRONNEN = 6;
-static const char *BRON_NAAM[BRONNEN] = {"Wi-Fi", "Bluetooth", "TV", "Optisch", "Aux", "USB"};
-inline std::string *bron_id() {   // source van de KEF-media_player (kef_connector/pykefcontrol)
-  static std::string b[BRONNEN] = {"wifi", "bluetooth", "tv", "optical", "analog", "usb"};
-  return b;
-}
+static const int BRONNEN = 6;   // at most 6 source buttons on the Audio screen
+// Sources of the speaker: names on the buttons + source values of its media_player (NOIR Builder > Audio).
+// Default: the KEF LSX II (simulator).
+inline std::vector<std::string> &bron_naam() { static std::vector<std::string> v{"Wi-Fi", "Bluetooth", "TV", "Optisch", "Aux", "USB"}; return v; }
+inline std::vector<std::string> &bron_id() { static std::vector<std::string> v{"wifi", "bluetooth", "tv", "optical", "analog", "usb"}; return v; }
+inline int bronnen() { return std::min<int>(BRONNEN, std::min(bron_naam().size(), bron_id().size())); }
+inline std::string &speaker_naam() { static std::string n{"KEF LSX II"}; return n; }
 struct Beeld { uint8_t *px{nullptr}; lv_image_dsc_t dsc{}; };
 struct Lijst { std::string naam, sub, uri, type; int beeld{0}; };   // beeld = sleutel in covers (0 = geen)
 static const int COVER_NU = 1, COVER_KLEIN = 2, COVER_LIJST = 100, COVER_RECENT = 200, COVER_ZOEK = 300;   // sleutels in covers
@@ -1706,15 +1710,15 @@ inline void tonen() {
   Data &x = d();
   const bool kef_aan = x.kef_state == "on" || x.kef_state == "playing" || x.kef_state == "paused" || x.kef_state == "idle";
   if (u.status != nullptr) {
-    std::string t = "KEF LSX II \xC2\xB7 ";
-    if (x.kef_state.empty() || x.kef_state == "unavailable" || x.kef_state == "unknown") t += "niet bereikbaar";
-    else if (!kef_aan) t += "uit";
-    else t += x.bron >= 0 ? BRON_NAAM[x.bron] : "aan";
+    std::string t = speaker_naam() + " \xC2\xB7 ";
+    if (x.kef_state.empty() || x.kef_state == "unavailable" || x.kef_state == "unknown") t += tr("niet bereikbaar");
+    else if (!kef_aan) t += tr("uit");
+    else t += x.bron >= 0 && x.bron < bronnen() ? bron_naam()[x.bron] : tr("aan");
     lv_label_set_text(u.status, t.c_str());
     lv_obj_set_style_border_color(u.aan, k(kef_aan ? 0xBFC2C9 : RAND), 0);
     lv_obj_set_style_border_opa(u.aan, kef_aan ? 220 : 115, 0);
   }
-  for (int i = 0; i < BRONNEN; i++) {
+  for (int i = 0; i < bronnen(); i++) {
     if (u.bron[i] == nullptr) continue;
     const bool sel = kef_aan && i == x.bron;
     lv_obj_set_style_border_color(u.bron[i], k(sel ? 0xBFC2C9 : RAND), 0);
@@ -1731,8 +1735,8 @@ inline void tonen() {
     lv_label_set_text(u.sub_w, x.sub_bekend ? sub_tekst_(x.sub).c_str() : "\xE2\x80\x94");
   }
   // Nu speelt (Audio-kaart en Muziek-scherm)
-  const std::string titel = speelt() ? x.titel : "Niets aan het afspelen";
-  std::string sub = speelt() ? x.artiest : "Kies een playlist";
+  const std::string titel = speelt() ? x.titel : tr("Niets aan het afspelen");
+  std::string sub = speelt() ? x.artiest : "";
   if (u.np_titel != nullptr) {
     lv_label_set_text(u.np_titel, titel.c_str());
     lv_label_set_text(u.np_sub, sub.c_str());
@@ -1777,7 +1781,7 @@ inline void lees_(JsonDocument &doc) {
       x.volume = v[2] | -1;
       const std::string bron = v[10] | "";
       x.bron = -1;
-      for (int i = 0; i < BRONNEN; i++) if (bron == bron_id()[i]) x.bron = i;
+      for (int i = 0; i < bronnen(); i++) if (bron == bron_id()[i]) x.bron = i;
     }
   }
   if (!x.sub_e.empty()) {
@@ -1800,7 +1804,7 @@ inline void lees_(JsonDocument &doc) {
       x.duur = (int) duur;
       x.pos = pos < 0 ? -1 : (int) (pos + (x.sp_state == "playing" ? leeftijd : 0));
       // andere titel: nieuwe hoes
-      if (speelt() && !x.titel.empty() && x.titel != x.cover_van_titel) {
+      if (speelt() && !x.titel.empty() && x.titel != x.cover_van_titel && !nf::url_("/muziek/img?", "").empty()) {
         x.cover_van_titel = x.titel;
         const std::string t = std::to_string(lv_tick_get() & 0xFFFF);
         nf::d().rij.push_back({nf::url_("/muziek/img?", "&e=" + x.muziek + "&s=c&t=" + t), COVER_NU, 'c', 96 * 96 * 2});
@@ -1919,7 +1923,7 @@ inline void cfg_laden(JsonObjectConst o) {
 // ---- bediening (acties van het scherm) ----
 inline void bron_kiezen(int i) {
   Data &x = d();
-  if (i < 0 || i >= BRONNEN || x.kef.empty() || !ha()) return;
+  if (i < 0 || i >= bronnen() || x.kef.empty() || !ha()) return;
   x.bron = i;
   ha()("media_player.select_source", {{"entity_id", x.kef}, {"source", bron_id()[i]}});
   tonen();
@@ -2120,13 +2124,14 @@ inline void audio_bouwen(lv_obj_t *laag, const Fonts &f) {
   // Ingang
   label(body, "Ingang", 0, 136, 120, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
   const int bw = (216 - 2 * 6) / 3;
-  for (int i = 0; i < audio::BRONNEN; i++)
-    u.bron[i] = tekst_knop_(body, (i % 3) * (bw + 6), 158 + (i / 3) * 38, bw, 32, AUDIO_BRON + i, audio::BRON_NAAM[i], f);
+  for (int i = 0; i < audio::BRONNEN; i++) u.bron[i] = nullptr;
+  for (int i = 0; i < audio::bronnen(); i++)
+    u.bron[i] = tekst_knop_(body, (i % 3) * (bw + 6), 158 + (i / 3) * 38, bw, 32, AUDIO_BRON + i, audio::bron_naam()[i].c_str(), f);
   // Niveau
   label(body, "Niveau", 0, 242, 120, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
   u.vol_sld = regelaar_(body, 266, "Volume", 0, 100, u.vol_w, false, f);
   u.sub_sld = regelaar_(body, 310, "Subwoofer", -10, 10, u.sub_w, true, f);
-  lv_obj_t *h = label(body, "Volumetoetsen op de remote regelen de KEF altijd.", 0, 352, 216, f.f12, MUTED);
+  lv_obj_t *h = label(body, "Volumetoetsen op de remote regelen deze speaker.", 0, 352, 216, f.f12, MUTED);
   lv_label_set_long_mode(h, LV_LABEL_LONG_MODE_WRAP);
   audio::tonen();
 }

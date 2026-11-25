@@ -13,6 +13,7 @@ struct Home : Module {
     if (fn == "settings") return noir::INSTELLINGEN;
     if (fn == "alloff") return noir::SCENE_ALLES_UIT;
     if (fn == "tv_power") return noir::TV_AANUIT;
+    if (fn == "audio") return noir::AUDIO;
     return -1;
   }
   static void run_item(JsonObjectConst it) {
@@ -57,7 +58,7 @@ struct Home : Module {
         return true;
       case noir::KNOPTEST: noir::knoptest::reset(); noir::zeigen_seite(noir::S_TEST); return true;
       case noir::TEST_RESET: noir::knoptest::reset(); return true;
-      case noir::AUDIO: case noir::AIRCO: case noir::NETFLIX: case noir::INST_REMOTE:
+      case noir::AIRCO: case noir::NETFLIX: case noir::INST_REMOTE:
         noir::toast("Coming in a later version");
         return true;
       default: return false;

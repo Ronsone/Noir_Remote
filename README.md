@@ -19,7 +19,7 @@
 
 <p align="center"><img src="docs/screens.png" width="100%" alt="Home, TV, Lights, Scenes, Settings"></p>
 
-## What it does (version 0.3)
+## What it does (version 0.4)
 
 | | |
 |---|---|
@@ -27,9 +27,10 @@
 | **TV** | Any TV in Home Assistant. Your inputs and apps as tiles with their logo. Keys by infrared. |
 | **Lights** | Tap = on/off, hold = dim. |
 | **Scenes** | Your scenes and scripts, plus *All off*. |
+| **Audio** | Your speaker: on/off, its sources, volume, subwoofer and what is playing. Play/pause and next with the remote's keys. |
 | **Modes** | **Full** – always ready. **Eco** – longer battery. |
 
-Audio, Netflix and Airco come next – each as its own module.
+Netflix and Airco come next – each as its own module. Which tiles your home screen shows is up to you: add and remove them in the NOIR Builder.
 
 ## Setup – about 15 minutes
 
@@ -96,7 +97,7 @@ firmware/
   noir-remote.yaml    hardware + ESPHome setup
   noir-ui.h           the screens (shared with the simulator)
   noir-app.h          starts the modules
-  modules/            one file per feature: core, home, lights, scenes, tv
+  modules/            one file per feature: core, home, lights, scenes, tv, audio
   logos/              logos for TV sources (made by tools/make_logos.py)
 custom_components/noir_remote/
   NOIR Builder panel, config + state endpoints for the remote
