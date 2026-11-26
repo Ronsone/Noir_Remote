@@ -54,6 +54,6 @@ All brand knowledge is one entry in `custom_components/noir_remote/profiles.json
 - Only add codes you have **tested on a real TV**.
 - Leave out keys you don't know – the remote simply skips them.
 - Key names: `power_on power_off power up down left right ok back menu info play stop rewind ff ch_up ch_down red green yellow blue vol_up vol_down mute`.
-- Supported protocol now: `nec` (LG and many others). Other protocols are one small addition in `firmware/modules/core.h` (`Ir::send`).
+- Supported protocol now: `nec` (LG and many others). Other protocols are one small addition in `firmware/core/modules/core.h` (`Ir::send`).
 
 The firmware does not change for a new brand: update the integration, press **Save** in NOIR Builder.

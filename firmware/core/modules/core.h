@@ -17,7 +17,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esphome/components/api/custom_api_device.h"
+#ifdef USE_REMOTE_TRANSMITTER
 #include "esphome/components/remote_base/nec_protocol.h"
+#endif
 
 namespace noirapp {
 
@@ -88,8 +90,10 @@ inline void ha(const std::string &svc, const std::map<std::string, std::string> 
 // ---- infrared ------------------------------------------------------------------------------------------------
 // Brand-free: protocol + address come from the TV profile (NOIR Builder), the module only sends commands.
 // Supported now: "nec" (LG, many others). A new protocol = one more branch here + profiles that use it.
+// Boards without infrared (no remote_transmitter in their yaml) build these as no-ops.
 inline void ir_nec(int address, int cmd, int repeats = 0) {
   if (address < 0 || cmd < 0) return;
+#ifdef USE_REMOTE_TRANSMITTER
   auto call = ir_tx->transmit();
   esphome::remote_base::NECData d;
   d.address = (uint16_t) ((address & 0xFF) | ((~address & 0xFF) << 8));
@@ -98,14 +102,17 @@ inline void ir_nec(int address, int cmd, int repeats = 0) {
   esphome::remote_base::NECProtocol().encode(call.get_data(), d);
   call.set_send_times(1 + repeats);
   call.perform();
+#endif
 }
 // Raw timings (us, + = mark, - = space) at a carrier, e.g. airco frames that carry the whole state
 inline void ir_raw(const std::vector<int32_t> &timings, uint32_t carrier = 38000) {
   if (timings.empty()) return;
+#ifdef USE_REMOTE_TRANSMITTER
   auto call = ir_tx->transmit();
   call.get_data()->set_carrier_frequency(carrier);
   call.get_data()->set_data(timings);
   call.perform();
+#endif
 }
 struct Ir {
   std::string protocol;
@@ -159,7 +166,7 @@ inline void apply_config() {
   }
   JsonObjectConst cfg = a.cfg.as<JsonObjectConst>();
   for (Module *m : modules()) m->configure(cfg);
-  noir_versie->publish_state(a.cfg["version"] | "?");
+  noir_config_version->publish_state(a.cfg["version"] | "?");
 }
 inline bool read_config(const char *data, size_t len) {
   JsonDocument fresh;

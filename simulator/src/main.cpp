@@ -1,4 +1,4 @@
-// NOIR simulator - the remote's screens (firmware/noir-ui.h, the same code as the firmware) in a window on your PC
+// NOIR simulator - the remote's screens (firmware/core/noir-ui.h, the same code as the firmware) in a window on your PC
 // (LVGL 9.5 + SDL2). Home Assistant, the TV and infrared are simulated: what the remote would send is printed.
 //
 // Mouse = finger. Keys: arrows = D-pad, Enter = OK, Backspace/Esc = Back, H = Home, space = play/pause,

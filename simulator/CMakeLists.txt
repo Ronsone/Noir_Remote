@@ -25,8 +25,8 @@ target_link_libraries(lvgl PUBLIC ${SDL2_LIBRARIES})
 
 file(GLOB FONT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/fonts/*.c)
 add_executable(noir-simulator src/main.cpp ${FONT_SRC})
-# noir-ui.h comes from ../firmware: the exact same screen code as the firmware
-target_include_directories(noir-simulator PRIVATE src inc assets ${CMAKE_CURRENT_SOURCE_DIR}/../firmware)
+# noir-ui.h comes from ../firmware/core: the exact same screen code as the firmware
+target_include_directories(noir-simulator PRIVATE src inc assets ${CMAKE_CURRENT_SOURCE_DIR}/../firmware/core)
 target_link_libraries(noir-simulator PRIVATE lvgl)
 if(MINGW)
   target_link_libraries(noir-simulator PRIVATE mingw32)
