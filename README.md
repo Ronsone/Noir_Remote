@@ -82,7 +82,7 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 
 - **Left: the preview.** What you see is what the remote shows.
 - **Top: one tab per screen.** Change something and press **Save** – the remote picks it up within seconds (it gets a nudge from Home Assistant; otherwise within 15 minutes).
-- Everything is in Nederlands, English, Deutsch, Français or Español – switch under *Remote → Language*; the remote follows. More languages: see [docs/languages.md](docs/languages.md).
+- Everything is in Nederlands, English, Deutsch, Français or Español – switch under *Remote → Language*; the remote follows. Want NOIR in your language? All texts are in one file – see [docs/languages.md](docs/languages.md) and send it in with the [translation form](https://github.com/ronsone/Noir_Remote/issues/new?template=translation.yml).
 
 <p align="center"><img src="docs/builder/home.png" width="100%" alt="NOIR Builder – the Home tab: the tiles of your home screen, with the preview on the left"></p>
 
