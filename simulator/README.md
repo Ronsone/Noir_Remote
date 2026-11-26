@@ -53,30 +53,24 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 | Arrow keys / Enter | D-pad / OK |
 | Backspace or Esc | Back |
 | H | Home |
-| Space / S / , / . | Play-pause / Stop / Rewind / Fast-forward (on the Netflix screens) |
-| + / - / M | Volume up / down / mute (KEF) |
+| Space | Play/pause (Audio) |
+| + / - / M | Volume up / down / mute (the speaker) |
 | P | Screenshot (`noir-<n>.bmp`) |
 | Q | Quit |
 
 `./noir-simulator --demo` walks through all screens, saves a screenshot of each (`demo-*.bmp`) and exits.
 
-## How NOIR sits on top of the Aggro600 firmware
+## How it fits together
 
-- NOIR is a set of full-screen LVGL layers on `page_home` (one per screen); the Aggro600 pages stay untouched below.
-  Objects carry `LV_OBJ_FLAG_USER_4`, so the Aggro600 skins leave them alone.
-- Tiles, lights and scenes come from configurator menu pages (`noir`, `noir_licht`, `noir_scenes`), so they change
-  without recompiling. Taps call `noir::st().actie(code)`; in the firmware that is `tasten::noir_actie` in
-  `esphomeremote-keys.h`, here a simplified copy in `src/main.cpp`.
-- Physical keys go through `noir::kef::taste` (volume → KEF) and `noir::tv::taste` (D-pad/OK → `webostv.button`,
-  airco, button test, Netflix media keys) before the key configurator.
-- Netflix: the integration (`netflix.py`) combines the official Netflix Top 10 (Tudum), TMDB (posters, text, Popular)
-  and Wikidata (Netflix title number, P1874); the remote fetches a plain text list and 64 × 96 RGB565 posters from
-  Home Assistant, and *Play in Netflix* calls `esphomeremote.tv_app`, which launches the title on the LG.
+- NOIR is a set of full-screen LVGL layers on `page_home`, one per screen; the status bar moves to the visible one.
+- `firmware/noir-ui.h` only builds and shows the screens. In the firmware, modules (`firmware/modules/*.h`) fill in the
+  data from Home Assistant and handle taps and keys; here `src/main.cpp` is a small stand-in with sample data.
+- Taps call `noir::st().actie(code)` – in the firmware `noirapp::action`, here `action()` in `src/main.cpp`.
+- The icon font `fonts/mdi20.c` is made from the firmware's glyph list: `python3 tools/make_sim_font.py`.
 
 ## Credits and licences
 
 - [LVGL](https://lvgl.io) (MIT, downloaded at build time), [ArduinoJson](https://arduinojson.org) (MIT, `inc/`).
 - Inter font (SIL OFL 1.1, `fonts/Inter-OFL.txt`), Material Design Icons subset (Pictogrammers, Apache 2.0),
   Lucide icons (ISC, `assets/LUCIDE-LICENSE.txt`).
-- The posters are generated placeholders; the real ones come from TMDB in the firmware. App logos belong to their
-  owners and are only used to show the TV screen.
+- App logos belong to their owners and are only used to show the TV screen.

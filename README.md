@@ -20,7 +20,7 @@
 |---|---|---|
 | One screen per task. Text only where it helps. Nederlands, English, Deutsch, Français or Español. | Build your screens in the **NOIR Builder** – what you see is what the remote shows. | Any TV, speaker, light or airco in Home Assistant. One firmware for everyone, free, MIT licensed, every feature a small module. |
 
-<p align="center"><img src="docs/screens.png" width="100%" alt="Home, TV, Lights, Scenes, Settings"></p>
+<p align="center"><img src="docs/screens.png" width="100%" alt="Home, TV, Audio, Airco, Lights"></p>
 
 ## What it does (version 0.7)
 
@@ -33,9 +33,9 @@
 | **Audio** | Your speaker: on/off, its sources, volume, subwoofer and what is playing. Play/pause and next with the remote's keys. |
 | **Airco** | One or more aircos (rooms): a dial around the temperature, modes, fan and swing. Any airco in Home Assistant, or the remote's own infrared (Mitsubishi Heavy). |
 | **D-pad** | The screen you see decides: on the TV screen the arrows go to the TV, on the Airco screen they set temperature and mode, everywhere else a focus ring moves over the buttons and sliders – OK presses, hold OK = long press, left/right moves a slider. |
-| **Modes** | **Full** – always ready. **Eco** – longer battery. |
+| **Settings** | On the remote: **Full** (always ready) or **Eco** (longer battery), four skins, Wi-Fi, a button test. |
 
-What comes next – a test channel for updates, local updates, more remotes, German/French/Spanish/Italian – is in the [roadmap](docs/roadmap.md). Which tiles your home screen shows is up to you: add and remove them in the NOIR Builder.
+What comes next – updating locally through Home Assistant, more remotes, Italian, heating – is in the [roadmap](docs/roadmap.md). Which tiles your home screen shows is up to you: add and remove them in the NOIR Builder.
 
 **Try it first:** the **[demo](https://ronsone.github.io/Noir_Remote/demo.html)** shows the remote's screens in your browser, with sample data – tap the tiles or use the D-pad under the screen (or the arrow keys and Enter on your keyboard).
 
@@ -124,7 +124,7 @@ In Home Assistant, delete the old *noir-remote* under ESPHome first; the new one
 
 With Python 3: `pip install esphome`, then in the folder `firmware`: `esphome run noir-remote.yaml`.
 GitHub checks that the firmware builds on every change in `firmware/` (`.github/workflows/firmware.yml`). **Run workflow** publishes the newest build to the **test** channel. The **stable** channel only changes when you **release**:
-raise `substitutions: version` in `noir-remote.yaml`, then *GitHub → Releases → Draft a new release*, tag `v` + that version (e.g. `v0.3.1`) → **Publish**.
+raise `substitutions: version` in `noir-remote.yaml`, then *GitHub → Releases → Draft a new release*, tag `v` + that version (e.g. `v0.7.2`) → **Publish**.
 Only then do the installer and the remotes on Stable get it.
 </details>
 
@@ -146,7 +146,8 @@ custom_components/noir_remote/
   languages/          language packs (de, fr, es) – texts of NOIR Builder and the remote
   logos.json          which source name gets which logo
 site/                 the installer page and the demo (GitHub Pages)
-simulator/            all screens on your PC (SDL2 + LVGL)
+simulator/            all screens on your PC (SDL2 + LVGL), same screen code as the firmware
+tools/                check_icons.py, check_languages.py, make_sim_font.py, make_logos.py, make_brand.py
 ```
 
 **New feature = new module.** Copy `firmware/modules/scenes.h`, give it a name, handle its actions/keys, add it in `noir-app.h`.

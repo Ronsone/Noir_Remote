@@ -1207,7 +1207,7 @@ namespace audio {
 static const int BRONNEN = 6;   // at most 6 source buttons on the Audio screen
 // Sources of the speaker: names on the buttons + source values of its media_player (NOIR Builder > Audio).
 // Default: the KEF LSX II (simulator).
-inline std::vector<std::string> &bron_naam() { static std::vector<std::string> v{"Wi-Fi", "Bluetooth", "TV", "Optisch", "Aux", "USB"}; return v; }
+inline std::vector<std::string> &bron_naam() { static std::vector<std::string> v{"Wi-Fi", "Bluetooth", "TV", "Optical", "Aux", "USB"}; return v; }
 inline std::vector<std::string> &bron_id() { static std::vector<std::string> v{"wifi", "bluetooth", "tv", "optical", "analog", "usb"}; return v; }
 inline int bronnen() { return std::min<int>(BRONNEN, std::min(bron_naam().size(), bron_id().size())); }
 inline std::string &speaker_naam() { static std::string n{"KEF LSX II"}; return n; }
