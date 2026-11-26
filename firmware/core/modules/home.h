@@ -20,6 +20,8 @@ struct Home : Module {
   static void run_item(JsonObjectConst it) {
     const std::string fn = it["fn"] | "";
     const std::string e = it["entity"] | "";
+    const std::string t = it["t"] | "";
+    if (t == "weather" || t == "calendar" || t == "value") return;   // info tiles only show (module Info)
     if (!fn.empty()) {
       const int a = fn_action(fn);
       if (a >= 0) noirapp::action(a); else noir::toast("Coming in a later version");

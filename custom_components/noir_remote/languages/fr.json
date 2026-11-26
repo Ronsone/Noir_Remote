@@ -136,7 +136,10 @@
   "Large": "Grande",
   "columns": "colonnes",
   "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "Cet appareil affiche les mêmes tuiles que votre première télécommande. Modifiez quelque chose et il aura son propre écran d’accueil.",
-  "This device has no infrared – the TV goes through Home Assistant.": "Cet appareil n’a pas d’infrarouge – la télé passe par Home Assistant."
+  "This device has no infrared – the TV goes through Home Assistant.": "Cet appareil n’a pas d’infrarouge – la télé passe par Home Assistant.",
+  "Weather": "Météo",
+  "Calendar": "Agenda",
+  "Value (stock, crypto, sensor)": "Valeur (action, crypto, capteur)"
  },
  "remote": {
   "Terug": "Retour",

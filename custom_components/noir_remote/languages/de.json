@@ -136,7 +136,10 @@
   "Large": "Groß",
   "columns": "Spalten",
   "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "Dieses Gerät zeigt dieselben Kacheln wie deine erste Fernbedienung. Ändere etwas, und es bekommt seinen eigenen Startbildschirm.",
-  "This device has no infrared – the TV goes through Home Assistant.": "Dieses Gerät hat kein Infrarot – der Fernseher läuft über Home Assistant."
+  "This device has no infrared – the TV goes through Home Assistant.": "Dieses Gerät hat kein Infrarot – der Fernseher läuft über Home Assistant.",
+  "Weather": "Wetter",
+  "Calendar": "Kalender",
+  "Value (stock, crypto, sensor)": "Wert (Aktie, Krypto, Sensor)"
  },
  "remote": {
   "Terug": "Zurück",

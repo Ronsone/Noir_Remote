@@ -3,7 +3,8 @@
 - NOIR Builder (sidebar panel): build the screens of the remote
 - GET /api/noir_remote/config?k=<key>&d=<device>&b=<board>&w=&h=&c=<caps>   configuration for one NOIR device (JSON);
   the device says who it is, so each one gets its own home screen (firmware before 0.7.6 sends only k)
-- GET /api/noir_remote/states?k=<key>&e=a,b   states of lamps / TV for the remote
+- GET /api/noir_remote/states?k=<key>&e=a,b   states of lamps / TV for the remote; e=i:weather.x gives an info tile
+  (weather, calendar, value - see info.py)
 Removing the integration never deletes your screens: they stay in .storage/noir_remote until you delete that file.
 """
 from __future__ import annotations
@@ -23,6 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
+from . import info as noir_info
 from . import link
 from .autoadd import maybe_add
 from .const import AIRCO_IR, BOARDS, CAPS, DOMAIN, LANG_PACKS, LANGUAGES, LEGACY_DEVICE, PROFILES, STORE_VERSION, UPDATE_URLS
@@ -154,6 +156,10 @@ class StatesView(HomeAssistantView):
             return web.Response(status=403)
         out = {}
         for e in request.query.get("e", "").split(",")[:40]:
+            if e.startswith("i:"):   # info tile (weather / calendar / value): a ready-made object
+                if (obj := await noir_info.info(hass, e[2:].strip(), nd.model.get("lang", "nl"))):
+                    out[e] = obj
+                continue
             st = hass.states.get(e.strip()) if e.strip() else None
             if st is None:
                 continue

@@ -89,7 +89,7 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 
 | Tab | What you do there |
 |---|---|
-| **Home** | The tiles on your home screen. **Add tile**, choose what it **opens** (TV, Audio, Lights, Scenes, Airco, All off, settings – or switch one device, or run a scene/script), give it a name and icon, half or full width. Reorder or remove them with the arrows and ×. |
+| **Home** | The tiles on your home screen. **Add tile**, choose what it **opens** (TV, Audio, Lights, Scenes, Airco, All off, settings – or switch one device, or run a scene/script), give it a name and icon, and a size: **Half**, **Full** or **Large**. Or make it an **info tile**: **Weather** (temperature, the next hours and days), **Calendar** (your next events) or **Value** (a stock, crypto or any sensor, with its change over 24 hours and a small line). Reorder or remove them with the arrows and ×. |
 | **Lights** | Add your lamps. Tap = on/off, hold = dim (for dimmable lights). |
 | **Scenes** | Your scenes and scripts as tiles. *All off* is always there. |
 | **TV** | 1 your TV · 2 its brand for infrared – press **Test · On** to check · 3 your speaker (optional, with *Switch it on with: source* for speakers that wake up that way) · 4 tap the inputs and apps you want; logos are picked for you. Your TV must be on to see its inputs. More in [docs/tv.md](docs/tv.md). |
@@ -98,6 +98,8 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 | **Remote** | Mode (**Full** / **Eco**), language, **Updates** (one **Update** button for the remote and NOIR Remote itself, channel **Stable** or **Test**) and *First-time setup* with a link to the installer. |
 
 A screen only works once it has a tile on **Home** – e.g. add a tile *Audio screen* after setting up Audio.
+
+**Info tiles and the internet.** The remote only talks to Home Assistant; the data comes from the integrations you already have there. *Weather* needs a weather integration (Met.no and most others fetch from the internet – a local weather station works without). *Calendar* works fully offline with Home Assistant's **Local Calendar**; Google or CalDAV calendars need the internet. *Value* shows any number sensor – crypto and stock prices come from online integrations, energy or temperature sensors are local. The 24-hour change and the line come from Home Assistant's history (recorder).
 
 **More NOIR devices** (e.g. a wall panel next to your remote): each one shows up at the top of the Builder by itself, with its board and screen size. Pick one and give it its own home screen – a device starts with the tiles of your first remote and gets its own list as soon as you change something. Tiles come in three sizes (**Half**, **Full**, **Large**); the preview shows the device's real grid. What a device can't do is hidden for it: infrared (TV keys, airco by IR), the battery modes. Lights, scenes, TV, audio and airco are shared by all devices. **Update** updates every NOIR device one after the other, then NOIR Remote itself.
 

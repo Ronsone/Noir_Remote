@@ -7,6 +7,7 @@ from .const import AIRCO_IR, BOARDS, DEFAULT_MODEL, LANG_PACKS, LANGUAGES, LEGAC
 from .tv import clean_apps, ir_block
 
 FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "airco"}
+INFO = {"weather", "calendar", "value"}   # tiles that show information (info.py) instead of opening something
 
 
 def normalize(model: dict | None) -> dict:
@@ -89,7 +90,9 @@ def payload(model: dict, version: str, device: str = "", primary: str = "", info
         it = {"t": "action", "label": str(t.get("label", ""))[:24], "icon": t.get("icon", ""), "size": size,
               "x": 0 if full else x, "y": y, "w": 6 if full else 3, "h": 4 if size == "L" else 2}
         opens = t.get("opens", "")
-        if opens in FN:
+        if opens in INFO and t.get("entity"):   # weather / calendar / value tile
+            it["t"], it["entity"] = opens, t["entity"]
+        elif opens in FN:
             it["fn"] = opens
         elif t.get("entity"):
             it["entity"] = t["entity"]
