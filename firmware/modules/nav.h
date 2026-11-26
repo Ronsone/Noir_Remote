@@ -36,7 +36,12 @@ struct Nav : Module {
     lv_obj_get_coords(o, &a);
     return {(a.x1 + a.x2) / 2, (a.y1 + a.y2) / 2};
   }
-  bool valid() const { return focus != nullptr && lv_obj_is_valid(focus) && shown(focus); }
+  bool valid() const {
+    if (focus == nullptr || !lv_obj_is_valid(focus) || !shown(focus)) return false;
+    lv_obj_t *r = root();   // a pop-up opened or closed: the ring belongs to what is on top now
+    for (lv_obj_t *p = focus; p != nullptr; p = lv_obj_get_parent(p)) if (p == r) return true;
+    return false;
+  }
 
   // ---- the ring: follows the focused object (also when it scrolls) ----
   void place_ring() {
@@ -66,8 +71,14 @@ struct Nav : Module {
   }
   void clear() { focus = nullptr; place_ring(); }
 
+  // Where the buttons are: an open pop-up (skin list, lamp dimmer) on the top layer, else the screen itself
+  lv_obj_t *root() const {
+    if (noir::keuze().over != nullptr && lv_obj_is_valid(noir::keuze().over)) return noir::keuze().over;
+    if (noir::dimmer().over != nullptr && lv_obj_is_valid(noir::dimmer().over)) return noir::dimmer().over;
+    return noir::laag_van(noir::st().seite);
+  }
   void move(int k) {
-    lv_obj_t *layer = noir::laag_van(noir::st().seite);
+    lv_obj_t *layer = root();
     if (layer == nullptr) return;
     std::vector<lv_obj_t *> all;
     collect(layer, all);

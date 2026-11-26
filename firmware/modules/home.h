@@ -43,7 +43,11 @@ struct Home : Module {
     }
     switch (a) {
       case noir::THUIS: noir::zeigen_seite(noir::S_THUIS); return true;
-      case noir::TERUG: if (noir::st().seite != noir::S_THUIS) noir::zeigen_seite(noir::S_THUIS); return true;
+      case noir::TERUG:   // Back closes an open pop-up first (skin list, lamp dimmer)
+        if (noir::keuze().over != nullptr) { noir::keuze_dicht(); return true; }
+        if (noir::dimmer().over != nullptr) { noir::dimmer_dicht(); return true; }
+        if (noir::st().seite != noir::S_THUIS) noir::zeigen_seite(noir::S_THUIS);
+        return true;
       case noir::INSTELLINGEN: noir::zeigen_seite(noir::S_INST); return true;
       case noir::INST_FULL: case noir::INST_ECO: {   // mode chosen on the remote: apply now, tell the NOIR Builder
         const bool eco = a == noir::INST_ECO;
