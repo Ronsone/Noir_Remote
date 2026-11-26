@@ -4,6 +4,8 @@
 // Mouse = finger. Keys: arrows = D-pad, Enter = OK, Backspace/Esc = Back, H = Home, space = play/pause,
 // + / - / M = volume/mute, P = screenshot (noir-<n>.bmp), Q = quit.
 // --demo walks every screen, saves a screenshot of each and quits. --en = English screens.
+// --size WxH = another screen (e.g. 800x480, 1280x800): the layout follows the size (columns, scale).
+// --grid = a Home with weather, calendar and value tiles too (sample data). --clock HH:MM = fixed time (screenshots).
 
 #include "lvgl.h"
 #include "ArduinoJson.h"
@@ -40,6 +42,33 @@ static const char *HOME_JSON_EN = R"([
  {"t":"action","label":"Airco","icon":"mdi:air-conditioner","x":0,"y":4,"w":3,"h":2,"fn":"airco"},
  {"t":"action","label":"All off","icon":"mdi:power","x":3,"y":4,"w":3,"h":2,"fn":"alloff"}
 ])";
+// --grid: the same tiles plus weather, calendar and values in their sizes (S, W, L)
+static const char *GRID_JSON = R"([
+ {"t":"weather","entity":"weather.thuis","size":"W"},
+ {"t":"calendar","entity":"calendar.gezin","size":"L"},
+ {"t":"action","label":"TV","icon":"noir:tv","fn":"tv","size":"S"},
+ {"t":"action","label":"Audio","icon":"noir:audio","fn":"audio","size":"S"},
+ {"t":"action","label":"Verlichting","icon":"noir:licht","fn":"lights","size":"S"},
+ {"t":"action","label":"Scènes","icon":"noir:scenes","fn":"scenes","size":"S"},
+ {"t":"action","label":"Airco","icon":"mdi:air-conditioner","fn":"airco","size":"W"},
+ {"t":"value","label":"BTC","entity":"sensor.btc_eur","size":"S"},
+ {"t":"value","label":"ETH","entity":"sensor.eth_eur","size":"S"},
+ {"t":"value","label":"AEX","entity":"sensor.aex","size":"W"},
+ {"t":"action","label":"Alles uit","icon":"mdi:power","fn":"alloff","size":"S"}
+])";
+static const char *GRID_JSON_EN = R"([
+ {"t":"weather","entity":"weather.thuis","size":"W"},
+ {"t":"calendar","entity":"calendar.gezin","size":"L"},
+ {"t":"action","label":"TV","icon":"noir:tv","fn":"tv","size":"S"},
+ {"t":"action","label":"Audio","icon":"noir:audio","fn":"audio","size":"S"},
+ {"t":"action","label":"Lights","icon":"noir:licht","fn":"lights","size":"S"},
+ {"t":"action","label":"Scenes","icon":"noir:scenes","fn":"scenes","size":"S"},
+ {"t":"action","label":"Airco","icon":"mdi:air-conditioner","fn":"airco","size":"W"},
+ {"t":"value","label":"BTC","entity":"sensor.btc_eur","size":"S"},
+ {"t":"value","label":"ETH","entity":"sensor.eth_eur","size":"S"},
+ {"t":"value","label":"AEX","entity":"sensor.aex","size":"W"},
+ {"t":"action","label":"All off","icon":"mdi:power","fn":"alloff","size":"S"}
+])";
 static const char *SCENES_JSON = R"([
  {"t":"action","label":"Film","icon":"mdi:movie-open"},
  {"t":"action","label":"Diner","icon":"mdi:silverware-fork-knife"},
@@ -54,7 +83,8 @@ static const char *LAMPS = "Woonkamer=light.woonkamer|Eettafel=light.eettafel|Ke
 static const char *LAMPS_EN = "Living room=light.woonkamer|Dining table=light.eettafel|Kitchen=light.keuken|Hall=switch.gang";
 
 static JsonDocument g_home, g_scenes;
-static bool g_demo = false;
+static bool g_demo = false, g_grid = false;
+static int g_w = 240, g_h = 320, g_hh = -1, g_mm = 0;
 
 // ---------------------------------------------------------------- simulated Home Assistant
 static void ha_print(const std::string &svc, const Data &d) {
@@ -73,6 +103,30 @@ static void sample_audio() {
   x.speaker_state = "on"; x.src = 2; x.volume = 38; x.sub = 2; x.sub_known = true;
   x.sp_state = "playing"; x.title = "Midnight Drive"; x.artist = "Nova Lane";
 }
+// sample weather, calendar and values (in the firmware a module fills info:: from Home Assistant - phase 4)
+static void sample_info() {
+  const bool en = english();
+  info::Weather w;
+  w.known = true; w.place = "Utrecht"; w.cond = "partlycloudy"; w.temp = 12; w.lo = 9; w.hi = 14;
+  w.hours = {{"15:00", 13}, {"16:00", 12}, {"17:00", 11}, {"18:00", 10}};
+  w.days = en ? std::vector<info::Day>{{"Fri", 14, 8}, {"Sat", 11, 6}, {"Sun", 9, 4}, {"Mon", 12, 7}, {"Tue", 13, 8}}
+              : std::vector<info::Day>{{"vr", 14, 8}, {"za", 11, 6}, {"zo", 9, 4}, {"ma", 12, 7}, {"di", 13, 8}};
+  info::weather()["weather.thuis"] = w;
+  info::calendar()["calendar.gezin"] = {
+      {"Vandaag", "14:00", en ? "Dentist" : "Tandarts", en ? "City centre" : "Centrum"},
+      {"Vandaag", "19:30", en ? "Football practice" : "Voetbal Jesse", en ? "Sports park" : "Sportpark"},
+      {"Morgen", "09:00", en ? "Team meeting" : "Overleg werk", "Teams"},
+      {"Morgen", "12:30", en ? "Lunch with Sanne" : "Lunch met Sanne", ""},
+      {en ? "Sat 29 Nov" : "za 29 nov", "10:00", en ? "Market" : "Markt", ""}};
+  auto val = [](const char *e, const char *name, const char *text, const char *ch, int trend, std::vector<float> h) {
+    info::Value v; v.known = true; v.name = name; v.text = text; v.change = ch; v.trend = trend; v.history = h;
+    info::values()[e] = v;
+  };
+  val("sensor.btc_eur", "BTC", "\xE2\x82\xAC" " 84.210", "+2,4%", 1, {80, 81, 79, 82, 83, 82, 85, 84, 86, 88, 87, 90});
+  val("sensor.eth_eur", "ETH", "\xE2\x82\xAC" " 3.122", "+1,1%", 1, {3, 4, 3, 5, 4, 6, 5, 6});
+  val("sensor.aex", "AEX", "912,3", "-0,6%", -1, {92, 91, 92, 90, 89, 90, 88, 89, 87, 88, 86, 85});
+}
+
 static void sample_airco() {
   airco::Data &d = airco::d();
   airco::Unit u;
@@ -87,6 +141,24 @@ static void sample_airco() {
     const airco::Unit &n = airco::d().units[i];
     std::printf("[IR] Mitsubishi Heavy: %s mode %d %d C fan %d swing %d\n", n.is_on ? "on" : "off", n.mode, n.temp, n.fan, n.swing);
   };
+}
+
+// Bigger screen: the same fonts at u x their size, rendered from the firmware's TTF files (the firmware gets them
+// from its board file instead)
+static std::vector<char> read_file(const char *name) {
+  std::string p = std::string(NOIR_FONT_DIR) + "/" + name;
+  std::vector<char> d;
+  FILE *f = std::fopen(p.c_str(), "rb");
+  if (f == nullptr) { std::printf("[sim] missing %s\n", p.c_str()); return d; }
+  std::fseek(f, 0, SEEK_END); d.resize(std::ftell(f)); std::fseek(f, 0, SEEK_SET);
+  if (std::fread(d.data(), 1, d.size(), f) != d.size()) d.clear();
+  std::fclose(f);
+  return d;
+}
+static Fonts scaled_fonts() {
+  static std::vector<char> inter = read_file("Inter-Regular.ttf"), mdi = read_file("mdi-subset.ttf");
+  auto ttf = [](std::vector<char> &d, int size) { return lv_tiny_ttf_create_data(d.data(), d.size(), sc(size)); };
+  return Fonts{ttf(inter, 12), ttf(inter, 14), ttf(inter, 16), ttf(mdi, 20), ttf(inter, 20), ttf(inter, 48)};
 }
 
 // ---------------------------------------------------------------- actions (as noirapp::action in the firmware)
@@ -218,7 +290,8 @@ static void key_cb(lv_event_t *e) {
 static void clock_cb(lv_timer_t *) {
   std::time_t t = std::time(nullptr);
   std::tm *l = std::localtime(&t);
-  status(l->tm_hour, l->tm_min, 78, false, true, -60);
+  if (g_hh >= 0) status(g_hh, g_mm, 78, false, true, -60);
+  else status(l->tm_hour, l->tm_min, 78, false, true, -60);
   repeat_tick(lv_tick_get());
 }
 
@@ -243,10 +316,14 @@ int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--demo")) g_demo = true;
     if (!strcmp(argv[i], "--en")) english() = true;   // English screens
+    if (!strcmp(argv[i], "--grid")) g_grid = true;
+    if (!strcmp(argv[i], "--size") && i + 1 < argc) std::sscanf(argv[++i], "%dx%d", &g_w, &g_h);
+    if (!strcmp(argv[i], "--clock") && i + 1 < argc) std::sscanf(argv[++i], "%d:%d", &g_hh, &g_mm);
   }
+  layout_init(g_w, g_h);
   lv_init();
-  lv_display_t *disp = lv_sdl_window_create(240, 320);
-  lv_sdl_window_set_zoom(disp, 2);
+  lv_display_t *disp = lv_sdl_window_create(g_w, g_h);
+  lv_sdl_window_set_zoom(disp, g_w <= 320 ? 2 : 1);
   lv_sdl_window_set_title(disp, "NOIR simulator");
   lv_sdl_mouse_create();
   lv_indev_t *kb = lv_sdl_keyboard_create();
@@ -269,7 +346,7 @@ int main(int argc, char **argv) {
   speaker_e::entity_ref() = "media_player.woonkamer";
   speaker_e::notice() = [](const char *t) { toast(t); };
   st().actie = action;
-  deserializeJson(g_home, english() ? HOME_JSON_EN : HOME_JSON);
+  deserializeJson(g_home, g_grid ? (english() ? GRID_JSON_EN : GRID_JSON) : (english() ? HOME_JSON_EN : HOME_JSON));
   deserializeJson(g_scenes, english() ? SCENES_JSON_EN : SCENES_JSON);
   st().items = []() { return g_home.as<JsonArrayConst>(); };
   st().scenes_items = []() { return g_scenes.as<JsonArrayConst>(); };
@@ -277,8 +354,10 @@ int main(int argc, char **argv) {
   for (auto &l : lamps()) { l.state = "off"; l.bri = -1; }
   sample_audio();
   sample_airco();
+  sample_info();
 
   Fonts f{&inter12, &inter14, &inter16, &mdi20, &inter20, &inter48};
+  if (lay().u != 1.0f) f = scaled_fonts();
   ImageSet bl;
   bl.wall = &wall;
   bl.tv = &ic_tv; bl.audio = &ic_audio; bl.light = &ic_light; bl.scenes = &ic_scenes;

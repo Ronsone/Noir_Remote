@@ -63,8 +63,44 @@ inline uint32_t tint(uint32_t x) {
   }
 }
 inline lv_color_t k(uint32_t c) { return lv_color_hex(tint(c)); }
+// ---- Layout: the screen size decides the scale and the number of columns -------------------------------------------
+// The screens are designed in "dp" for the 240 x 320 remote. sc() turns dp into pixels: on the remote 1 dp = 1 px,
+// on bigger screens everything grows (u up to 2) and grid screens (Home, TV, Lights, Scenes) get more columns.
+// Other screens (Audio, Airco, Settings, button test) stay one 216 dp wide column in the middle.
+static const int COL_GAP = 8, ROW_GAP = 6, TILE_MIN = 96;   // dp
+struct Layout {
+  int w{240}, h{320};     // screen in px
+  float u{1.0f};          // px per dp
+  int wd{240}, hd{320};   // screen in dp
+  int full{216};          // width of a grid screen's body in dp
+  int cols{2};            // tile columns on Home
+  bool big{false};        // room for the large clock on Home
+};
+inline Layout &lay() { static Layout l; return l; }
+inline void layout_init(int w, int h) {
+  Layout &l = lay();
+  l.w = w; l.h = h;
+  const int s = std::min(w, h);
+  l.u = std::max(1.0f, std::min(2.0f, 1.0f + (s - 240) / 700.0f));
+  l.wd = (int) lroundf(w / l.u);
+  l.hd = (int) lroundf(h / l.u);
+  l.full = l.wd - 24;
+  l.cols = std::max(2, std::min(6, (l.full + COL_GAP) / (TILE_MIN + COL_GAP)));
+  l.big = l.wd >= 400 && l.hd >= 380;
+}
+inline int sc(int v) {   // dp -> px (special LVGL values such as LV_SIZE_CONTENT stay as they are)
+  const float u = lay().u;
+  if (u == 1.0f || v >= LV_RADIUS_CIRCLE || v <= -LV_RADIUS_CIRCLE) return v;
+  return (int) lroundf(v * u);
+}
+inline int dp(int px) { return (int) lroundf(px / lay().u); }
+inline int panel_x() { return (lay().wd - 240) / 2; }   // dp: left edge of the 240 dp design column
+inline void img_scale(lv_obj_t *im) { if (lay().u != 1.0f) lv_image_set_scale(im, (uint32_t) lroundf(256 * lay().u)); }
+// cell of a tile grid: column width for n columns over width w (dp)
+inline int cell_w(int w, int n) { return (w - (n - 1) * COL_GAP) / n; }
+
 // simulator box(): afrondingen vanaf 10 px volgen de skin
-inline int rnd(int r) { return r >= 10 && r < LV_RADIUS_CIRCLE ? theme().radius : r; }
+inline int rnd(int r) { return r >= LV_RADIUS_CIRCLE ? r : sc(r >= 10 ? theme().radius : r); }
 
 enum Action : int { BACK = 1, HOME = 100, TV = 101, AUDIO = 102, LIGHTS = 103, SCENES = 104, AIRCO = 105, SETTINGS = 113,
                    SET_WIFI = 131, SET_FULL = 132, SET_ECO = 133, DIM_DONE = 128,
@@ -110,6 +146,7 @@ struct UiState {
   std::function<JsonArrayConst()> scenes_items;   // configuratorpagina "noir_scenes"
   lv_obj_t *audio{nullptr}, *audio_body{nullptr};
   lv_obj_t *home{nullptr};
+  lv_obj_t *big_clock{nullptr};             // large clock on Home (big screens)
   std::function<JsonArrayConst()> items;    // tegels van NOIR Thuis (configurator), voor het herbouwen
 };
 inline UiState &st() { static UiState s; return s; }
@@ -141,6 +178,9 @@ inline const char *tr(const char *nl) {
     {"uit", "off"}, {"aan", "on"}, {"niet bereikbaar", "unreachable"},
     {"Automatisch", "Auto"}, {"Koelen", "Cooling"}, {"Ontvochtigen", "Drying"}, {"Ventileren", "Fan"}, {"Verwarmen", "Heating"},
     {"kamer", "room"},
+    {"Zonnig", "Sunny"}, {"Helder", "Clear"}, {"Half bewolkt", "Partly cloudy"}, {"Bewolkt", "Cloudy"}, {"Regen", "Rain"},
+    {"Stortregen", "Pouring"}, {"Sneeuw", "Snow"}, {"Mist", "Fog"}, {"Onweer", "Thunder"}, {"Wind", "Windy"},
+    {"Weer", "Weather"}, {"Agenda", "Calendar"}, {"Vandaag", "Today"}, {"Morgen", "Tomorrow"}, {"Geen afspraken", "No events"},
   };
   for (const auto &r : T) if (strcmp(r[0], nl) == 0) return r[1];
   return nl;
@@ -149,8 +189,8 @@ inline const char *tr(const char *nl) {
 inline lv_obj_t *label(lv_obj_t *p, const char *t, int x, int y, int w, const lv_font_t *f, uint32_t tint) {
   lv_obj_t *l = lv_label_create(p);
   lv_label_set_text(l, tr(t));
-  lv_obj_set_pos(l, x, y);
-  lv_obj_set_width(l, w);
+  lv_obj_set_pos(l, sc(x), sc(y));
+  lv_obj_set_width(l, sc(w));
   if (f != nullptr) lv_obj_set_style_text_font(l, f, 0);
   lv_obj_set_style_text_color(l, k(tint), 0);
   lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_DOTS);
@@ -161,8 +201,8 @@ inline lv_obj_t *label(lv_obj_t *p, const char *t, int x, int y, int w, const lv
 inline lv_obj_t *detail(lv_obj_t *p, int x, int y, int w, int h, uint32_t tint, int opa, int radius) {
   lv_obj_t *o = lv_obj_create(p);
   lv_obj_remove_style_all(o);
-  lv_obj_set_pos(o, x, y);
-  lv_obj_set_size(o, w, h);
+  lv_obj_set_pos(o, sc(x), sc(y));
+  lv_obj_set_size(o, sc(w), sc(h));
   lv_obj_set_style_bg_color(o, k(tint), 0);
   lv_obj_set_style_bg_opa(o, (lv_opa_t) opa, 0);
   lv_obj_set_style_radius(o, rnd(radius), 0);
@@ -178,8 +218,8 @@ inline void click_(lv_event_t *e) {
 // Knop zoals button() in de simulator (grafietvlak, verloop, fijne bovenrand, aparte ingedrukte toestand)
 inline lv_obj_t *btn(lv_obj_t *p, int x, int y, int w, int h, int actie, lv_event_code_t code = LV_EVENT_CLICKED) {
   lv_obj_t *b = lv_button_create(p);
-  lv_obj_set_pos(b, x, y);
-  lv_obj_set_size(b, w, h);
+  lv_obj_set_pos(b, sc(x), sc(y));
+  lv_obj_set_size(b, sc(w), sc(h));
   lv_obj_set_style_bg_color(b, k(SURF), 0);
   lv_obj_set_style_bg_opa(b, 232, 0);
   lv_obj_set_style_radius(b, rnd(h >= 60 ? 16 : h <= 34 ? 11 : 13), 0);
@@ -209,7 +249,8 @@ inline lv_obj_t *tile(lv_obj_t *body, const char *t, int x, int y, int actie, co
   if (icon_src != nullptr) {
     lv_obj_t *im = lv_image_create(b);
     lv_image_set_src(im, icon_src);
-    lv_obj_set_pos(im, 13, iy);
+    img_scale(im);
+    lv_obj_set_pos(im, sc(13), sc(iy));
     lv_obj_set_style_image_opa(im, 210, 0);
     lv_obj_remove_flag(im, LV_OBJ_FLAG_CLICKABLE);
   } else if (mdi != nullptr && f.ico != nullptr) {
@@ -218,7 +259,7 @@ inline lv_obj_t *tile(lv_obj_t *body, const char *t, int x, int y, int actie, co
     lv_obj_set_style_text_font(i, f.ico, 0);
     lv_obj_set_style_text_color(i, k(TEXT2), 0);
     lv_obj_set_style_text_opa(i, 210, 0);
-    lv_obj_set_pos(i, 12, iy - 1);
+    lv_obj_set_pos(i, sc(12), sc(iy - 1));
     lv_obj_remove_flag(i, LV_OBJ_FLAG_CLICKABLE);
   }
   label(b, t, 12, h - 25, w - 24, f.f14, TEXT2);
@@ -228,7 +269,7 @@ static const char *ICO_SNOW = "\U000F0717";   // mdi:snowflake (airco)
 
 // Terug / Thuis onderaan: donkerder vlak zonder verloop (simulator: p == scr && a == 1 || a == 100)
 inline void bottom_button(lv_obj_t *p, const char *ico, const char *t, int x, int actie, const Fonts &f) {
-  lv_obj_t *b = btn(p, x, 270, 104, 42, actie);
+  lv_obj_t *b = btn(p, panel_x() + x, lay().hd - 50, 104, 42, actie);
   lv_obj_set_style_bg_opa(b, 180, 0);
   lv_obj_set_style_bg_color(b, k(SURF_DIM), 0);
   lv_obj_set_style_bg_grad_dir(b, LV_GRAD_DIR_NONE, 0);
@@ -239,7 +280,7 @@ inline void bottom_button(lv_obj_t *p, const char *ico, const char *t, int x, in
   lv_obj_set_size(row_obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(row_obj, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(row_obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_column(row_obj, 7, 0);
+  lv_obj_set_style_pad_column(row_obj, sc(7), 0);
   lv_obj_remove_flag(row_obj, (lv_obj_flag_t) (LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
   lv_obj_center(row_obj);
   if (f.ico != nullptr && ico != nullptr) {
@@ -267,7 +308,7 @@ inline lv_obj_t *layer_make(lv_obj_t *home, const ImageSet &bl) {
   lv_obj_add_flag(layer_obj, LV_OBJ_FLAG_FLOATING);
   // Posities van kinderen tellen vanaf de binnenrand (padding) van page_home: terugschuiven naar de schermhoek
   lv_obj_set_pos(layer_obj, -lv_obj_get_style_pad_left(home, LV_PART_MAIN), -lv_obj_get_style_pad_top(home, LV_PART_MAIN));
-  lv_obj_set_size(layer_obj, 240, 320);
+  lv_obj_set_size(layer_obj, lay().w, lay().h);
   lv_obj_set_style_bg_color(layer_obj, k(BG), 0);
   lv_obj_set_style_bg_opa(layer_obj, LV_OPA_COVER, 0);
   lv_obj_remove_flag(layer_obj, LV_OBJ_FLAG_SCROLLABLE);
@@ -276,6 +317,10 @@ inline lv_obj_t *layer_make(lv_obj_t *home, const ImageSet &bl) {
     lv_obj_t *bg = lv_image_create(layer_obj);
     lv_image_set_src(bg, bl.wall);
     lv_obj_set_pos(bg, 0, 0);
+    if (lay().w != 240 || lay().h != 320) {   // bigger screen: stretch the wallpaper over it
+      lv_obj_set_size(bg, lay().w, lay().h);
+      lv_image_set_inner_align(bg, LV_IMAGE_ALIGN_STRETCH);
+    }
     lv_obj_set_style_image_opa(bg, 210, 0);
     lv_obj_remove_flag(bg, LV_OBJ_FLAG_CLICKABLE);
   }
@@ -289,26 +334,28 @@ inline void topbar_make(lv_obj_t *parent_obj, const Fonts &f) {
   lv_obj_t *topbar = s.topbar = lv_obj_create(parent_obj);
   lv_obj_remove_style_all(topbar);
   lv_obj_set_pos(topbar, 0, 0);
-  lv_obj_set_size(topbar, 240, 26);
+  lv_obj_set_size(topbar, lay().w, sc(26));
   lv_obj_remove_flag(topbar, (lv_obj_flag_t) (LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+  const int r = lay().wd - 240;   // the right-hand items keep their distance to the right edge
   s.clock = label(topbar, "--:--", 12, 7, 60, f.f12, STAT);
-  s.batt_txt = label(topbar, "", 151, 7, 31, f.f12, STAT);
+  s.batt_txt = label(topbar, "", r + 151, 7, 31, f.f12, STAT);
   lv_obj_set_style_text_align(s.batt_txt, LV_TEXT_ALIGN_RIGHT, 0);
-  s.ha_dot = detail(topbar, 143, 11, 3, 3, DOT, 45, LV_RADIUS_CIRCLE);
-  for (int i = 0; i < 4; i++) s.wifi[i] = detail(topbar, 122 + i * 4, 16 - i * 2, 2, 4 + i * 2, STAT, 45, 0);   // 4 streepjes, onder gelijk
-  lv_obj_t *bat = detail(topbar, 192, 9, 25, 11, 0x08090B, 100, 3);
+  s.ha_dot = detail(topbar, r + 143, 11, 3, 3, DOT, 45, LV_RADIUS_CIRCLE);
+  for (int i = 0; i < 4; i++) s.wifi[i] = detail(topbar, r + 122 + i * 4, 16 - i * 2, 2, 4 + i * 2, STAT, 45, 0);   // 4 streepjes, onder gelijk
+  lv_obj_t *bat = detail(topbar, r + 192, 9, 25, 11, 0x08090B, 100, 3);
   lv_obj_set_style_border_width(bat, 1, 0);
   lv_obj_set_style_border_color(bat, k(BATT), 0);
   s.batt_fill = detail(bat, 3, 3, 15, 5, BATT_F, 220, 1);
-  detail(topbar, 218, 12, 2, 5, BATT, 180, 1);
+  detail(topbar, r + 218, 12, 2, 5, BATT, 180, 1);
 }
 
-inline lv_obj_t *body_make(lv_obj_t *layer_obj, bool scroll) {
+// wide = a grid screen over the whole width (lay().full dp); otherwise the 216 dp column in the middle
+inline lv_obj_t *body_make(lv_obj_t *layer_obj, bool scroll, bool wide = false) {
   lv_obj_t *body = lv_obj_create(layer_obj);
   lv_obj_remove_style_all(body);
-  lv_obj_set_pos(body, 12, 30);
-  lv_obj_set_size(body, 216, 230);
-  lv_obj_set_style_pad_bottom(body, 6, 0);
+  lv_obj_set_pos(body, sc(wide ? 12 : panel_x() + 12), sc(30));
+  lv_obj_set_size(body, sc(wide ? lay().full : 216), sc(lay().hd - 90));
+  lv_obj_set_style_pad_bottom(body, sc(6), 0);
   if (scroll) {
     lv_obj_set_scroll_dir(body, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_OFF);
@@ -319,12 +366,10 @@ inline lv_obj_t *body_make(lv_obj_t *layer_obj, bool scroll) {
   return body;
 }
 
-// ---- NOIR-builder (2026-11-22): tegels van NOIR Thuis uit de configurator --------------------------------------
-// Pagina met id "noir" in het menu van de configurator (cfg.menu.pages). Elke tegel = een menu-item met x/y/w/h op
-// het raster van de configurator (6 kolommen). NOIR: kolom = (216 + 8) / 6 px, rij = 31 px (h 2 = 56 px hoog).
-// icon: "mdi:naam" (fonts/mdi-subset.ttf, zie components/menu/mdi_icons.h) of "noir:tv|audio|licht|scenes" (beelden).
-// Wat een tik doet, regelt de firmware (tasten::noir_item_actie): page, special, action (steps), toggle/light/cover.
-static const int ROW = 31, ROW_GAP = 6, COL_GAP = 8, TILES_Y = 52;
+// ---- Home tiles from NOIR Builder -------------------------------------------------------------------------------------
+// Each tile is an item: label, icon ("mdi:name" or "noir:tv|audio|licht|scenes"), what it opens (fn / entity) and its
+// size (S, W, L - or the older x/y/w/h on a 6-column raster). The firmware (modules/home.h) runs a tap.
+static const int TILES_Y = 52;   // dp: the tiles start under the title
 
 inline std::string utf8_(uint32_t cp) {
   std::string o;
@@ -351,55 +396,226 @@ inline const void *noir_beeld(const char *icon, const ImageSet &bl) {
   return nullptr;
 }
 
-// Een tegel uit een item (JSON uit de configurator) op de NOIR-maat
-// Airco tile on Home: mini dial with the temperature + the mode (design B). Filled by airco::tonen().
+// Airco tile on Home: mini dial with the temperature + the mode (design B). Filled by airco::show().
 struct AircoTile { lv_obj_t *arc_obj{nullptr}, *temp{nullptr}, *mode_lbl{nullptr}; };
 inline AircoTile &airco_tile() { static AircoTile t; return t; }
-inline void airco_tile_make(lv_obj_t *b, int w, const Fonts &f) {
+inline void airco_tile_make(lv_obj_t *b, int w, int h, const Fonts &f) {   // w, h in dp
   AircoTile &t = airco_tile();
-  lv_obj_t *name0 = lv_obj_get_child(b, -1);   // the name label tegel() made last
-  lv_obj_t *icon0 = lv_obj_get_child(b, -2);  // the icon before it (child 0 is the thin top line)
+  lv_obj_t *name0 = lv_obj_get_child(b, -1);   // the name label tile() made last
+  lv_obj_t *icon0 = lv_obj_get_child(b, -2);   // the icon before it (child 0 is the thin top line)
   t.arc_obj = lv_arc_create(b);
-  lv_obj_set_size(t.arc_obj, 36, 36);
-  lv_obj_set_pos(t.arc_obj, w - 44, 6);
+  lv_obj_set_size(t.arc_obj, sc(36), sc(36));
+  lv_obj_set_pos(t.arc_obj, sc(w - 44), sc(6));
   lv_arc_set_bg_angles(t.arc_obj, 135, 45);
   lv_arc_set_range(t.arc_obj, 0, 100);
   lv_obj_remove_style(t.arc_obj, nullptr, LV_PART_KNOB);
   lv_obj_remove_flag(t.arc_obj, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_arc_width(t.arc_obj, 3, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(t.arc_obj, sc(3), LV_PART_MAIN);
   lv_obj_set_style_arc_color(t.arc_obj, k(BORDER), LV_PART_MAIN);
-  lv_obj_set_style_arc_width(t.arc_obj, 3, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_width(t.arc_obj, sc(3), LV_PART_INDICATOR);
   lv_obj_set_style_arc_color(t.arc_obj, k(0x9FD8F0), LV_PART_INDICATOR);
   lv_obj_set_style_arc_rounded(t.arc_obj, true, LV_PART_INDICATOR);
   t.temp = label(b, "", w - 44, 15, 36, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
   lv_obj_set_style_text_align(t.temp, LV_TEXT_ALIGN_CENTER, 0);
-  // name a bit higher (tegel() put it at the bottom), the mode underneath: icon / name / mode
-  lv_obj_t *name_s = name0;
-  lv_obj_update_layout(b);
-  const int h = lv_obj_get_height(b);
-  if (icon0 != nullptr && icon0 != name_s) lv_obj_set_y(icon0, 4);   // three lines in 56 px: icon 4-24, name 22-39, mode 40-55
-  if (name_s != nullptr && lv_obj_check_type(name_s, &lv_label_class)) lv_obj_set_y(name_s, h - 34);
+  // name a bit higher (tile() put it at the bottom), the mode underneath: icon / name / mode
+  if (icon0 != nullptr && icon0 != name0) lv_obj_set_y(icon0, sc(4));   // three lines in 56 dp: icon 4-24, name 22-39, mode 40-55
+  if (name0 != nullptr && lv_obj_check_type(name0, &lv_label_class)) lv_obj_set_y(name0, sc(h - 34));
   t.mode_lbl = label(b, "", 12, h - 17, w - 56, f.f12, MUTED);
   lv_label_set_long_mode(t.mode_lbl, LV_LABEL_LONG_MODE_CLIP);
 }
-inline void item_tile(lv_obj_t *body, JsonObjectConst it, int index, const Fonts &f, const ImageSet &bl) {
-  const int x = std::max(0, std::min(5, (int) (it["x"] | 0))), w = std::max(1, std::min(6 - x, (int) (it["w"] | 6)));
-  const int y = std::max(0, (int) (it["y"] | 0)), h = std::max(1, std::min(6, (int) (it["h"] | 2)));
-  const int px = x * (216 + COL_GAP) / 6, pw = (x + w) * (216 + COL_GAP) / 6 - px - COL_GAP;
-  const int py = y * ROW, ph = h * ROW - ROW_GAP;
+
+// ---- Info tiles on Home: weather, calendar, a value (stock, crypto, any sensor) -----------------------------------
+// The screens only show info::*; a module fills it (phase 4). Key = the entity of the tile.
+namespace info {
+struct Hour { std::string time; int temp{0}; };
+struct Day { std::string name; int hi{0}, lo{0}; };
+struct Weather { std::string place, cond; int temp{0}, lo{0}, hi{0}; bool known{false}; std::vector<Hour> hours; std::vector<Day> days; };
+struct Event { std::string day, time, title, where; };   // day: "Vandaag", "Morgen", "vr 28 nov" ...
+struct Value { std::string name, text, change; int trend{0}; std::vector<float> history; bool known{false}; };
+inline std::map<std::string, Weather> &weather() { static std::map<std::string, Weather> m; return m; }
+inline std::map<std::string, std::vector<Event>> &calendar() { static std::map<std::string, std::vector<Event>> m; return m; }
+inline std::map<std::string, Value> &values() { static std::map<std::string, Value> m; return m; }
+static const uint32_t UP = 0x8FD3A8, DOWN = 0xE59A9A;
+// HA weather condition -> mdi glyph + Dutch text (tr() gives the other languages)
+inline const char *cond_icon(const std::string &c) {
+  if (c == "sunny") return "\U000F0599";
+  if (c == "clear-night") return "\U000F0594";
+  if (c == "partlycloudy") return "\U000F0595";
+  if (c == "cloudy") return "\U000F0590";
+  if (c == "rainy") return "\U000F0597";
+  if (c == "pouring") return "\U000F0596";
+  if (c == "snowy" || c == "snowy-rainy") return "\U000F0598";
+  if (c == "fog") return "\U000F0591";
+  if (c == "lightning" || c == "lightning-rainy") return "\U000F0593";
+  if (c == "windy" || c == "windy-variant") return "\U000F059D";
+  return "\U000F0590";
+}
+inline const char *cond_text(const std::string &c) {
+  if (c == "sunny") return "Zonnig";
+  if (c == "clear-night") return "Helder";
+  if (c == "partlycloudy") return "Half bewolkt";
+  if (c == "cloudy") return "Bewolkt";
+  if (c == "rainy") return "Regen";
+  if (c == "pouring") return "Stortregen";
+  if (c == "snowy" || c == "snowy-rainy") return "Sneeuw";
+  if (c == "fog") return "Mist";
+  if (c == "lightning" || c == "lightning-rainy") return "Onweer";
+  if (c == "windy" || c == "windy-variant") return "Wind";
+  return "\xE2\x80\x94";
+}
+}  // namespace info
+
+inline lv_obj_t *glyph_label(lv_obj_t *p, const char *g, int x, int y, const Fonts &f, uint32_t c = TEXT2) {
+  lv_obj_t *i = lv_label_create(p);
+  lv_label_set_text(i, g);
+  if (f.ico != nullptr) lv_obj_set_style_text_font(i, f.ico, 0);
+  lv_obj_set_style_text_color(i, k(c), 0);
+  lv_obj_set_pos(i, sc(x), sc(y));
+  lv_obj_remove_flag(i, LV_OBJ_FLAG_CLICKABLE);
+  return i;
+}
+inline std::string deg_(int t) { return std::to_string(t) + "\xC2\xB0"; }
+
+// Weather: S = icon + temperature, W = + condition and the next hours, L = + the next days
+inline void weather_tile(lv_obj_t *b, const std::string &e, int w, int h, const Fonts &f) {
+  auto it = info::weather().find(e);
+  const info::Weather *x = it == info::weather().end() ? nullptr : &it->second;
+  const bool ok = x != nullptr && x->known;
+  const std::string temp = ok ? deg_(x->temp) : "\xE2\x80\x94";
+  const char *ico = info::cond_icon(ok ? x->cond : "");
+  if (h >= 150 && w >= 150) {   // L (needs the height for the days)
+    std::string head = std::string(tr("Weer"));
+    if (ok && !x->place.empty()) head += " \xC2\xB7 " + x->place;
+    label(b, head.c_str(), 14, 12, w - 28, f.f12, MUTED);
+    glyph_label(b, ico, 14, 44, f, TEXT);
+    const lv_font_t *big = f.large != nullptr ? f.large : f.f20;
+    label(b, temp.c_str(), 42, 30, w - 56, big, TEXT);
+    std::string sub = ok ? std::string(tr(info::cond_text(x->cond))) + "  \xC2\xB7  " + deg_(x->lo) + " / " + deg_(x->hi) : "";
+    label(b, sub.c_str(), 14, 30 + dp(lv_font_get_line_height(big)) + 2, w - 28, f.f14, TEXT2);
+    if (ok && !x->days.empty()) {
+      const int n = std::min<int>(x->days.size(), w >= 280 ? 5 : 4), cw = (w - 28) / n;
+      for (int i = 0; i < n; i++) {
+        const info::Day &d = x->days[i];
+        lv_obj_t *l1 = label(b, d.name.c_str(), 14 + i * cw, h - 52, cw, f.f12, MUTED);
+        lv_obj_t *l2 = label(b, deg_(d.hi).c_str(), 14 + i * cw, h - 36, cw, f.f14, TEXT);
+        lv_obj_t *l3 = label(b, deg_(d.lo).c_str(), 14 + i * cw, h - 19, cw, f.f12, MUTED);
+        for (lv_obj_t *l : {l1, l2, l3}) lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+      }
+    }
+    return;
+  }
+  if (w >= 150) {   // W
+    glyph_label(b, ico, 12, h / 2 - 11, f, TEXT);
+    lv_obj_t *t = label(b, temp.c_str(), 40, 0, 60, f.f20, TEXT);
+    lv_obj_align(t, LV_ALIGN_LEFT_MID, sc(40), 0);
+    const int tx = 40 + std::max(36, dp(lv_obj_get_width(t) > 0 ? lv_obj_get_width(t) : 0)) + 8;
+    const int hours = ok ? std::min<int>(x->hours.size(), (w - 200) / 44) : 0;
+    const int tw = w - tx - 10 - std::max(0, hours) * 44;
+    label(b, ok ? tr(info::cond_text(x->cond)) : "", tx, h / 2 - 17, tw, f.f14, TEXT2);
+    std::string sub = ok ? x->place + (x->place.empty() ? "" : " \xC2\xB7 ") + deg_(x->lo) + " / " + deg_(x->hi) : "";
+    label(b, sub.c_str(), tx, h / 2 + 2, tw, f.f12, MUTED);
+    for (int i = 0; i < hours; i++) {
+      const int hx = w - 10 - (hours - i) * 44;
+      lv_obj_t *l1 = label(b, x->hours[i].time.c_str(), hx, h / 2 - 17, 44, f.f12, MUTED);
+      lv_obj_t *l2 = label(b, deg_(x->hours[i].temp).c_str(), hx, h / 2 + 1, 44, f.f14, TEXT);
+      lv_obj_set_style_text_align(l1, LV_TEXT_ALIGN_CENTER, 0);
+      lv_obj_set_style_text_align(l2, LV_TEXT_ALIGN_CENTER, 0);
+    }
+    return;
+  }
+  glyph_label(b, ico, 12, 9, f, TEXT2);   // S
+  std::string t = temp + (ok ? "  " + std::string(tr(info::cond_text(x->cond))) : "");
+  label(b, t.c_str(), 12, h - 25, w - 24, f.f14, TEXT2);
+}
+
+// Calendar: the next events, grouped per day. S/W = the next one, L = as many as fit.
+inline void calendar_tile(lv_obj_t *b, const std::string &e, int w, int h, const Fonts &f) {
+  auto it = info::calendar().find(e);
+  static const std::vector<info::Event> none;
+  const std::vector<info::Event> &ev = it == info::calendar().end() ? none : it->second;
+  if (h >= 100) {   // L
+    glyph_label(b, "\U000F00ED", 12, 9, f, TEXT2);   // mdi:calendar
+    label(b, tr("Agenda"), 40, 12, w - 52, f.f12, MUTED);
+    int y = 38;
+    std::string day;
+    if (ev.empty()) label(b, tr("Geen afspraken"), 14, y + 4, w - 28, f.f14, MUTED);
+    for (const info::Event &x : ev) {
+      const bool head = x.day != day;
+      if (y + (head ? 18 : 0) + 34 > h - 6) break;
+      if (head) { day = x.day; label(b, tr(day.c_str()), 14, y, w - 28, f.f12, MUTED); y += 18; }
+      detail(b, 14, y + 3, 2, 28, 0xBFC2C9, 200, 1);
+      label(b, x.time.c_str(), 24, y + 2, 50, f.f14, TEXT);
+      label(b, x.title.c_str(), 76, y + 2, w - 90, f.f14, TEXT);
+      if (!x.where.empty()) label(b, x.where.c_str(), 76, y + 19, w - 90, f.f12, MUTED);
+      y += 38;
+    }
+    return;
+  }
+  glyph_label(b, "\U000F00ED", 12, 9, f, TEXT2);
+  if (ev.empty()) { label(b, tr("Geen afspraken"), 12, h - 25, w - 24, f.f14, MUTED); return; }
+  const info::Event &x = ev.front();
+  label(b, (std::string(tr(x.day.c_str())) + "  " + x.time).c_str(), 40, 12, w - 52, f.f12, MUTED);
+  label(b, x.title.c_str(), 12, h - 25, w - 24, f.f14, TEXT2);
+}
+
+// Value: name and change on top, the value large; W/L also draw its history as a line
+inline void value_tile(lv_obj_t *b, const std::string &e, const char *name, int w, int h, const Fonts &f) {
+  auto it = info::values().find(e);
+  const info::Value *x = it == info::values().end() ? nullptr : &it->second;
+  const bool ok = x != nullptr && x->known;
+  const uint32_t c = !ok || x->trend == 0 ? MUTED : x->trend > 0 ? info::UP : info::DOWN;
+  label(b, *name ? name : (ok ? x->name.c_str() : e.c_str()), 12, 9, w - 24, f.f12, MUTED);
+  if (ok && !x->change.empty()) {
+    lv_obj_t *ch = label(b, x->change.c_str(), 12, 9, w - 24, f.f12, c);
+    lv_obj_set_style_text_align(ch, LV_TEXT_ALIGN_RIGHT, 0);
+  }
+  lv_obj_t *v = label(b, ok ? x->text.c_str() : "\xE2\x80\x94", 12, h >= 70 ? 30 : 26, w - 24, f.f20, TEXT);
+  if (f.f20 != nullptr) lv_obj_set_height(v, lv_font_get_line_height(f.f20));   // one line: cut with ... when too long
+#if LV_USE_LINE
+  if (ok && w >= 150 && x->history.size() >= 2) {   // a thin line of the last values, bottom right
+    const int n = std::min<int>(x->history.size(), 64), lw = std::min(140, w / 2), lh = std::max(18, std::min(40, h - 50));
+    float lo = x->history[0], hi = x->history[0];
+    for (float v : x->history) { lo = std::min(lo, v); hi = std::max(hi, v); }
+    auto *pts = new lv_point_precise_t[n];
+    for (int i = 0; i < n; i++) {
+      pts[i].x = sc(i * lw / (n - 1));
+      pts[i].y = sc(hi > lo ? (int) lroundf((hi - x->history[x->history.size() - n + i]) * (lh - 2) / (hi - lo)) + 1 : lh / 2);
+    }
+    lv_obj_t *ln = lv_line_create(b);
+    lv_line_set_points(ln, pts, n);
+    lv_obj_set_pos(ln, sc(w - 12 - lw), sc(h - 10 - lh));
+    lv_obj_set_style_line_width(ln, std::max(1, sc(2) / 2 + 1), 0);
+    lv_obj_set_style_line_color(ln, k(c), 0);
+    lv_obj_set_style_line_rounded(ln, true, 0);
+    lv_obj_remove_flag(ln, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(ln, [](lv_event_t *ev) { delete[] (lv_point_precise_t *) lv_event_get_user_data(ev); }, LV_EVENT_DELETE, pts);
+  }
+#endif
+}
+
+// One tile from an item (JSON from NOIR Builder) at its place in the grid (dp)
+inline void item_tile(lv_obj_t *body, JsonObjectConst it, int index, const Fonts &f, const ImageSet &bl, int px, int py, int pw, int ph) {
   const char *label_t = it["label"] | "";
   const char *icon = it["icon"] | "";
   const std::string t = it["t"] | "";
   if (t == "text") {   // alleen tekst (kop/uitleg)
-    lv_obj_t *l = label(body, label_t, px, py + 4, pw, h >= 2 ? f.f16 : f.f12, h >= 2 ? TEXT : MUTED);
+    lv_obj_t *l = label(body, label_t, px, py + 4, pw, ph >= 46 ? f.f16 : f.f12, ph >= 46 ? TEXT : MUTED);
     lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
+    return;
+  }
+  if (t == "weather" || t == "calendar" || t == "value") {
+    lv_obj_t *b = btn(body, px, py, pw, ph, ITEM + index);
+    const std::string e = it["entity"] | "";
+    if (t == "weather") weather_tile(b, e, pw, ph, f);
+    else if (t == "calendar") calendar_tile(b, e, pw, ph, f);
+    else value_tile(b, e, label_t, pw, ph, f);
     return;
   }
   const void *img_src = noir_beeld(icon, bl);
   const std::string glyph = img_src == nullptr ? mdi_teken(icon) : std::string();
   if (ph >= 46) {   // groot: icoon linksboven, naam linksonder (zoals de simulator)
     lv_obj_t *b = tile(body, label_t, px, py, ITEM + index, img_src, f, pw, ph, glyph.empty() ? nullptr : glyph.c_str());
-    if (std::string(it["fn"] | "") == "airco") airco_tile_make(b, pw, f);
+    if (std::string(it["fn"] | "") == "airco") airco_tile_make(b, pw, ph, f);
     return;
   }
   // klein (1 rij): icoon en naam naast elkaar
@@ -407,27 +623,78 @@ inline void item_tile(lv_obj_t *body, JsonObjectConst it, int index, const Fonts
   int lx = 10;
   if (img_src != nullptr || !glyph.empty()) {
     lv_obj_t *i;
-    if (img_src != nullptr) { i = lv_image_create(b); lv_image_set_src(i, img_src); lv_image_set_scale(i, 180); }
+    if (img_src != nullptr) { i = lv_image_create(b); lv_image_set_src(i, img_src); lv_image_set_scale(i, (uint32_t) lroundf(180 * lay().u)); }
     else { i = lv_label_create(b); lv_label_set_text(i, glyph.c_str()); if (f.ico != nullptr) lv_obj_set_style_text_font(i, f.ico, 0);
            lv_obj_set_style_text_color(i, k(TEXT2), 0); }
-    lv_obj_align(i, LV_ALIGN_LEFT_MID, 8, 0);
+    lv_obj_align(i, LV_ALIGN_LEFT_MID, sc(8), 0);
     lv_obj_remove_flag(i, LV_OBJ_FLAG_CLICKABLE);
     lx = 34;
   }
   lv_obj_t *l = label(b, label_t, lx, 0, pw - lx - 6, f.f12, TEXT2);
-  lv_obj_align(l, LV_ALIGN_LEFT_MID, lx, 0);
+  lv_obj_align(l, LV_ALIGN_LEFT_MID, sc(lx), 0);
+}
+
+// Grid of tiles: items go left to right, top to bottom, in their order (like the Builder's preview); an item that
+// does not fit on the rest of a row starts the next row. Sizes: S = 1 cell, W = 2 cells wide, L = 2 x 2.
+// Items from before sizes existed: w 6 = W, w 3 = S (the Builder's 6-column raster).
+struct Grid {
+  int cols, cw, rh, top;
+  std::vector<std::vector<char>> used;
+  int r{0}, c{0};
+  Grid(int width, int n, int y) : cols(n), cw(cell_w(width, n)), rh(std::max(56, (int) (cw * (n >= 3 ? 0.8f : 0.54f)))), top(y) {}
+  bool free_(int r0, int c0, int sc_, int sr) {
+    if (c0 + sc_ > cols) return false;
+    for (int y = r0; y < r0 + sr; y++)
+      for (int x = c0; x < c0 + sc_; x++) if (y < (int) used.size() && used[y][x]) return false;
+    return true;
+  }
+  // place an item of sc_ x sr cells; returns its box in dp
+  void place(int sc_, int sr, int &x, int &y, int &w, int &h) {
+    sc_ = std::min(sc_, cols);
+    while (!free_(r, c, sc_, sr)) { if (++c >= cols) { c = 0; r++; } }
+    while ((int) used.size() < r + sr) used.push_back(std::vector<char>(cols, 0));
+    for (int yy = r; yy < r + sr; yy++) for (int xx = c; xx < c + sc_; xx++) used[yy][xx] = 1;
+    x = c * (cw + COL_GAP);
+    w = sc_ * cw + (sc_ - 1) * COL_GAP;
+    y = top + r * (rh + ROW_GAP);
+    h = sr * rh + (sr - 1) * ROW_GAP;
+    c += sc_;
+    if (c >= cols) { c = 0; r++; }
+  }
+};
+inline void item_span(JsonObjectConst it, int cols, int &sc_, int &sr) {
+  const std::string z = it["size"] | "";
+  const std::string t = it["t"] | "";
+  char s = z == "S" || z == "W" || z == "L" ? z[0] : (it["w"] | 6) >= 6 ? ((it["h"] | 2) >= 4 ? 'L' : 'W') : 'S';
+  if (t == "text") { sc_ = cols; sr = 1; return; }
+  sc_ = s == 'S' ? 1 : 2;
+  sr = s == 'L' ? 2 : 1;
 }
 
 // NOIR Thuis (simulator build(0))
 // items = tegels van de configuratorpagina "noir" (leeg = de ingebouwde tegels)
 inline void home_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl, JsonArrayConst items = JsonArrayConst()) {
   UiState &s = st();
+  const Layout &L = lay();
   airco_tile() = AircoTile();   // the home tiles are rebuilt: the old airco tile is gone
-  lv_obj_t *body = s.home_body = body_make(layer_obj, true);
-  lv_obj_set_height(body, 236);
-  label(body, "NOIR / SIGNATURE", 0, 5, 180, f.f16, TEXT);
-  label(body, "Home Control", 0, 30, 216, f.f12, MUTED);
-  lv_obj_t *tw = btn(body, 184, 0, 32, 32, SETTINGS);
+  lv_obj_t *body = s.home_body = body_make(layer_obj, true, true);
+  lv_obj_set_height(body, sc(L.hd - 84));
+  int top = TILES_Y;
+  if (L.big) {   // big screen: a large clock, the title on the right
+    const lv_font_t *big = f.large != nullptr ? f.large : f.f20;
+    s.big_clock = label(body, "--:--", 0, 0, 200, big, TEXT);
+    lv_obj_t *t1 = label(body, "NOIR / SIGNATURE", L.full - 260, 8, 220, f.f16, TEXT);
+    lv_obj_t *t2 = label(body, "Home Control", L.full - 260, 30, 220, f.f12, MUTED);
+    lv_obj_set_style_text_align(t1, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_style_text_align(t2, LV_TEXT_ALIGN_RIGHT, 0);
+    top = std::max(TILES_Y, dp(lv_font_get_line_height(big)) + 10);
+  } else {
+    s.big_clock = nullptr;
+    label(body, "NOIR / SIGNATURE", 0, 5, L.full - 36, f.f16, TEXT);
+    if (L.hd >= 300) label(body, "Home Control", 0, 30, L.full, f.f12, MUTED);
+    else top = 40;   // low screen (e.g. 320 x 240): title only, the tiles move up
+  }
+  lv_obj_t *tw = btn(body, L.full - 32, 0, 32, 32, SETTINGS);
   if (f.ico != nullptr) {
     lv_obj_t *i = lv_label_create(tw);
     lv_label_set_text(i, ICO_COG);
@@ -435,37 +702,57 @@ inline void home_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl, 
     lv_obj_set_style_text_color(i, k(TEXT2), 0);
     lv_obj_center(i);
   }
-  if (!items.isNull() && items.size() > 0) {   // NOIR-builder: tegels uit de configurator
+  Grid g(L.full, L.cols, 0);
+  int x, y, w, h;
+  if (!items.isNull() && items.size() > 0) {   // NOIR Builder: the tiles from the configuration
     lv_obj_t *grid_obj = lv_obj_create(body);
     lv_obj_remove_style_all(grid_obj);
-    lv_obj_set_pos(grid_obj, 0, TILES_Y);
-    lv_obj_set_size(grid_obj, 216, LV_SIZE_CONTENT);
+    lv_obj_set_pos(grid_obj, 0, sc(top));
+    lv_obj_set_size(grid_obj, sc(L.full), LV_SIZE_CONTENT);
     lv_obj_remove_flag(grid_obj, (lv_obj_flag_t) (LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+    if (L.big) {   // wall panel: when the tiles leave room, make the rows taller so they fill the screen
+      Grid dry(L.full, L.cols, 0);
+      int i = 0, rows = 0;
+      for (JsonObjectConst it : items) {
+        if (i++ >= 40) break;
+        int cs, rs;
+        item_span(it, L.cols, cs, rs);
+        dry.place(cs, rs, x, y, w, h);
+        rows = std::max(rows, (y + h + ROW_GAP) / (dry.rh + ROW_GAP));
+      }
+      const int room = L.hd - 84 - top - 6;
+      if (rows > 0) g.rh = std::max(g.rh, std::min((int) (g.cw * 1.1f), (room - (rows - 1) * ROW_GAP) / rows));
+    }
     int i = 0;
     for (JsonObjectConst it : items) {
       if (i >= 40) break;
-      item_tile(grid_obj, it, i, f, bl);
+      int cs, rs;
+      item_span(it, L.cols, cs, rs);
+      g.place(cs, rs, x, y, w, h);
+      item_tile(grid_obj, it, i, f, bl, x, y, w, h);
       i++;
     }
     return;
   }
-  // 2026-11-22: Airco erbij - drie rijen van 56 hoog (simulator: twee van 66), Airco over de volle breedte
-  tile(body, "TV", 0, 52, TV, bl.tv, f, 104, 56);
-  tile(body, "Audio", 112, 52, AUDIO, bl.audio, f, 104, 56);
-  tile(body, "Verlichting", 0, 114, LIGHTS, bl.light, f, 104, 56);
-  tile(body, "Sc\xC3\xA8nes", 112, 114, SCENES, bl.scenes, f, 104, 56);
-  tile(body, "Airco", 0, 176, AIRCO, nullptr, f, 216, 50, ICO_SNOW);
+  // nothing configured yet: TV, Audio, Lights, Scenes, Airco
+  g.top = top;
+  g.place(1, 1, x, y, w, h); tile(body, "TV", x, y, TV, bl.tv, f, w, h);
+  g.place(1, 1, x, y, w, h); tile(body, "Audio", x, y, AUDIO, bl.audio, f, w, h);
+  g.place(1, 1, x, y, w, h); tile(body, "Verlichting", x, y, LIGHTS, bl.light, f, w, h);
+  g.place(1, 1, x, y, w, h); tile(body, "Sc\xC3\xA8nes", x, y, SCENES, bl.scenes, f, w, h);
+  g.place(2, 1, x, y, w, h); tile(body, "Airco", x, y, AIRCO, nullptr, f, w, h, ICO_SNOW);
 }
 
 static const char *ICO_POWER = "\U000F0425";
 
 // NOIR TV (simulator build(1)): titel, status uit HA, aan/uit, 6 app-tegels (scrollt), Terug/Thuis
-inline void tv_bouwen(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl) {
+inline void tv_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl) {
   UiState &s = st();
-  lv_obj_t *body = body_make(layer_obj, true);
+  const int W = lay().full, n = lay().cols, cw = cell_w(W, n);
+  lv_obj_t *body = body_make(layer_obj, true, true);
   label(body, "TV", 0, 0, 150, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
-  s.tv_status = label(body, "Apparaten en apps", 0, 31, 160, f.f12, MUTED);
-  lv_obj_t *pw = btn(body, 164, 20, 52, 34, TV_POWER);
+  s.tv_status = label(body, "Apparaten en apps", 0, 31, W - 56, f.f12, MUTED);
+  lv_obj_t *pw = btn(body, W - 52, 20, 52, 34, TV_POWER);
   if (f.ico != nullptr) {
     lv_obj_t *i = lv_label_create(pw);
     lv_label_set_text(i, ICO_POWER);
@@ -475,21 +762,22 @@ inline void tv_bouwen(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl) {
   }
   const auto &apps = tv_apps();
   if (apps.empty()) {
-    label(body, "Kies je bronnen in de NOIR Builder", 0, 76, 216, f.f12, MUTED);
+    label(body, "Kies je bronnen in de NOIR Builder", 0, 76, W, f.f12, MUTED);
   }
   for (size_t i = 0; i < apps.size() && i < 8; i++) {
-    const int x = (i % 2) * 112, y = 60 + (i / 2) * 80;
-    lv_obj_t *b = btn(body, x, y, 104, 76, TV_APP + (int) i);
+    const int x = (i % n) * (cw + COL_GAP), y = 60 + (i / n) * 80;
+    lv_obj_t *b = btn(body, x, y, cw, 76, TV_APP + (int) i);
     const void *lg = logo_src(apps[i].logo);
     if (lg != nullptr) {
       lv_obj_t *im = lv_image_create(b);
       lv_image_set_src(im, lg);
-      lv_obj_align(im, LV_ALIGN_TOP_MID, 0, 12);
+      img_scale(im);
+      lv_obj_align(im, LV_ALIGN_TOP_MID, 0, sc(12));
       lv_obj_remove_flag(im, LV_OBJ_FLAG_CLICKABLE);
     }
     // with a logo: small name underneath; without: the name is the tile
-    lv_obj_t *l = lg != nullptr ? label(b, apps[i].name.c_str(), 3, 55, 98, f.f12, 0xBFC2C9)
-                                : label(b, apps[i].name.c_str(), 3, 28, 98, f.f16, TEXT);
+    lv_obj_t *l = lg != nullptr ? label(b, apps[i].name.c_str(), 3, 55, cw - 6, f.f12, 0xBFC2C9)
+                                : label(b, apps[i].name.c_str(), 3, 28, cw - 6, f.f16, TEXT);
     lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
   }
@@ -715,14 +1003,14 @@ inline void dimmer_open(int i) {
   d.over = lv_obj_create(lv_layer_top());
   lv_obj_remove_style_all(d.over);
   lv_obj_add_flag(d.over, LV_OBJ_FLAG_USER_4);
-  lv_obj_set_size(d.over, 240, 320);
+  lv_obj_set_size(d.over, lay().w, lay().h);
   lv_obj_set_style_bg_color(d.over, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(d.over, 175, 0);
   lv_obj_add_flag(d.over, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_remove_flag(d.over, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_t *m = lv_obj_create(d.over);
-  lv_obj_set_pos(m, 16, 80);
-  lv_obj_set_size(m, 208, 162);
+  lv_obj_set_pos(m, sc(panel_x() + 16), sc(80 + (lay().hd - 320) / 2));
+  lv_obj_set_size(m, sc(208), sc(162));
   lv_obj_set_style_bg_color(m, k(SURF), 0);
   lv_obj_set_style_bg_opa(m, LV_OPA_COVER, 0);
   lv_obj_set_style_radius(m, rnd(16), 0);
@@ -737,17 +1025,17 @@ inline void dimmer_open(int i) {
   d.value_lbl = label(m, "", 16, 45, 176, s.fonts.f20 != nullptr ? s.fonts.f20 : s.fonts.f16, TEXT);
   lv_label_set_text_fmt(d.value_lbl, "%d%%", pct);
   lv_obj_t *sl = lv_slider_create(m);
-  lv_obj_set_pos(sl, 18, 88);
-  lv_obj_set_size(sl, 172, 5);
+  lv_obj_set_pos(sl, sc(18), sc(88));
+  lv_obj_set_size(sl, sc(172), sc(5));
   lv_slider_set_range(sl, 0, 100);
   lv_slider_set_value(sl, pct, LV_ANIM_OFF);
   lv_obj_set_style_bg_color(sl, k(0x36393F), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(sl, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_bg_color(sl, k(0xBFC2C9), LV_PART_INDICATOR);
   lv_obj_set_style_bg_color(sl, k(0xF2F3F5), LV_PART_KNOB);
-  lv_obj_set_style_pad_all(sl, 6, LV_PART_KNOB);
+  lv_obj_set_style_pad_all(sl, sc(6), LV_PART_KNOB);
   lv_obj_set_style_outline_width(sl, 0, LV_STATE_FOCUSED);
-  lv_obj_set_ext_click_area(sl, 14);
+  lv_obj_set_ext_click_area(sl, sc(14));
   lv_obj_add_event_cb(sl, dimmer_value_, LV_EVENT_VALUE_CHANGED, nullptr);
   lv_obj_add_event_cb(sl, dimmer_value_, LV_EVENT_RELEASED, nullptr);
   lv_obj_t *g = btn(m, 12, 116, 184, 32, DIM_DONE);
@@ -759,16 +1047,17 @@ inline void lang_(lv_event_t *e) { dimmer_open((int) (intptr_t) lv_event_get_use
 
 inline void lights_build(lv_obj_t *layer_obj, const Fonts &f) {
   UiState &s = st();
-  lv_obj_t *body = s.lights_body = body_make(layer_obj, true);
-  label(body, "Verlichting", 0, 0, 216, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
+  const int W = lay().full, n = std::max(1, lay().cols / 2), cw = cell_w(W, n);   // a lamp needs two tile columns
+  lv_obj_t *body = s.lights_body = body_make(layer_obj, true, true);
+  label(body, "Verlichting", 0, 0, W, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
   if (lamps().empty()) {
-    lv_obj_t *l = label(body, "Nog geen lampen. Configurator \xE2\x86\x92 NOIR \xE2\x86\x92 Verlichting.", 0, 42, 216, f.f12, MUTED);
+    lv_obj_t *l = label(body, "Nog geen lampen. Configurator \xE2\x86\x92 NOIR \xE2\x86\x92 Verlichting.", 0, 42, W, f.f12, MUTED);
     lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
   }
   for (int i = 0; i < (int) lamps().size(); i++) {
     Lamp &l = lamps()[i];
-    lv_obj_t *b = btn(body, 0, 42 + i * 55, 216, 47, LAMP + i, LV_EVENT_SHORT_CLICKED);
-    l.lbl = label(b, "", 0, 0, 200, f.f12, 0xE4E7EC);
+    lv_obj_t *b = btn(body, (i % n) * (cw + COL_GAP), 42 + (i / n) * 55, cw, 47, LAMP + i, LV_EVENT_SHORT_CLICKED);
+    l.lbl = label(b, "", 0, 0, cw - 16, f.f12, 0xE4E7EC);
     lv_obj_set_style_text_align(l.lbl, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_center(l.lbl);
     if (l.dim) {   // dimbaar: lichte rand, lang drukken = dimmer
@@ -778,7 +1067,7 @@ inline void lights_build(lv_obj_t *layer_obj, const Fonts &f) {
     }
   }
   if (!lamps().empty()) {
-    lv_obj_t *h = label(body, "Lang drukken = dimmen", 0, 42 + (int) lamps().size() * 55, 216, f.f12, MUTED);
+    lv_obj_t *h = label(body, "Lang drukken = dimmen", 0, 42 + ((int) lamps().size() + n - 1) / n * 55, W, f.f12, MUTED);
     lv_obj_set_style_text_align(h, LV_TEXT_ALIGN_CENTER, 0);
   }
   lamps_text();
@@ -969,17 +1258,17 @@ inline lv_obj_t *text_button_(lv_obj_t *p, int x, int y, int w, int h, int actie
 static const char *ICO_SWAP = "\U000F04E1", *ICO_SWING = "\U000F1C91", *ICO_FAN = "\U000F0210";   // swap-horizontal, arrow-oscillating, fan
 inline lv_obj_t *pill_(lv_obj_t *p, int x, int y, int w, int h, int actie, const char *ico, const Fonts &f) {
   lv_obj_t *b = btn(p, x, y, w, h, actie);
-  lv_obj_set_style_radius(b, h / 2, 0);
+  lv_obj_set_style_radius(b, sc(h) / 2, 0);
   if (f.ico != nullptr) {
     lv_obj_t *i = lv_label_create(b);
     lv_label_set_text(i, ico);
     lv_obj_set_style_text_font(i, f.ico, 0);
     lv_obj_set_style_text_color(i, k(TEXT2), 0);
-    lv_obj_align(i, LV_ALIGN_LEFT_MID, 14, 0);
+    lv_obj_align(i, LV_ALIGN_LEFT_MID, sc(14), 0);
   }
   lv_obj_t *l = label(b, "", 0, 0, w - 46, f.f12, TEXT2);
   lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_CLIP);
-  lv_obj_align(l, LV_ALIGN_LEFT_MID, 40, 0);
+  lv_obj_align(l, LV_ALIGN_LEFT_MID, sc(40), 0);
   return b;
 }
 inline void airco_build(lv_obj_t *layer_obj, const Fonts &f) {
@@ -989,34 +1278,34 @@ inline void airco_build(lv_obj_t *layer_obj, const Fonts &f) {
   u.status = label(body, "", 0, 26, 150, f.f12, MUTED);
   u.swap = icon_button_(body, 120, 0, 38, 34, AIRCO_UNIT, ICO_SWAP, f);
   u.is_on = icon_button_(body, 164, 0, 52, 34, AIRCO_POWER, ICO_POWER, f);
-  lv_obj_set_style_radius(u.is_on, 17, 0);
+  lv_obj_set_style_radius(u.is_on, sc(17), 0);
   u.on_i = lv_obj_get_child(u.is_on, -1);
   // dial arc (270 degrees) with the temperature in the middle
   u.arc_obj = lv_arc_create(body);
-  lv_obj_set_size(u.arc_obj, 104, 104);   // everything fits the 230 px body: arc 40-144, modes 152-184, pills 194-224
-  lv_obj_set_pos(u.arc_obj, 56, 40);
+  lv_obj_set_size(u.arc_obj, sc(104), sc(104));   // everything fits the 230 dp body: arc 40-144, modes 152-184, pills 194-224
+  lv_obj_set_pos(u.arc_obj, sc(56), sc(40));
   lv_arc_set_bg_angles(u.arc_obj, 135, 45);
   lv_arc_set_range(u.arc_obj, 0, 100);
   lv_obj_remove_style(u.arc_obj, nullptr, LV_PART_KNOB);
   lv_obj_remove_flag(u.arc_obj, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_arc_width(u.arc_obj, 4, LV_PART_MAIN);
+  lv_obj_set_style_arc_width(u.arc_obj, sc(4), LV_PART_MAIN);
   lv_obj_set_style_arc_color(u.arc_obj, k(BORDER), LV_PART_MAIN);
-  lv_obj_set_style_arc_width(u.arc_obj, 5, LV_PART_INDICATOR);
+  lv_obj_set_style_arc_width(u.arc_obj, sc(5), LV_PART_INDICATOR);
   lv_obj_set_style_arc_color(u.arc_obj, k(airco::ICE), LV_PART_INDICATOR);
   lv_obj_set_style_arc_rounded(u.arc_obj, true, LV_PART_INDICATOR);
   const lv_font_t *large = f.large != nullptr ? f.large : (f.f20 != nullptr ? f.f20 : f.f16);
-  u.temp = label(body, "", 58, 40 + (104 - lv_font_get_line_height(large)) / 2, 100, large, TEXT);
+  u.temp = label(body, "", 58, 40 + (104 - dp(lv_font_get_line_height(large))) / 2, 100, large, TEXT);
   lv_obj_set_style_text_align(u.temp, LV_TEXT_ALIGN_CENTER, 0);
   u.deg = label(body, "\xC2\xB0", 136, 58, 16, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
   u.min = icon_button_(body, 0, 70, 44, 44, AIRCO_MIN, ICO_MIN, f);
   u.plus = icon_button_(body, 172, 70, 44, 44, AIRCO_PLUS, ICO_PLUS, f);
-  lv_obj_set_style_radius(u.min, 22, 0);
-  lv_obj_set_style_radius(u.plus, 22, 0);
+  lv_obj_set_style_radius(u.min, sc(22), 0);
+  lv_obj_set_style_radius(u.plus, sc(22), 0);
   // modes as icons
   const int bw = (216 - 4 * 6) / 5;
   for (int i = 0; i < airco::MODES; i++) {
     u.mode[i] = icon_button_(body, i * (bw + 6), 152, bw, 32, AIRCO_MODE + i, airco::MODE_ICON[i], f);
-    lv_obj_set_style_radius(u.mode[i], 12, 0);
+    lv_obj_set_style_radius(u.mode[i], sc(12), 0);
   }
   u.fan = pill_(body, 0, 194, 104, 30, AIRCO_FAN, ICO_FAN, f);
   u.swing = pill_(body, 112, 194, 104, 30, AIRCO_SWING, ICO_SWING, f);
@@ -1175,13 +1464,14 @@ inline void test_build(lv_obj_t *layer_obj, const Fonts &f) {
 static const char *ICO_OFF = "\U000F0425";   // mdi:power
 inline void scenes_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl, JsonArrayConst items) {
   UiState &s = st();
-  lv_obj_t *body = s.scenes_body = body_make(layer_obj, true);
-  label(body, "Sc\xC3\xA8nes", 0, 0, 216, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
+  const int W = lay().full, cols = lay().cols, cw = cell_w(W, cols);
+  lv_obj_t *body = s.scenes_body = body_make(layer_obj, true, true);
+  label(body, "Sc\xC3\xA8nes", 0, 0, W, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
   int n = 0;
-  auto slot = [&](int i, int &x, int &y) { x = (i % 2) * 112; y = 36 + (i / 2) * 64; };
+  auto slot = [&](int i, int &x, int &y) { x = (i % cols) * (cw + COL_GAP); y = 36 + (i / cols) * 64; };
   int x, y;
   slot(n++, x, y);
-  tile(body, "Alles uit", x, y, SCENE_ALL_OFF, nullptr, f, 104, 56, ICO_OFF);
+  tile(body, "Alles uit", x, y, SCENE_ALL_OFF, nullptr, f, cw, 56, ICO_OFF);
   int i = 0;
   for (JsonObjectConst it : items) {
     if (i >= 30) break;
@@ -1191,12 +1481,12 @@ inline void scenes_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl
     const void *img_src = noir_beeld(icon, bl);
     const std::string glyph = img_src == nullptr ? mdi_teken(icon) : std::string();
     slot(n++, x, y);
-    tile(body, name_s, x, y, SCENE + i, img_src, f, 104, 56, glyph.empty() ? nullptr : glyph.c_str());
+    tile(body, name_s, x, y, SCENE + i, img_src, f, cw, 56, glyph.empty() ? nullptr : glyph.c_str());
     i++;
   }
   if (items.isNull() || items.size() == 0) {
     slot(n, x, y);
-    lv_obj_t *h = label(body, "Eigen sc\xC3\xA8nes: configurator \xE2\x86\x92 NOIR \xE2\x86\x92 Sc\xC3\xA8nes.", 0, y + 8, 216, f.f12, MUTED);
+    lv_obj_t *h = label(body, "Eigen sc\xC3\xA8nes: configurator \xE2\x86\x92 NOIR \xE2\x86\x92 Sc\xC3\xA8nes.", 0, y + 8, W, f.f12, MUTED);
     lv_label_set_long_mode(h, LV_LABEL_LONG_MODE_WRAP);
   }
 }
@@ -1320,18 +1610,18 @@ inline lv_obj_t *slider_(lv_obj_t *body, int y, const char *name_s, int min, int
   value_lbl = label(body, "\xE2\x80\x94", 136, y, 80, f.f12, MUTED);
   lv_obj_set_style_text_align(value_lbl, LV_TEXT_ALIGN_RIGHT, 0);
   lv_obj_t *s = lv_slider_create(body);
-  lv_obj_set_pos(s, 6, y + 22);
-  lv_obj_set_size(s, 204, 6);
+  lv_obj_set_pos(s, sc(6), sc(y + 22));
+  lv_obj_set_size(s, sc(204), sc(6));
   lv_slider_set_range(s, min, max);
   lv_obj_set_style_bg_color(s, k(SURF), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(s, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_radius(s, 3, LV_PART_MAIN);
+  lv_obj_set_style_radius(s, sc(3), LV_PART_MAIN);
   lv_obj_set_style_bg_color(s, k(0xBFC2C9), LV_PART_INDICATOR);
-  lv_obj_set_style_radius(s, 3, LV_PART_INDICATOR);
+  lv_obj_set_style_radius(s, sc(3), LV_PART_INDICATOR);
   lv_obj_set_style_bg_color(s, k(TEXT), LV_PART_KNOB);
-  lv_obj_set_style_pad_all(s, 5, LV_PART_KNOB);
+  lv_obj_set_style_pad_all(s, sc(5), LV_PART_KNOB);
   lv_obj_set_style_shadow_width(s, 0, LV_PART_KNOB);
-  lv_obj_set_ext_click_area(s, 14);
+  lv_obj_set_ext_click_area(s, sc(14));
   if (sub) lv_slider_set_mode(s, LV_SLIDER_MODE_SYMMETRICAL);
   auto cb = [](lv_event_t *e) {
     lv_obj_t *o = (lv_obj_t *) lv_event_get_target(e);
@@ -1374,7 +1664,7 @@ inline void audio_build(lv_obj_t *layer_obj, const Fonts &f) {
     lv_label_set_text(i, ICO_NOTE);
     lv_obj_set_style_text_font(i, f.ico, 0);
     lv_obj_set_style_text_color(i, k(TEXT2), 0);
-    lv_obj_set_pos(i, 26, 27);
+    lv_obj_set_pos(i, sc(26), sc(27));
   }
   u.np_source = label(np, "MUZIEK", 76, 9, 80, f.f12, TEXT2);
   u.np_title = label(np, "", 76, 25, 130, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
@@ -1437,7 +1727,7 @@ inline void choice_open_(lv_event_t *e) {
   const int n = SKINS, chosen = theme().skin;
   ch.over = lv_obj_create(lv_layer_top());
   lv_obj_remove_style_all(ch.over);
-  lv_obj_set_size(ch.over, 240, 320);
+  lv_obj_set_size(ch.over, lay().w, lay().h);
   lv_obj_set_style_bg_color(ch.over, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(ch.over, 175, 0);
   lv_obj_add_flag(ch.over, LV_OBJ_FLAG_CLICKABLE);
@@ -1445,7 +1735,7 @@ inline void choice_open_(lv_event_t *e) {
   lv_obj_add_event_cb(ch.over, choice_picked_, LV_EVENT_CLICKED, (void *) (intptr_t) -1);
   const int h = 16 + 22 + n * 42 + 8;
   lv_obj_t *m = lv_obj_create(ch.over);
-  lv_obj_set_size(m, 208, h);
+  lv_obj_set_size(m, sc(208), sc(h));
   lv_obj_align(m, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_bg_color(m, k(SURF), 0);
   lv_obj_set_style_bg_opa(m, LV_OPA_COVER, 0);
@@ -1461,7 +1751,7 @@ inline void choice_open_(lv_event_t *e) {
     lv_obj_t *b = btn(m, 8, 34 + i * 42, 192, 36, -1);
     lv_obj_add_event_cb(b, choice_picked_, LV_EVENT_CLICKED, (void *) (intptr_t) i);
     lv_obj_t *l = label(b, name_list[i], 12, 0, 168, f.f12, 0xE4E7EC);
-    lv_obj_align(l, LV_ALIGN_LEFT_MID, 12, 0);
+    lv_obj_align(l, LV_ALIGN_LEFT_MID, sc(12), 0);
     if (i == chosen) {   // huidige keuze: lichte rand
       lv_obj_set_style_border_color(b, k(0xBFC2C9), 0);
       lv_obj_set_style_border_opa(b, 200, 0);
@@ -1474,18 +1764,18 @@ inline lv_obj_t *choice_list_(lv_obj_t *body, int y, const Fonts &f) {
   lv_obj_add_event_cb(b, choice_open_, LV_EVENT_CLICKED, nullptr);
   const char *name_s = SKIN_NAMES[theme().skin];
   lv_obj_t *l = label(b, name_s, 12, 0, 170, f.f12, TEXT);
-  lv_obj_align(l, LV_ALIGN_LEFT_MID, 12, 0);
+  lv_obj_align(l, LV_ALIGN_LEFT_MID, sc(12), 0);
   if (f.ico != nullptr) {
     lv_obj_t *p = lv_label_create(b);
     lv_label_set_text(p, "\U000F0140");   // mdi:chevron-down
     lv_obj_set_style_text_font(p, f.ico, 0);
     lv_obj_set_style_text_color(p, k(MUTED), 0);
-    lv_obj_align(p, LV_ALIGN_RIGHT_MID, -10, 0);
+    lv_obj_align(p, LV_ALIGN_RIGHT_MID, sc(-10), 0);
   }
   return b;
 }
 inline void btn_text_(lv_obj_t *b, const char *t, const Fonts &f) {
-  lv_obj_t *l = label(b, t, 0, 0, lv_obj_get_style_width(b, LV_PART_MAIN) - 10, f.f12, 0xE4E7EC);
+  lv_obj_t *l = label(b, t, 0, 0, dp(lv_obj_get_style_width(b, LV_PART_MAIN)) - 10, f.f12, 0xE4E7EC);
   lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_center(l);
 }
@@ -1520,7 +1810,7 @@ inline void build_all(lv_obj_t *home, const Fonts &f, const ImageSet &bl, JsonAr
   bottom_button(s.layer_obj, ICO_BACK, "Terug", 12, BACK, f);
   bottom_button(s.layer_obj, ICO_HOME, "Thuis", 124, HOME, f);
   s.tv = layer_make(home, bl);
-  tv_bouwen(s.tv, f, bl);
+  tv_build(s.tv, f, bl);
   s.light = layer_make(home, bl);
   lights_build(s.light, f);
   bottom_button(s.light, ICO_BACK, "Terug", 12, BACK, f);
@@ -1635,6 +1925,7 @@ inline void rebuild_all() {
     for (auto &t : keytest::st_().tile) t = nullptr;
     keytest::st_().info = nullptr;
     airco::ui() = airco::Ui();
+    s.big_clock = nullptr;
     s.topbar = s.clock = s.batt_txt = s.batt_fill = s.ha_dot = s.tv_status = s.home_body = s.lights_body = nullptr;
     for (Lamp &l : lamps()) l.lbl = nullptr;
     build_all(s.home, s.fonts, s.images, s.items ? s.items() : JsonArrayConst());
@@ -1665,10 +1956,11 @@ inline void status(int uu, int mm, int pct, bool charging, bool ha, int rssi = -
   char t[16];
   if (uu >= 0) snprintf(t, sizeof(t), "%02d:%02d", uu, mm); else snprintf(t, sizeof(t), "--:--");
   if (strcmp(lv_label_get_text(s.clock), t) != 0) lv_label_set_text(s.clock, t);
+  if (s.big_clock != nullptr && strcmp(lv_label_get_text(s.big_clock), t) != 0) lv_label_set_text(s.big_clock, t);
   if (pct >= 0) snprintf(t, sizeof(t), "%d%%", pct); else t[0] = 0;
   if (strcmp(lv_label_get_text(s.batt_txt), t) != 0) lv_label_set_text(s.batt_txt, t);
   const int w = pct < 0 ? 0 : 1 + (pct * 18 + 50) / 100;   // 19 px = vol
-  lv_obj_set_width(s.batt_fill, w);
+  lv_obj_set_width(s.batt_fill, sc(w));
   lv_obj_set_style_bg_color(s.batt_fill, k(charging ? 0xF2F3F5 : BATT_F), 0);
   lv_obj_set_style_bg_opa(s.ha_dot, ha ? 220 : 45, 0);
   const int n = rssi >= 0 ? 0 : rssi >= -55 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : 1;
@@ -1689,12 +1981,12 @@ inline void toast(const char *text_s, uint32_t ms = 1500) {
     lv_obj_add_flag(t, LV_OBJ_FLAG_USER_4);
     lv_obj_set_style_bg_opa(t, 240, 0);
     if (st().toast_font != nullptr) lv_obj_set_style_text_font(t, st().toast_font, 0);
-    lv_obj_set_style_radius(t, 14, 0);
+    lv_obj_set_style_radius(t, sc(14), 0);
     lv_obj_set_style_border_width(t, 1, 0);
     lv_obj_set_style_border_color(t, k(BORDER_P), 0);
-    lv_obj_set_style_pad_hor(t, 16, 0);
-    lv_obj_set_style_pad_ver(t, 8, 0);
-    lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 6);
+    lv_obj_set_style_pad_hor(t, sc(16), 0);
+    lv_obj_set_style_pad_ver(t, sc(8), 0);
+    lv_obj_align(t, LV_ALIGN_TOP_MID, 0, sc(6));
     lv_obj_remove_flag(t, LV_OBJ_FLAG_CLICKABLE);
   }
   lv_obj_set_style_bg_color(t, k(SURF), 0);   // skin kan intussen gewisseld zijn

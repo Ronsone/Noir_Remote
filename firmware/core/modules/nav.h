@@ -53,14 +53,14 @@ struct Nav : Module {
       lv_obj_remove_flag(ring, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_set_style_border_color(ring, lv_color_hex(0xE8EEF3), 0);
       lv_obj_set_style_border_opa(ring, 235, 0);
-      lv_obj_set_style_border_width(ring, 2, 0);
+      lv_obj_set_style_border_width(ring, noir::sc(2), 0);
     }
     lv_area_t a;
     lv_obj_get_coords(focus, &a);
-    const int pad = is_slider(focus) ? 9 : 0;   // a slider is thin: ring around it with room
+    const int pad = is_slider(focus) ? noir::sc(9) : 0;   // a slider is thin: ring around it with room
     lv_obj_set_pos(ring, a.x1 - pad, a.y1 - pad);
     lv_obj_set_size(ring, a.x2 - a.x1 + 1 + 2 * pad, a.y2 - a.y1 + 1 + 2 * pad);
-    lv_obj_set_style_radius(ring, is_slider(focus) ? 12 : lv_obj_get_style_radius(focus, LV_PART_MAIN), 0);
+    lv_obj_set_style_radius(ring, is_slider(focus) ? noir::sc(12) : lv_obj_get_style_radius(focus, LV_PART_MAIN), 0);
     lv_obj_remove_flag(ring, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(ring);
   }
