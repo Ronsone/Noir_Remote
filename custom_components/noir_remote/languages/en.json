@@ -136,7 +136,10 @@
   "Large": "Large",
   "columns": "columns",
   "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "This device shows the same tiles as your first remote. Change something and it gets its own home screen.",
-  "This device has no infrared – the TV goes through Home Assistant.": "This device has no infrared – the TV goes through Home Assistant."
+  "This device has no infrared – the TV goes through Home Assistant.": "This device has no infrared – the TV goes through Home Assistant.",
+  "Weather": "Weather",
+  "Calendar": "Calendar",
+  "Value (stock, crypto, sensor)": "Value (stock, crypto, sensor)"
  },
  "remote": {
   "Terug": "Back",

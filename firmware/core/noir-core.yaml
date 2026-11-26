@@ -191,4 +191,5 @@ lvgl:
         - button: {hidden: true}
         - slider: {hidden: true}
         - arc: {hidden: true}
+        - line: {hidden: true, points: [[0, 0], [1, 1]]}   # the value tile's history line
         - obj: {hidden: true, layout: {type: flex, flex_flow: row}, widgets: [label: {text: ""}]}

@@ -136,7 +136,10 @@
   "Large": "Grande",
   "columns": "columnas",
   "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "Este dispositivo muestra los mismos mosaicos que tu primer mando. Cambia algo y tendrá su propia pantalla de inicio.",
-  "This device has no infrared – the TV goes through Home Assistant.": "Este dispositivo no tiene infrarrojos – la tele va por Home Assistant."
+  "This device has no infrared – the TV goes through Home Assistant.": "Este dispositivo no tiene infrarrojos – la tele va por Home Assistant.",
+  "Weather": "Tiempo",
+  "Calendar": "Calendario",
+  "Value (stock, crypto, sensor)": "Valor (acción, cripto, sensor)"
  },
  "remote": {
   "Terug": "Atrás",
