@@ -574,6 +574,12 @@ class NoirBuilder extends HTMLElement {
     say(L("Checking…"));
     const devs = (this.s.devices?.length ? this.s.devices : [{ name: this.s.device }]).map((d) => ({ ...d, fe: this._fwEntity(d.name) })).filter((d) => d.fe);
     const ae = this._appEntity();
+    // HACS only looks at GitHub now and then: let it look now (as its own "Update information"); ignored without HACS
+    try {
+      const repos = await this._hass.callWS({ type: "hacs/repositories/list" });
+      const r = (repos || []).find((x) => String(x.full_name || "").toLowerCase() === "ronsone/noir_remote");
+      if (r) await this._hass.callWS({ type: "hacs/repository/refresh", repository: String(r.id) });
+    } catch (e) { /* older or newer HACS: the update entity still tells what it knows */ }
     // ask everything for its newest version first (each device fetches its manifest itself), then wait for the answers
     await Promise.all([...devs.map((d) => d.fe), ae].filter(Boolean).map((e) => this._hass.callService("homeassistant", "update_entity", { entity_id: e }).catch(() => {})));
     await new Promise((r) => setTimeout(r, 4000));
