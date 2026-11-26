@@ -15,7 +15,7 @@
 substitutions:
   device_name: noir-remote
   friendly_name: NOIR Remote
-  version: "0.7.0"
+  version: "0.7.1"
   manifest: https://ronsone.github.io/Noir_Remote/firmware/manifest.json
 
 packages:
