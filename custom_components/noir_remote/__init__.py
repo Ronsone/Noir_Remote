@@ -1,7 +1,8 @@
 """NOIR Remote - Home Assistant side of the NOIR firmware.
 
 - NOIR Builder (sidebar panel): build the screens of the remote
-- GET /api/noir_remote/config?k=<key>   configuration for the remote (JSON)
+- GET /api/noir_remote/config?k=<key>&d=<device>&b=<board>&w=&h=&c=<caps>   configuration for one NOIR device (JSON);
+  the device says who it is, so each one gets its own home screen (firmware before 0.7.6 sends only k)
 - GET /api/noir_remote/states?k=<key>&e=a,b   states of lamps / TV for the remote
 Removing the integration never deletes your screens: they stay in .storage/noir_remote until you delete that file.
 """
@@ -24,7 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from . import link
 from .autoadd import maybe_add
-from .const import AIRCO_IR, DOMAIN, LANG_PACKS, LANGUAGES, PROFILES, STORE_VERSION, UPDATE_URLS
+from .const import AIRCO_IR, BOARDS, CAPS, DOMAIN, LANG_PACKS, LANGUAGES, LEGACY_DEVICE, PROFILES, STORE_VERSION, UPDATE_URLS
 from .model import normalize, payload
 from .tv import guess_logo, logo_list
 
@@ -40,6 +41,7 @@ class NoirData:
         self.store = Store(hass, STORE_VERSION, DOMAIN)
         self.model: dict = {}
         self.version = ""
+        self.devices: dict[str, dict] = {}   # NOIR devices seen: {name: {board, w, h, caps, seen}}
 
     @property
     def key(self) -> str:
@@ -53,6 +55,42 @@ class NoirData:
         data = await self.store.async_load() or {}
         self.model = normalize(data.get("model"))
         self.version = data.get("version") or dt_util.now().isoformat(timespec="seconds")
+        self.devices = data.get("devices") or {}
+
+    async def _store(self) -> None:
+        await self.store.async_save({"model": self.model, "version": self.version, "devices": self.devices})
+
+    def info(self, device: str) -> dict:
+        return self.devices.get(device) or LEGACY_DEVICE
+
+    async def seen(self, device: str, board: str, w: int, h: int, caps: list[str]) -> None:
+        """A device fetched its screens and said who it is: remember it (for the Builder)."""
+        new = {"board": board, "w": w, "h": h, "caps": [c for c in CAPS if c in caps]}
+        old = {k: v for k, v in self.devices.get(device, {}).items() if k != "seen"}
+        self.devices[device] = {**new, "seen": dt_util.now().isoformat(timespec="seconds")}
+        if old != new:
+            _LOGGER.info("NOIR device %s: %s %sx%s %s", device, board, w, h, ",".join(new["caps"]))
+            await self._store()
+
+    def names(self) -> list[str]:
+        """All NOIR devices: the first remote, those seen, and those ESPHome offers our actions for."""
+        out = [self.device] + [d for d in self.devices if d != self.device]
+        for svc in self.hass.services.async_services().get("esphome", {}):
+            if svc.endswith("_noir_setup"):
+                dev = svc[: -len("_noir_setup")].replace("_", "-")
+                if all(d.replace("-", "_") != svc[: -len("_noir_setup")] for d in out):
+                    out.append(dev)
+        return out
+
+    async def tell_all(self, action: str, data: dict) -> None:
+        """ESPHome action noir_<action> on every NOIR device that has it."""
+        for dev in self.names():
+            svc = f"{dev.replace('-', '_')}_noir_{action}"
+            if self.hass.services.has_service("esphome", svc):
+                try:
+                    await self.hass.services.async_call("esphome", svc, data, blocking=False)
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.warning("Could not reach NOIR device %s (%s): %s", dev, action, err)
 
     def update_url(self) -> str:
         return UPDATE_URLS.get(self.model.get("channel", "stable"), "")
@@ -60,27 +98,16 @@ class NoirData:
     async def save(self, model: dict) -> None:
         old_url = self.update_url()
         self.model = normalize(model)
-        if self.update_url() != old_url:   # other update channel: tell the remote right away
-            svc = f"{self.device.replace('-', '_')}_noir_channel"
-            if self.hass.services.has_service("esphome", svc):
-                try:
-                    await self.hass.services.async_call("esphome", svc, {"url": self.update_url()}, blocking=False)
-                except Exception as err:  # noqa: BLE001
-                    _LOGGER.warning("Could not set the update channel on the remote: %s", err)
+        if self.update_url() != old_url:   # other update channel: tell every device right away
+            await self.tell_all("channel", {"url": self.update_url()})
         self.version = dt_util.now().isoformat(timespec="seconds")
-        await self.store.async_save({"model": self.model, "version": self.version})
-        # Tell the remote: ESPHome action noir_reload (esphome.<device>_noir_reload)
-        svc = f"{self.device.replace('-', '_')}_noir_reload"
-        if self.hass.services.has_service("esphome", svc):
-            try:
-                await self.hass.services.async_call("esphome", svc, {}, blocking=False)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("Could not tell the remote to reload: %s", err)
-        else:
-            _LOGGER.info("esphome.%s not found - the remote picks up the new screens within 15 min or after a restart", svc)
+        await self._store()
+        # every device fetches its new screens (ESPHome action noir_reload); offline ones do it within 15 min
+        await self.tell_all("reload", {})
 
-    def payload(self) -> dict:
-        p = payload(self.model, self.version)
+    def payload(self, device: str = "") -> dict:
+        device = device or self.device
+        p = payload(self.model, self.version, device, self.device, self.info(device))
         sp = self.hass.states.get(p["audio"]["speaker"]) if p["audio"]["speaker"] else None
         if sp is not None:   # name on the Audio screen: the speaker as Home Assistant calls it
             p["audio"]["name"] = str(sp.attributes.get("friendly_name") or "")[:24]
@@ -100,10 +127,17 @@ class ConfigView(HomeAssistantView):
         nd: NoirData | None = request.app["hass"].data.get(DOMAIN)
         if nd is None or not _key_ok(request, nd.key):
             return web.Response(status=403)
-        if request.remote:   # the key proves this remote has our secrets.yaml: add it to ESPHome by itself
+        q = request.query
+        device = q.get("d", "")[:40] or nd.device
+        if q.get("d"):   # firmware 0.7.6+: who is asking
+            try:
+                await nd.seen(device, q.get("b", "")[:20], int(q.get("w", 0)), int(q.get("h", 0)), q.get("c", "").split(","))
+            except ValueError:
+                pass
+        if request.remote:   # the key proves this device is ours: add it to ESPHome by itself
             hass = request.app["hass"]
-            hass.async_create_task(maybe_add(hass, nd.device, request.remote, nd.entry.data.get("api_key", "")))
-        return web.Response(body=json.dumps(nd.payload(), separators=(",", ":"), ensure_ascii=False).encode(),
+            hass.async_create_task(maybe_add(hass, device, request.remote, nd.entry.data.get("api_key", "")))
+        return web.Response(body=json.dumps(nd.payload(device), separators=(",", ":"), ensure_ascii=False).encode(),
                             content_type="application/json", headers={"Cache-Control": "no-store"})
 
 
@@ -151,7 +185,9 @@ class StatesView(HomeAssistantView):
 async def ws_get(hass, connection, msg):
     nd: NoirData = hass.data[DOMAIN]
     profiles = [{"key": k, "name": v["name"], "tested": v.get("tested", "")} for k, v in PROFILES.items()]
-    connection.send_result(msg["id"], {"model": nd.model, "version": nd.version, "device": nd.device,
+    devices = [{"name": d, "primary": d == nd.device, **nd.info(d)} for d in nd.names()]
+    connection.send_result(msg["id"], {"model": nd.model, "version": nd.version, "device": nd.device, "devices": devices,
+                                       "boards": {k: {"name": v["name"]} for k, v in BOARDS.items()},
                                        "profiles": profiles, "logos": logo_list(),
                                        "airco_ir": [{"key": k, "name": v} for k, v in AIRCO_IR.items()],
                                        "languages": [{"code": k, "name": v} for k, v in LANGUAGES.items()],
@@ -167,7 +203,7 @@ def ws_logo(hass, connection, msg):
 
 
 @websocket_api.websocket_command({vol.Required("type"): "noir_remote/test", vol.Required("profile"): str,
-                                  vol.Required("key"): str})
+                                  vol.Required("key"): str, vol.Optional("device"): str})
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_test(hass, connection, msg):
@@ -175,7 +211,7 @@ async def ws_test(hass, connection, msg):
     nd: NoirData = hass.data[DOMAIN]
     p = PROFILES.get(msg["profile"])
     code = (p or {}).get("codes", {}).get(msg["key"])
-    svc = f"{nd.device.replace('-', '_')}_noir_ir"
+    svc = f"{msg.get('device', nd.device).replace('-', '_')}_noir_ir"
     if p is None or code is None:
         connection.send_error(msg["id"], "unknown", "Unknown profile or key")
     elif not hass.services.has_service("esphome", svc):

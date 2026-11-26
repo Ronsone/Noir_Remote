@@ -6,15 +6,16 @@ import re
 from .const import KEYCODES, LOGOS, MAX_APPS, PROFILES
 
 
-def ir_block(profile: str) -> dict:
+def ir_block(profile: str, keycodes: dict | None = None) -> dict:
     """{"p": "nec", "a": 4, "on": .., "off": .., "power": .., "keys": {"14": 64, ...}} or {} (no infrared)."""
     p = PROFILES.get(profile)
     if not p:
         return {}
     c = p.get("codes", {})
+    keycodes = KEYCODES if keycodes is None else keycodes   # the board's key codes ({} = a device without keys)
     return {"p": p["protocol"], "a": int(p["address"]),
             "on": c.get("power_on", -1), "off": c.get("power_off", -1), "power": c.get("power", -1),
-            "keys": {str(KEYCODES[k]): v for k, v in c.items() if k in KEYCODES}}
+            "keys": {str(keycodes[k]): v for k, v in c.items() if k in keycodes}}
 
 
 def _words(text: str) -> str:
