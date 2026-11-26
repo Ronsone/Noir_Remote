@@ -117,7 +117,7 @@ Your screens and settings stay.
 - **the remote** downloads its new firmware itself and restarts;
 - **NOIR Remote in Home Assistant** (the Builder and the link to your remotes) is updated through HACS, then Home Assistant restarts and the Builder reloads by itself. No new version = no restart.
 
-**Stable** (default) gets released versions only. **Test** gets the newest build first – for testers; switch back to Stable any time.
+**Stable** (default) gets released versions only. **Test** gets the newest build first – for testers; its version ends in *beta* (e.g. `0.7.4-beta.31`), so you always see you are on a test build. Switch back to Stable any time.
 (You can still update the usual way too: *Settings → Updates* in Home Assistant.)
 
 **Coming from version 0.2** (with a `secrets.yaml`)? Install the new firmware once with the [installer](https://ronsone.github.io/Noir_Remote/) via USB and set up Wi-Fi (steps 2 and 3).
