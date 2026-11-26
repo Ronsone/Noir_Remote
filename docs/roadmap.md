@@ -11,6 +11,7 @@ What comes next, roughly in this order. Every item is a module or data, so the f
 
 ## Next
 - **Heating (Toon, Nest, tado …)** – the Airco card adapts to a thermostat: orange dial, 0.5° steps, room temperature, presets (Comfort / Home / Sleep / Away) instead of airco modes, burner on/off when the thermostat reports it. Waits for a real thermostat entity to test with.
+- **Smart heating: airco or gas, whichever is cheaper** – an airco is a heat pump (1 kWh power gives 3–4 kWh heat). NOIR Remote gets a sensor *Cheapest heat* (airco / gas, with the price per kWh of heat for both) from your electricity price (dynamic: Tibber, Frank, ENTSO-e …), gas price, the outdoor temperature and a COP curve you can tune; a switch *Smart heating* lets Home Assistant heat with the cheaper one (airco on heat and the thermostat lower, or the other way round). The climate card shows it: *Cheaper now: airco · 9 ct vs gas 15 ct*. Needs the thermostat and the aircos as climate entities (ESP32 modules), to test with real numbers.
 5. **Activities** – one tile runs several steps (TV on, source, speaker, lights, airco).
 6. **Status on Home** – Audio shows what is playing, Lights how many lamps are on (the Airco tile already shows temperature and mode).
 7. **Skins** – own colours and wallpaper, own logos for sources without one.
