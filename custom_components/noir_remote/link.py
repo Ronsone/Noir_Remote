@@ -3,8 +3,10 @@
 Since firmware 0.3 the remote holds no secrets. Every 20 seconds this module:
 1. confirms ESPHome's "New device found" for the remote (Home Assistant then gives it an encryption key itself);
 2. lets the remote run Home Assistant actions (ESPHome switches that off for new devices);
-3. tells the remote where Home Assistant is and the shared key (action noir_setup), once per Home Assistant start;
-4. tells the remote where its updates come from (action noir_channel: stable or test), once per start.
+3. tells the remote where Home Assistant is and the shared key (action noir_setup);
+4. tells the remote where its updates come from (action noir_channel: stable or test).
+3 and 4 go once per Home Assistant start, and again every time the remote comes back online (after a reset, a flash
+via USB or empty batteries it may have lost them). Sending the same again changes nothing on the remote.
 """
 from __future__ import annotations
 
@@ -12,6 +14,7 @@ from datetime import timedelta
 import logging
 
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
 
 from .autoadd import ESPHOME, allow_actions
@@ -28,6 +31,18 @@ def start(hass: HomeAssistant, device: str, host_of, key: str, update_url=lambda
     """Start the link loop. Returns the function that stops it."""
     sent: set[str] = set()
     busy: set[str] = set()
+    was_online = [False]
+
+    def online() -> bool:
+        """True while ESPHome has the remote connected (one of its entities is not unavailable)."""
+        devs, ents = dr.async_get(hass), er.async_get(hass)
+        for d in devs.devices.values():
+            if not any(_norm(device) in _norm(n) for n in (d.name, d.name_by_user) if n):
+                continue
+            for e in er.async_entries_for_device(ents, d.id):
+                if e.platform == ESPHOME and (st := hass.states.get(e.entity_id)) and st.state != "unavailable":
+                    return True
+        return False
 
     async def confirm(flow_id: str) -> None:
         try:
@@ -52,6 +67,11 @@ def start(hass: HomeAssistant, device: str, host_of, key: str, update_url=lambda
 
     @callback
     def tick(_now=None) -> None:
+        # back online (reset, flash, batteries)? then host, key and channel go again
+        now_online = online()
+        if now_online and not was_online[0]:
+            sent.difference_update({s for s in sent if s.endswith(("_noir_setup", "_noir_channel"))})
+        was_online[0] = now_online
         # 1. "New device found: noir-remote" -> confirm it
         for flow in hass.config_entries.flow.async_progress_by_handler(ESPHOME):
             name = (flow.get("context", {}).get("title_placeholders") or {}).get("name", "")
