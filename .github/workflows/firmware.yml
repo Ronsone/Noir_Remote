@@ -41,12 +41,18 @@ jobs:
           path: ~/.cache/esphome
           key: esphome-2026.11.1
       - name: Build
-        run: esphome compile firmware/noir-remote.yaml
+        # a release is the version in noir-remote.yaml; every other build is a beta with its own number (0.7.4-beta.31),
+        # so the remote shows it is on a test build and sees each new test build as an update
+        run: |
+          version=$(sed -n 's/^  version: "\(.*\)"/\1/p' firmware/noir-remote.yaml)
+          [ "${{ github.event_name }}" = "release" ] || version="$version-beta.${{ github.run_number }}"
+          echo "NOIR_VERSION=$version" >> "$GITHUB_ENV"
+          esphome -s version "$version" compile firmware/noir-remote.yaml
       - name: Site and manifests (stable + test)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(sed -n 's/^  version: "\(.*\)"/\1/p' firmware/noir-remote.yaml)
+          version="$NOIR_VERSION"
           if [ "${{ github.event_name }}" = "release" ] && [ "${{ github.event.release.tag_name }}" != "v$version" ]; then
             echo "::error::Release tag ${{ github.event.release.tag_name }} does not match firmware version v$version"; exit 1
           fi
