@@ -129,7 +129,10 @@
   "Update": "Mettre à jour",
   "Everything is up to date.": "Tout est à jour.",
   "Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.": "Mettre à jour vérifie les deux et ne fait que le nécessaire. Home Assistant ne redémarre que si NOIR Remote a reçu une nouvelle version.",
-  "Press Save after changing the channel.": "Appuyez sur Enregistrer après avoir changé de canal."
+  "Press Save after changing the channel.": "Appuyez sur Enregistrer après avoir changé de canal.",
+  "Updating the remote…": "Mise à jour de la télécommande…",
+  "The remote is up to date.": "La télécommande est à jour.",
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "La télécommande prend du temps – NOIR Remote lui-même n’a pas encore été mis à jour. Appuyez à nouveau sur Mettre à jour quand la télécommande est revenue."
  },
  "remote": {
   "Terug": "Retour",

@@ -129,7 +129,10 @@
   "Update": "Aktualisieren",
   "Everything is up to date.": "Alles ist aktuell.",
   "Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.": "Aktualisieren prüft beides und macht nur, was nötig ist. Home Assistant startet nur neu, wenn NOIR Remote selbst eine neue Version bekommen hat.",
-  "Press Save after changing the channel.": "Nach dem Wechseln auf Speichern drücken."
+  "Press Save after changing the channel.": "Nach dem Wechseln auf Speichern drücken.",
+  "Updating the remote…": "Fernbedienung wird aktualisiert…",
+  "The remote is up to date.": "Die Fernbedienung ist aktuell.",
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "Die Fernbedienung braucht lange – NOIR Remote selbst wurde noch nicht aktualisiert. Drücke erneut auf Aktualisieren, wenn die Fernbedienung wieder da ist."
  },
  "remote": {
   "Terug": "Zurück",
