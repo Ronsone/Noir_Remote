@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NOIR Remote",
+        "description": "Nombre de tu mando en ESPHome (device_name).",
+        "data": {
+          "device": "Nombre del mando"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NOIR Remote ya está configurado."
+    }
+  }
+}

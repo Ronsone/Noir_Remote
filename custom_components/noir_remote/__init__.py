@@ -24,7 +24,7 @@ from homeassistant.util import dt as dt_util
 
 from . import link
 from .autoadd import maybe_add
-from .const import AIRCO_IR, DOMAIN, PROFILES, STORE_VERSION
+from .const import AIRCO_IR, DOMAIN, LANG_PACKS, LANGUAGES, PROFILES, STORE_VERSION, UPDATE_URLS
 from .model import normalize, payload
 from .tv import guess_logo, logo_list
 
@@ -54,8 +54,19 @@ class NoirData:
         self.model = normalize(data.get("model"))
         self.version = data.get("version") or dt_util.now().isoformat(timespec="seconds")
 
+    def update_url(self) -> str:
+        return UPDATE_URLS.get(self.model.get("channel", "stable"), "")
+
     async def save(self, model: dict) -> None:
+        old_url = self.update_url()
         self.model = normalize(model)
+        if self.update_url() != old_url:   # other update channel: tell the remote right away
+            svc = f"{self.device.replace('-', '_')}_noir_channel"
+            if self.hass.services.has_service("esphome", svc):
+                try:
+                    await self.hass.services.async_call("esphome", svc, {"url": self.update_url()}, blocking=False)
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.warning("Could not set the update channel on the remote: %s", err)
         self.version = dt_util.now().isoformat(timespec="seconds")
         await self.store.async_save({"model": self.model, "version": self.version})
         # Tell the remote: ESPHome action noir_reload (esphome.<device>_noir_reload)
@@ -142,7 +153,9 @@ async def ws_get(hass, connection, msg):
     profiles = [{"key": k, "name": v["name"], "tested": v.get("tested", "")} for k, v in PROFILES.items()]
     connection.send_result(msg["id"], {"model": nd.model, "version": nd.version, "device": nd.device,
                                        "profiles": profiles, "logos": logo_list(),
-                                       "airco_ir": [{"key": k, "name": v} for k, v in AIRCO_IR.items()]})
+                                       "airco_ir": [{"key": k, "name": v} for k, v in AIRCO_IR.items()],
+                                       "languages": [{"code": k, "name": v} for k, v in LANGUAGES.items()],
+                                       "packs": LANG_PACKS})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "noir_remote/logo", vol.Required("names"): [str]})
@@ -203,7 +216,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC, os.path.join(os.path.dirname(__file__), "frontend"), cache_headers=False)])
     from .config_flow import ha_host
-    entry.async_on_unload(link.start(hass, nd.device, ha_host, nd.key))   # the remote links itself
+    entry.async_on_unload(link.start(hass, nd.device, ha_host, nd.key, lambda: hass.data[DOMAIN].update_url()))   # the remote links itself
     if PANEL not in hass.data.get("frontend_panels", {}):
         # cache-buster follows the file itself, so a new Builder always loads after an update
         js = os.path.join(os.path.dirname(__file__), "frontend", "noir-builder.js")

@@ -15,7 +15,7 @@
 substitutions:
   device_name: noir-remote
   friendly_name: NOIR Remote
-  version: "0.6.3"
+  version: "0.7.0"
   manifest: https://ronsone.github.io/Noir_Remote/firmware/manifest.json
 
 packages:
@@ -44,6 +44,7 @@ esphome:
       then:
         - lambda: |-
             noirapp::start(id(noir_host), id(noir_key));
+            if (!id(noir_update_url).empty()) id(firmware_update)->set_source_url(id(noir_update_url));   // test channel / local
             noirapp::build(id(page_home)->obj,
                             {id(f12)->get_lv_font(), id(f14)->get_lv_font(), id(f16)->get_lv_font(),
                              id(ico20)->get_lv_font(), id(f20)->get_lv_font(), id(f48)->get_lv_font()},
@@ -81,6 +82,15 @@ api:
             id(noir_host) = host;
             id(noir_key) = key;
             noirapp::setup(host, key);
+    # NOIR Remote: where updates come from (stable / test channel); "" = the default (stable). Kept in flash.
+    - action: noir_channel
+      variables: {url: string}
+      then:
+        - lambda: |-
+            if (url == id(noir_update_url)) return;
+            id(noir_update_url) = url;
+            id(firmware_update)->set_source_url(url.empty() ? std::string("${manifest}") : url);
+            id(firmware_update)->update();
     # Home Assistant (NOIR Builder) calls this after "Save": fetch the new configuration
     - action: noir_reload
       then:
@@ -94,6 +104,7 @@ api:
 globals:
   - {id: noir_host, type: std::string, restore_value: true, max_restore_data_length: 64, initial_value: '""'}
   - {id: noir_key, type: std::string, restore_value: true, max_restore_data_length: 64, initial_value: '""'}
+  - {id: noir_update_url, type: std::string, restore_value: true, max_restore_data_length: 120, initial_value: '""'}
 
 ota:
   - platform: http_request     # updates from GitHub (update: below)

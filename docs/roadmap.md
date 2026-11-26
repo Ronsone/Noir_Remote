@@ -3,13 +3,11 @@
 What comes next, roughly in this order. Every item is a module or data, so the firmware stays the same for everyone.
 
 ## Before sharing widely
-1. **Test channel for updates** – *Stable* for everyone (releases only), *Test* for testers. Chosen per remote in NOIR Builder.
-2. **Update locally via Home Assistant** – Home Assistant fetches the firmware once and serves it on your own network, so a remote needs no internet (VLANs). Also: install your own `.bin` from NOIR Builder.
-3. **More remotes** – every remote its own name (`noir-remote-a1b2c3`), all linked by themselves. Per remote: the same screens as another one, or its own. *Update all* in one go.
+1. **Update locally via Home Assistant** – Home Assistant fetches the firmware once and serves it on your own network, so a remote needs no internet (VLANs). Also: install your own `.bin` from NOIR Builder.
+2. **More remotes** – every remote its own name (`noir-remote-a1b2c3`), all linked by themselves. Per remote: the same screens as another one, or its own. *Update all* in one go.
 
 ## Languages
-4. **Language packs** – one file per language (`languages/xx.json`) with all texts of the remote and NOIR Builder; the remote gets its texts from Home Assistant, so a new language needs no new firmware. Missing texts fall back to English.
-   First: **Deutsch, Français, Español, Italiano** (their characters are already in the font).
+3. **Italiano** and more language packs – see [languages.md](languages.md). (Deutsch, Français and Español are in since 0.7.)
 
 ## Next
 5. **Activities** – one tile runs several steps (TV on, source, speaker, lights, airco).

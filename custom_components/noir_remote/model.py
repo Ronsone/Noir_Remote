@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 
-from .const import AIRCO_IR, DEFAULT_MODEL, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
+from .const import AIRCO_IR, DEFAULT_MODEL, LANG_PACKS, LANGUAGES, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
 from .tv import clean_apps, ir_block
 
 FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "netflix", "airco"}
@@ -30,6 +30,10 @@ def normalize(model: dict | None) -> dict:
     m["audio"] = {k: m["audio"].get(k, d) for k, d in DEFAULT_MODEL["audio"].items()}
     m["audio"]["sources"] = clean_sources(m["audio"]["sources"])
     m["airco"] = {"units": clean_units(m["airco"].get("units"))}
+    if m.get("lang") not in LANGUAGES:
+        m["lang"] = "nl"
+    if m.get("channel") not in ("stable", "test"):
+        m["channel"] = "stable"
     return m
 
 
@@ -89,7 +93,8 @@ def payload(model: dict, version: str) -> dict:
     return {
         "version": version,
         "mode": "eco" if m.get("mode") == "eco" else "full",
-        "lang": "en" if m.get("lang") == "en" else "nl",
+        "lang": m["lang"],
+        "texts": LANG_PACKS.get(m["lang"], {}).get("remote", {}),   # de/fr/es: the remote's texts (nl/en are built in)
         "home": home,
         "lights": lights,
         "scenes": scenes,
