@@ -17,7 +17,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esphome/components/api/custom_api_device.h"
-#ifdef USE_REMOTE_TRANSMITTER
+// A board with infrared declares the script ir_protocols (transmit_nec) next to its remote_transmitter; ESPHome then
+// defines USE_REMOTE_PROTOCOL_NEC. (It does not define USE_REMOTE_TRANSMITTER - that guard silently removed all
+// infrared in 0.7.3/0.7.4.) Boards without infrared build the IR calls as no-ops.
+#include "esphome/core/defines.h"
+#if defined(USE_REMOTE_PROTOCOL_NEC)
+#define NOIR_HAS_IR 1
 #include "esphome/components/remote_base/nec_protocol.h"
 #endif
 
@@ -90,10 +95,9 @@ inline void ha(const std::string &svc, const std::map<std::string, std::string> 
 // ---- infrared ------------------------------------------------------------------------------------------------
 // Brand-free: protocol + address come from the TV profile (NOIR Builder), the module only sends commands.
 // Supported now: "nec" (LG, many others). A new protocol = one more branch here + profiles that use it.
-// Boards without infrared (no remote_transmitter in their yaml) build these as no-ops.
 inline void ir_nec(int address, int cmd, int repeats = 0) {
   if (address < 0 || cmd < 0) return;
-#ifdef USE_REMOTE_TRANSMITTER
+#ifdef NOIR_HAS_IR
   auto call = ir_tx->transmit();
   esphome::remote_base::NECData d;
   d.address = (uint16_t) ((address & 0xFF) | ((~address & 0xFF) << 8));
@@ -107,7 +111,7 @@ inline void ir_nec(int address, int cmd, int repeats = 0) {
 // Raw timings (us, + = mark, - = space) at a carrier, e.g. airco frames that carry the whole state
 inline void ir_raw(const std::vector<int32_t> &timings, uint32_t carrier = 38000) {
   if (timings.empty()) return;
-#ifdef USE_REMOTE_TRANSMITTER
+#ifdef NOIR_HAS_IR
   auto call = ir_tx->transmit();
   call.get_data()->set_carrier_frequency(carrier);
   call.get_data()->set_data(timings);
