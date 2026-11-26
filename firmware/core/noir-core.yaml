@@ -4,7 +4,8 @@
 #
 # The core knows no boards. A board file (firmware/boards/*.yaml) brings the hardware and must provide:
 #   ids            main_display (display), main_touch (touchscreen), display_backlight (light)
-#   substitutions  noir_width, noir_height       screen size in pixels
+#   substitutions  noir_board                    short board name, e.g. rev6 (Home Assistant knows its keys by it)
+#                  noir_width, noir_height       screen size in pixels
 #                  noir_touch, noir_keys, noir_ir, noir_battery_sensor   capabilities: "true" / "false"
 #                  noir_battery                  C++ expression: battery % (int), -1 = unknown / none
 # A device file (firmware/noir-*.yaml) = substitutions (name, version, manifest) + this core + one board.
@@ -29,6 +30,8 @@ esphome:
     - priority: -100
       then:
         - lambda: |-
+            noirapp::device("${device_name}", "${noir_board}", ${noir_width}, ${noir_height},
+                            ${noir_touch}, ${noir_keys}, ${noir_ir}, ${noir_battery_sensor});
             noirapp::start(id(noir_host), id(noir_key));
             if (!id(noir_update_url).empty()) id(firmware_update)->set_source_url(id(noir_update_url));   // test channel / local
             noirapp::build(id(page_home)->obj,

@@ -5,6 +5,7 @@
 # =============================================================================
 
 substitutions:
+  noir_board: rev6
   noir_width: "240"
   noir_height: "320"
   noir_touch: "true"
