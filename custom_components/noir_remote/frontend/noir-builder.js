@@ -520,13 +520,14 @@ class NoirBuilder extends HTMLElement {
         .find((x) => String(x.full_name || "").toLowerCase() === "ronsone/noir_remote");
       let r = await find();
       if (r && refresh) { await this._hass.callWS({ type: "hacs/repository/refresh", repository: String(r.id) }); r = await find(); }
-      this.s.hacs = r ? { id: String(r.id), installed: String(r.installed_version || ""), available: String(r.available_version || "") } : null;
+      this.s.hacs = r ? { id: String(r.id), installed: String(r.installed_version || ""), available: String(r.available_version || ""),
+                          pending: !!r.pending_upgrade } : null;   // pending_upgrade: HACS's own decision (respects a chosen version)
     } catch (e) { this.s.hacs = this.s.hacs || null; }   // no HACS (or another version): the update entity tells what it knows
     return this.s.hacs;
   }
   _appInfo() {   // {installed, available, update} from HACS, else from its update entity
     const h = this.s.hacs;
-    if (h && h.installed) return { installed: h.installed, available: h.available, update: !!h.available && h.available !== h.installed };
+    if (h && h.installed) return { installed: h.installed, available: h.available, update: h.pending };
     const ae = this._appEntity(), as = ae && this._hass.states[ae], aa = as?.attributes || {};
     return as ? { installed: aa.installed_version || "?", available: aa.latest_version || "", update: as.state === "on" } : null;
   }
@@ -636,7 +637,7 @@ class NoirBuilder extends HTMLElement {
       if (install) {
         say(L("Downloading the update…"));
         const h = this.s.hacs;
-        if (h?.id && h.available) await this._hass.callWS({ type: "hacs/repository/download", repository: h.id, version: h.available });
+        if (h?.id) await this._hass.callWS({ type: "hacs/repository/download", repository: h.id });   // HACS picks the version, as its own Update
         else await this._hass.callService("update", "install", { entity_id: this._appEntity() });
       }
       const conn = this._hass.connection;
