@@ -217,6 +217,12 @@ extern "C" void noir_web_config(const char *json) {
   }
   rebuild_all();
 }
+// The page resized or showed the canvas again (Home Assistant opening the panel, the sidebar, a tab coming back): the
+// browser may have wiped the canvas, and LVGL only redraws what changes - so draw everything again.
+extern "C" void noir_web_redraw() {
+  lv_obj_invalidate(lv_screen_active());
+  lv_obj_invalidate(lv_layer_top());
+}
 // {"light.x": ["on", 128], "media_player.tv": ["on", -1, "HDMI 1"]} - lamps and the TV
 extern "C" void noir_web_states(const char *json) {
   JsonDocument d;

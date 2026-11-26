@@ -19,6 +19,7 @@ KEYCODES = {"up": 14, "down": 35, "left": 15, "right": 32, "ok": 34, "back": 13,
 BOARDS = {
     "rev6": {"name": "OpenRemote Rev6", "keys": KEYCODES},
     "phone": {"name": "Phone (NOIR panel)", "keys": {}},   # sidebar "NOIR" in Home Assistant, the same screens in the browser
+    "browser": {"name": "Browser (NOIR panel)", "keys": {}},   # the same panel on a PC or tablet
 }
 CAPS = ("touch", "keys", "ir", "battery")
 LEGACY_DEVICE = {"board": "rev6", "w": 240, "h": 320, "caps": list(CAPS)}   # firmware before 0.7.6 = a Rev6 remote
