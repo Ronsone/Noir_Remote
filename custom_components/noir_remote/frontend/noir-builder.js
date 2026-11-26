@@ -461,13 +461,15 @@ class NoirBuilder extends HTMLElement {
     const fe = this._fwEntity(), fs = fe && this._hass.states[fe], fa = fs?.attributes || {};
     const ae = this._appEntity(), as = ae && this._hass.states[ae], aa = as?.attributes || {};
     const dev = this._hass.devices?.[this._hass.entities?.[fe]?.device_id];
-    const fwNow = fa.installed_version || String(dev?.sw_version || "").split(" (")[0] || "?";
+    // what the remote runs: its device info (sent on every connection) beats the update entity, which only changes
+    // after a successful check
+    const fwNow = String(dev?.sw_version || "").split(" (")[0] || fa.installed_version || "?";
     const pct = typeof fa.update_percentage === "number" ? fa.update_percentage : (typeof fa.in_progress === "number" ? fa.in_progress : null);
     const fwBusy = fa.in_progress === true || pct != null;
     const fwLine = !fs ? `${L("No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.")}
         <a href="${INSTALL_URL}" target="_blank" rel="noopener">${L("Open the installer")}</a>`
       : fwBusy ? `${L("Updating…")}${pct != null ? " " + pct + "%" : ""} – ${L("keep the remote close to your Wi-Fi.")}`
-      : fs.state === "on" ? `${L("New version")}: <b>${esc(fa.latest_version || "")}</b> (${L("now")} ${esc(fwNow)})`
+      : fs.state === "on" && fa.latest_version !== fwNow ? `${L("New version")}: <b>${esc(fa.latest_version || "")}</b> (${L("now")} ${esc(fwNow)})`
       : `${fa.latest_version ? L("Up to date") : L("not checked yet")} · ${esc(fwNow)}`;
     const appLine = !as ? L("Not installed through HACS – update it the way you installed it.")
       : as.state === "on" ? `${L("New version")}: <b>${esc(aa.latest_version || "")}</b> (${L("now")} ${esc(aa.installed_version || "?")})`
