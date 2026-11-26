@@ -109,7 +109,8 @@ class NoirBuilder extends HTMLElement {
       this.s.model = r.model; this.s.device = r.device;
       this.s.devices = r.devices?.length ? r.devices : [{ name: r.device, primary: true, board: "rev6", w: 240, h: 320, caps: ["touch", "keys", "ir", "battery"] }];
       this.s.boards = r.boards || {};
-      if (!this.s.devices.some((d) => d.name === this.s.dev)) this.s.dev = this.s.devices[0].name; this.s.profiles = r.profiles || []; this.s.aircoIr = r.airco_ir || []; this.s.languages = r.languages || []; PACKS = r.packs || {}; this.s.logos = r.logos || [];
+      if (!this.s.devices.some((d) => d.name === this.s.dev)) this.s.dev = this.s.devices[0].name;
+      this._hacs(false).then(() => this._render()); this.s.profiles = r.profiles || []; this.s.aircoIr = r.airco_ir || []; this.s.languages = r.languages || []; PACKS = r.packs || {}; this.s.logos = r.logos || [];
     } catch (e) { this.s.msg = `Could not load: ${e.message || e}`; }
     this._render();
   }
@@ -512,6 +513,23 @@ class NoirBuilder extends HTMLElement {
     return Object.keys(st).find((e) => e.startsWith("update.") && ours(e)) || "";
   }
   // NOIR Remote itself (this integration + the Builder): HACS keeps an update entity for it (platform hacs)
+  // NOIR Remote in HACS: what HACS itself shows on its page (installed / available) - the update entity can lag behind
+  async _hacs(refresh) {
+    try {
+      const find = async () => ((await this._hass.callWS({ type: "hacs/repositories/list" })) || [])
+        .find((x) => String(x.full_name || "").toLowerCase() === "ronsone/noir_remote");
+      let r = await find();
+      if (r && refresh) { await this._hass.callWS({ type: "hacs/repository/refresh", repository: String(r.id) }); r = await find(); }
+      this.s.hacs = r ? { id: String(r.id), installed: String(r.installed_version || ""), available: String(r.available_version || "") } : null;
+    } catch (e) { this.s.hacs = this.s.hacs || null; }   // no HACS (or another version): the update entity tells what it knows
+    return this.s.hacs;
+  }
+  _appInfo() {   // {installed, available, update} from HACS, else from its update entity
+    const h = this.s.hacs;
+    if (h && h.installed) return { installed: h.installed, available: h.available, update: !!h.available && h.available !== h.installed };
+    const ae = this._appEntity(), as = ae && this._hass.states[ae], aa = as?.attributes || {};
+    return as ? { installed: aa.installed_version || "?", available: aa.latest_version || "", update: as.state === "on" } : null;
+  }
   _appEntity() {
     // HACS names it after the repository ("NOIR Remote"); the remote's own firmware update is ESPHome's - skip that one
     const h = this._hass || {}, st = h.states || {}, ents = h.entities || {}, fw = this._fwEntity();
@@ -526,12 +544,12 @@ class NoirBuilder extends HTMLElement {
   // One card, one button: check both, then update what needs it - the remote's firmware (it downloads and restarts by
   // itself) and NOIR Remote in Home Assistant (HACS, then a restart and this page reloads). Nothing new = nothing happens.
   _updates() {
-    const ae = this._appEntity(), as = ae && this._hass.states[ae], aa = as?.attributes || {};
+    const app = this._appInfo();
     const devs = this.s.devices?.length ? this.s.devices : [{ name: this.s.device, caps: ["battery"] }];
     const fwLines = devs.map((d) => this._fwLine(d)).join("");
-    const appLine = !as ? L("Not installed through HACS – update it the way you installed it.")
-      : as.state === "on" ? `${L("New version")}: <b>${esc(aa.latest_version || "")}</b> (${L("now")} ${esc(aa.installed_version || "?")})`
-      : `${L("Up to date")} · ${esc(aa.installed_version || "?")}`;
+    const appLine = !app ? L("Not installed through HACS – update it the way you installed it.")
+      : app.update ? `${L("New version")}: <b>${esc(app.available)}</b> (${L("now")} ${esc(app.installed)})`
+      : `${L("Up to date")} · ${esc(app.installed)}`;
     const ch = this.s.model.channel === "test" ? "test" : "stable";
     const busy = !!this.s.appBusy || devs.some((d) => this._fwBusy(this._fwEntity(d.name)));
     return `<div class="card"><h3>${L("Updates")}</h3>${fwLines}
@@ -574,17 +592,13 @@ class NoirBuilder extends HTMLElement {
     say(L("Checking…"));
     const devs = (this.s.devices?.length ? this.s.devices : [{ name: this.s.device }]).map((d) => ({ ...d, fe: this._fwEntity(d.name) })).filter((d) => d.fe);
     const ae = this._appEntity();
-    // HACS only looks at GitHub now and then: let it look now (as its own "Update information"); ignored without HACS
-    try {
-      const repos = await this._hass.callWS({ type: "hacs/repositories/list" });
-      const r = (repos || []).find((x) => String(x.full_name || "").toLowerCase() === "ronsone/noir_remote");
-      if (r) await this._hass.callWS({ type: "hacs/repository/refresh", repository: String(r.id) });
-    } catch (e) { /* older or newer HACS: the update entity still tells what it knows */ }
+    // HACS only looks at GitHub now and then: let it look now (as its own "Update information")
+    await this._hacs(true);
     // ask everything for its newest version first (each device fetches its manifest itself), then wait for the answers
     await Promise.all([...devs.map((d) => d.fe), ae].filter(Boolean).map((e) => this._hass.callService("homeassistant", "update_entity", { entity_id: e }).catch(() => {})));
     await new Promise((r) => setTimeout(r, 4000));
     const todo = devs.filter((d) => st(d.fe)?.state === "on" && st(d.fe)?.attributes?.latest_version !== this._fwNow(d.fe));
-    const app = st(ae)?.state === "on";
+    const app = !!this._appInfo()?.update;
     if (!todo.length && !app) { this.s.appBusy = false; say(L("Everything is up to date.")); return; }
     // the devices one after the other, each until it runs its new firmware: a Home Assistant restart in the middle of a
     // download leaves a device hanging
@@ -621,7 +635,9 @@ class NoirBuilder extends HTMLElement {
     try {
       if (install) {
         say(L("Downloading the update…"));
-        await this._hass.callService("update", "install", { entity_id: this._appEntity() });
+        const h = this.s.hacs;
+        if (h?.id && h.available) await this._hass.callWS({ type: "hacs/repository/download", repository: h.id, version: h.available });
+        else await this._hass.callService("update", "install", { entity_id: this._appEntity() });
       }
       const conn = this._hass.connection;
       let down = false;
