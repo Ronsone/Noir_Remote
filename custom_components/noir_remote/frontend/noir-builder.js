@@ -445,9 +445,15 @@ class NoirBuilder extends HTMLElement {
   }
   // NOIR Remote itself (this integration + the Builder): HACS keeps an update entity for it (platform hacs)
   _appEntity() {
-    const h = this._hass || {}, st = h.states || {}, ents = h.entities || {};
-    return Object.keys(st).find((e) => e.startsWith("update.") && ents[e]?.platform === "hacs"
-      && /noir.?remote/i.test(e + " " + (st[e].attributes?.title || ""))) || "";
+    // HACS names it after the repository ("NOIR Remote"); the remote's own firmware update is ESPHome's - skip that one
+    const h = this._hass || {}, st = h.states || {}, ents = h.entities || {}, fw = this._fwEntity();
+    const ours = (e) => {
+      const a = st[e].attributes || {}, p = ents[e]?.platform;
+      if (e === fw || p === "esphome") return false;
+      return p === "hacs" ? /noir.?remote/i.test(e + " " + (a.title || "") + " " + (a.friendly_name || ""))
+        : /noir.?remote/i.test(String(a.release_url || "")) || /^noir.?remote$/i.test(String(a.title || a.friendly_name || "").trim());
+    };
+    return Object.keys(st).find((e) => e.startsWith("update.") && ours(e)) || "";
   }
   // One card, one button: check both, then update what needs it - the remote's firmware (it downloads and restarts by
   // itself) and NOIR Remote in Home Assistant (HACS, then a restart and this page reloads). Nothing new = nothing happens.
