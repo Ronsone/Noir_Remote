@@ -28,6 +28,8 @@ add_executable(noir-simulator src/main.cpp ${FONT_SRC})
 # noir-ui.h comes from ../firmware/core: the exact same screen code as the firmware
 target_include_directories(noir-simulator PRIVATE src inc assets ${CMAKE_CURRENT_SOURCE_DIR}/../firmware/core)
 target_link_libraries(noir-simulator PRIVATE lvgl)
+# bigger screens (--size) render Inter and the icons from the firmware's TTF files at their own size
+target_compile_definitions(noir-simulator PRIVATE NOIR_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../firmware/fonts")
 if(MINGW)
   target_link_libraries(noir-simulator PRIVATE mingw32)
   target_link_options(noir-simulator PRIVATE -mconsole)

@@ -10,7 +10,7 @@ namespace noirapp {
 struct Airco : Module {
   struct Link {                        // per unit: how it is driven + what was sent last (HA)
     std::string entity, ir;
-    std::string hvac[noir::airco::MODI];   // HA hvac_mode name per mode index ("" = not offered)
+    std::string hvac[noir::airco::MODES];   // HA hvac_mode name per mode index ("" = not offered)
     std::string sent_fan, sent_swing;
     uint32_t changed{0};               // last change on the remote (ms) - poll waits a moment before overwriting
   };
@@ -18,7 +18,7 @@ struct Airco : Module {
   std::string sig;
 
   const char *name() const override { return "airco"; }
-  static bool on_screen() { return noir::st().seite == noir::S_AIRCO; }
+  static bool on_screen() { return noir::st().cur_screen == noir::S_AIRCO; }
 
   static void nvs_put(int i, int v) {
     nvs_handle_t h;
@@ -50,7 +50,7 @@ struct Airco : Module {
       if ((int) d.units.size() >= ac::MAX_UNITS) break;
       ac::Unit n;
       Link l;
-      n.naam = o["name"] | "";
+      n.name_s = o["name"] | "";
       l.entity = o["entity"] | "";
       l.ir = o["ir"] | "";
       if (l.entity.empty() && l.ir.empty()) continue;
@@ -58,9 +58,9 @@ struct Airco : Module {
         n.fans = ac::mhi::fans();
         n.swings = ac::mhi::swings();
         n.tmin = 18; n.tmax = 30;
-        ac::mhi::uitpakken(n, nvs_get((int) d.units.size()));
+        ac::mhi::unpack(n, nvs_get((int) d.units.size()));
       } else {
-        n.bekend = false;                        // until the first poll
+        n.known = false;                        // until the first poll
         n.fans = {}; n.swings = {};
       }
       d.units.push_back(n);
@@ -68,11 +68,11 @@ struct Airco : Module {
     }
     if (d.units.empty()) d.units.push_back(ac::Unit{});
     d.cur = 0;
-    ac::wijziging() = [this](int i) { send(i); };
-    poll_set("airco", {[this]() { return (on_screen() || noir::st().seite == noir::S_THUIS) && screen_on() && !entities().empty(); },   // also for the tile on Home
+    ac::on_change() = [this](int i) { send(i); };
+    poll_set("airco", {[this]() { return (on_screen() || noir::st().cur_screen == noir::S_HOME) && screen_on() && !entities().empty(); },   // also for the tile on Home
                        [this]() { return entities(); },
                        [this](JsonDocument &doc) { read(doc); }});
-    ac::tonen();
+    ac::show();
   }
 
   std::string entities() const {
@@ -96,7 +96,7 @@ struct Airco : Module {
   // /states row of a climate: [state, -1, -1, unit, target, current, fan_mode, swing_mode, min, max, hvac_modes, fan_modes, swing_modes]
   void read(JsonDocument &doc) {
     namespace ac = noir::airco;
-    static const char *const NAMES[ac::MODI][2] = {{"auto", "heat_cool"}, {"cool", ""}, {"dry", ""}, {"fan_only", ""}, {"heat", ""}};
+    static const char *const NAMES[ac::MODES][2] = {{"auto", "heat_cool"}, {"cool", ""}, {"dry", ""}, {"fan_only", ""}, {"heat", ""}};
     for (size_t i = 0; i < links.size() && i < ac::d().units.size(); i++) {
       Link &l = links[i];
       if (l.entity.empty()) continue;
@@ -105,18 +105,18 @@ struct Airco : Module {
       if (millis() - l.changed < 4000) continue;   // you are just changing it: don't jump back
       ac::Unit &n = ac::d().units[i];
       const std::string state = v[0] | "";
-      n.bekend = !state.empty() && state != "unavailable" && state != "unknown";
-      n.aan = n.bekend && state != "off";
+      n.known = !state.empty() && state != "unavailable" && state != "unknown";
+      n.is_on = n.known && state != "off";
       const std::vector<std::string> modes = split(v[10] | "");
-      for (int m = 0; m < ac::MODI; m++) {
+      for (int m = 0; m < ac::MODES; m++) {
         l.hvac[m] = "";
         for (const char *nm : NAMES[m]) if (*nm && std::find(modes.begin(), modes.end(), nm) != modes.end()) { l.hvac[m] = nm; break; }
-        n.modi[m] = !l.hvac[m].empty() || modes.empty();
-        if (state == NAMES[m][0] || (*NAMES[m][1] && state == NAMES[m][1])) n.modus = m;
+        n.mode_list[m] = !l.hvac[m].empty() || modes.empty();
+        if (state == NAMES[m][0] || (*NAMES[m][1] && state == NAMES[m][1])) n.mode = m;
       }
       const float target = v[4] | -1000.0f, current = v[5] | -1000.0f;
       if (target > -999) n.temp = (int) lroundf(target);
-      n.kamer = current > -999 ? (int) lroundf(current) : -1000;
+      n.room = current > -999 ? (int) lroundf(current) : -1000;
       const float lo = v[8] | 16.0f, hi = v[9] | 30.0f;
       n.tmin = (int) ceilf(lo); n.tmax = (int) floorf(hi);
       n.fans = split(v[11] | "");
@@ -126,7 +126,7 @@ struct Airco : Module {
       for (size_t k = 0; k < n.swings.size(); k++) if (n.swings[k] == sm) n.swing = k;
       l.sent_fan = fm; l.sent_swing = sm;
     }
-    ac::tonen();
+    ac::show();
   }
 
   void send(int i) {
@@ -137,13 +137,13 @@ struct Airco : Module {
     l.changed = millis();
     if (!l.ir.empty()) {                         // infrared: one frame with the whole state
       if (l.ir == "mhi") ir_raw(ac::mhi::timings(n));
-      nvs_put(i, ac::mhi::inpakken(n));
+      nvs_put(i, ac::mhi::pack(n));
       return;
     }
     if (l.entity.empty()) return;
     const std::map<std::string, std::string> e{{"entity_id", l.entity}};
-    if (!n.aan) { ha("climate.turn_off", e); return; }
-    if (!l.hvac[n.modus].empty()) ha("climate.set_hvac_mode", {{"entity_id", l.entity}, {"hvac_mode", l.hvac[n.modus]}});
+    if (!n.is_on) { ha("climate.turn_off", e); return; }
+    if (!l.hvac[n.mode].empty()) ha("climate.set_hvac_mode", {{"entity_id", l.entity}, {"hvac_mode", l.hvac[n.mode]}});
     ha("climate.set_temperature", {{"entity_id", l.entity}, {"temperature", std::to_string(n.temp)}});
     if (n.fan < (int) n.fans.size() && n.fans[n.fan] != l.sent_fan) {
       l.sent_fan = n.fans[n.fan];
@@ -159,17 +159,17 @@ struct Airco : Module {
     namespace ac = noir::airco;
     if (a == noir::AIRCO) {
       if (links.empty()) { noir::toast("Choose your airco in NOIR Builder > Airco"); return true; }
-      noir::zeigen_seite(noir::S_AIRCO);
+      noir::show_screen(noir::S_AIRCO);
       return true;
     }
-    if (a >= noir::AIRCO_MODUS && a < noir::AIRCO_MODUS + ac::MODI) { ac::modus(a - noir::AIRCO_MODUS); return true; }
+    if (a >= noir::AIRCO_MODE && a < noir::AIRCO_MODE + ac::MODES) { ac::mode(a - noir::AIRCO_MODE); return true; }
     switch (a) {
-      case noir::AIRCO_AANUIT: ac::aanuit(); return true;
+      case noir::AIRCO_POWER: ac::toggle_power(); return true;
       case noir::AIRCO_MIN: ac::temp_stap(-1); return true;
       case noir::AIRCO_PLUS: ac::temp_stap(1); return true;
-      case noir::AIRCO_FAN: ac::fan_volgende(); return true;
-      case noir::AIRCO_SWING: ac::swing_volgende(); return true;
-      case noir::AIRCO_UNIT: ac::unit_volgende(); return true;
+      case noir::AIRCO_FAN: ac::fan_next(); return true;
+      case noir::AIRCO_SWING: ac::swing_next(); return true;
+      case noir::AIRCO_UNIT: ac::unit_next(); return true;
       default: return false;
     }
   }
@@ -181,12 +181,12 @@ struct Airco : Module {
     if (!pressed) return true;
     if (k == 14) ac::temp_stap(1);
     else if (k == 35) ac::temp_stap(-1);
-    else if (k == 34) ac::aanuit();
+    else if (k == 34) ac::toggle_power();
     else {
       const ac::Unit &n = ac::u();
-      for (int step = 1; step < ac::MODI; step++) {
-        const int m = (n.modus + (k == 32 ? step : ac::MODI - step)) % ac::MODI;
-        if (n.modi[m]) { ac::modus(m); break; }
+      for (int step = 1; step < ac::MODES; step++) {
+        const int m = (n.mode + (k == 32 ? step : ac::MODES - step)) % ac::MODES;
+        if (n.mode_list[m]) { ac::mode(m); break; }
       }
     }
     return true;
@@ -195,10 +195,10 @@ struct Airco : Module {
   void all_off() override {
     namespace ac = noir::airco;
     for (size_t i = 0; i < links.size() && i < ac::d().units.size(); i++) {
-      ac::d().units[i].aan = false;
+      ac::d().units[i].is_on = false;
       send((int) i);
     }
-    ac::tonen();
+    ac::show();
   }
 };
 

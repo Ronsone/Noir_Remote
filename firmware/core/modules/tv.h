@@ -22,8 +22,8 @@ struct Tv : Module {
   static bool arrow(int k) { return k == 14 || k == 35 || k == 15 || k == 32; }
   static bool repeats(int k) { return arrow(k) || k == 33 || k == 43; }   // hold = repeat (arrows, volume)
   static bool nav(int k) { return arrow(k) || k == 34 || k == 31 || k == 13 || k == 3; }   // remote navigation elsewhere
-  static bool on_screen() { return noir::st().seite == noir::S_TV; }
-  static const std::string &entity() { return noir::tv::entiteit(); }
+  static bool on_screen() { return noir::st().cur_screen == noir::S_TV; }
+  static const std::string &entity() { return noir::tv::entity_ref(); }
   int code(int k) const { auto it = keys.find(k); return it == keys.end() ? -1 : it->second; }
 
   void power_on() {
@@ -58,10 +58,10 @@ struct Tv : Module {
 
   void configure(JsonObjectConst cfg) override {
     JsonObjectConst tv = cfg["tv"];
-    noir::tv::entiteit() = tv["entity"] | "";
+    noir::tv::entity_ref() = tv["entity"] | "";
     speaker = tv["speaker"] | (tv["kef"] | "");          // "kef" = name before 0.2
     speaker_source = tv["speaker_source"] | "";
-    if (noir::audio::d().kef.empty()) noir::kef::entiteit() = speaker;   // volume keys -> the speaker (Audio's speaker wins)
+    if (noir::audio::d().speaker_e.empty()) noir::speaker_e::entity_ref() = speaker;   // volume keys -> the speaker (Audio's speaker wins)
     JsonObjectConst r = tv["ir"];
     ir = Ir{r["p"] | "", r["a"] | -1};
     on = r["on"] | -1; off = r["off"] | -1; power = r["power"] | -1;
@@ -78,7 +78,7 @@ struct Tv : Module {
     if (sig != apps_sig) {
       apps_sig = sig;
       noir::tv_apps() = apps;
-      if (app().built) noir::alles_herbouwen();
+      if (app().built) noir::rebuild_all();
     }
     // TV state in the same poll as the lamps (while the display is on)
     poll_set("tv", {[]() { return !entity().empty() && screen_on(); },
@@ -90,17 +90,17 @@ struct Tv : Module {
   }
   bool action(int a) override {
     if (a >= noir::TV_APP && a < noir::TV_APP + 8) { app_tile(a - noir::TV_APP); return true; }
-    if (a == noir::TV) { noir::zeigen_seite(noir::S_TV); if (!noir::tv_aan()) power_on(); return true; }
-    if (a == noir::TV_AANUIT) {
+    if (a == noir::TV) { noir::show_screen(noir::S_TV); if (!noir::tv_aan()) power_on(); return true; }
+    if (a == noir::TV_POWER) {
       if (noir::tv_aan()) { power_off(); noir::toast("TV uit"); } else { power_on(); noir::toast("TV aan"); }
       return true;
     }
     return false;
   }
   bool key(int k, bool pressed) override {
-    if (noir::kef::taste(k, pressed)) return true;   // volume / mute -> speaker (with repeat)
+    if (noir::speaker_e::key_in(k, pressed)) return true;   // volume / mute -> speaker (with repeat)
     if (!pressed) { held = 0; return false; }
-    if (k == 102) { action(noir::TV_AANUIT); return true; }   // power key
+    if (k == 102) { action(noir::TV_POWER); return true; }   // power key
     const int c = code(k);
     if (c < 0) return false;
     if (!on_screen() && nav(k)) return false;   // outside the TV screen these navigate the remote
@@ -109,7 +109,7 @@ struct Tv : Module {
     return true;
   }
   void tick(uint32_t now) override {
-    noir::kef::herhaal_tik(now);
+    noir::speaker_e::repeat_tick(now);
     if (held != 0 && (on_screen() || !nav(held)) && (int32_t) (now - held_next) >= 0) {   // hold = repeat
       ir.send(code(held));
       held_next = now + 160;

@@ -53,14 +53,14 @@ struct Nav : Module {
       lv_obj_remove_flag(ring, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_set_style_border_color(ring, lv_color_hex(0xE8EEF3), 0);
       lv_obj_set_style_border_opa(ring, 235, 0);
-      lv_obj_set_style_border_width(ring, 2, 0);
+      lv_obj_set_style_border_width(ring, noir::sc(2), 0);
     }
     lv_area_t a;
     lv_obj_get_coords(focus, &a);
-    const int pad = is_slider(focus) ? 9 : 0;   // a slider is thin: ring around it with room
+    const int pad = is_slider(focus) ? noir::sc(9) : 0;   // a slider is thin: ring around it with room
     lv_obj_set_pos(ring, a.x1 - pad, a.y1 - pad);
     lv_obj_set_size(ring, a.x2 - a.x1 + 1 + 2 * pad, a.y2 - a.y1 + 1 + 2 * pad);
-    lv_obj_set_style_radius(ring, is_slider(focus) ? 12 : lv_obj_get_style_radius(focus, LV_PART_MAIN), 0);
+    lv_obj_set_style_radius(ring, is_slider(focus) ? noir::sc(12) : lv_obj_get_style_radius(focus, LV_PART_MAIN), 0);
     lv_obj_remove_flag(ring, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(ring);
   }
@@ -73,9 +73,9 @@ struct Nav : Module {
 
   // Where the buttons are: an open pop-up (skin list, lamp dimmer) on the top layer, else the screen itself
   lv_obj_t *root() const {
-    if (noir::keuze().over != nullptr && lv_obj_is_valid(noir::keuze().over)) return noir::keuze().over;
+    if (noir::choice().over != nullptr && lv_obj_is_valid(noir::choice().over)) return noir::choice().over;
     if (noir::dimmer().over != nullptr && lv_obj_is_valid(noir::dimmer().over)) return noir::dimmer().over;
-    return noir::laag_van(noir::st().seite);
+    return noir::layer_of(noir::st().cur_screen);
   }
   void move(int k) {
     lv_obj_t *layer = root();
@@ -131,7 +131,7 @@ struct Nav : Module {
 
   bool key(int k, bool pressed) override {
     if (!is_dir(k) && k != 34) return false;
-    if (noir::st().seite != page) { clear(); page = noir::st().seite; }
+    if (noir::st().cur_screen != page) { clear(); page = noir::st().cur_screen; }
     last = millis();
     if (k == 34) {   // OK: short = tap, held 0.5 s = long press
       if (pressed) {
@@ -157,7 +157,7 @@ struct Nav : Module {
         lv_obj_send_event(focus, LV_EVENT_RELEASED, nullptr);
       }
     }
-    if (focus != nullptr && (noir::st().seite != page || now - last > 8000 || !noir::st().zichtbaar)) { clear(); return; }
+    if (focus != nullptr && (noir::st().cur_screen != page || now - last > 8000 || !noir::st().visible)) { clear(); return; }
     if (focus != nullptr) place_ring();   // follow scrolling and rebuilt screens
   }
 };

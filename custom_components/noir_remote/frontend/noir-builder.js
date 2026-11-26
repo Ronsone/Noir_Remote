@@ -17,7 +17,7 @@ const ICONS = ["noir:tv", "noir:audio", "noir:licht", "noir:scenes", "mdi:power"
   "mdi:door", "mdi:lock", "mdi:home", "mdi:cog", "mdi:heart", "mdi:star", "mdi:leaf", "mdi:flash", "mdi:speaker"];
 const INSTALL_URL = "https://ronsone.github.io/Noir_Remote/";
 const LOGO_URL = (k) => `/noir_remote_static/logos/${k}.png`;
-const NL = {"Home":"Home", "Lights":"Verlichting", "Scenes":"Scènes", "TV":"TV", "Remote":"Remote", "TV screen":"TV", "Lights screen":"Verlichting", "Scenes screen":"Scènes", "All off":"Alles uit", "TV on/off":"TV aan/uit", "Remote settings":"Instellingen remote", "Toggle an entity":"Iets aan/uit zetten", "Run a scene or script":"Scène of script starten", "Tiles on your home screen":"Tegels op je startscherm", "Add tile":"Tegel toevoegen", "Add light":"Lamp toevoegen", "Add scene":"Scène toevoegen", "Name":"Naam", "Opens":"Opent", "Entity":"Entiteit", "Size":"Maat", "Half":"Half", "Full":"Vol", "Dimmable":"Dimbaar", "On/off":"Aan/uit", "Scene or script":"Scène of script", "Also used by":"Ook gebruikt door", "Mode":"Modus", "Language":"Taal", "Always ready":"Altijd klaar", "Longer battery":"Langer op de accu", "First-time setup":"Eerste keer instellen", "Save":"Opslaan", "Unsaved changes":"Niet opgeslagen", "Saved – the remote updates in a few seconds.":"Opgeslagen – de remote past zich zo aan.", "What you see left is what your remote shows.":"Links zie je wat je remote laat zien.", "Tap a tile to edit it":"Tik op een tegel om hem aan te passen", "Tap = on/off · hold = dim":"Tikken = aan/uit · vasthouden = dimmen", "New tile":"Nieuwe tegel", "Up":"Omhoog", "Down":"Omlaag", "Remove":"Verwijderen", "Icon":"Icoon", "Settings":"Instellingen", "Loading…":"Laden…", "Your TV in Home Assistant":"Je tv in Home Assistant", "Switching on and keys":"Aanzetten en toetsen", "No infrared":"Geen infrarood", "Everything via Home Assistant":"Alles via Home Assistant", "Test":"Testen", "On":"Aan", "Off":"Uit", "Sent – did your TV react?":"Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.":"Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)":"Speaker (optioneel)", "Switches on with the TV, gets the volume keys.":"Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote":"Bronnen op je remote", "Tap one below to add it. Up to 8.":"Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Choose your TV first – its inputs and apps appear here.":"Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand":"Zelf toevoegen", "Logo":"Logo", "No logo":"Geen logo", "Brands":"Merken", "General":"Algemeen", "Source":"Bron", "No sources yet":"Nog geen bronnen", "— none —":"— geen —", "Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.":"Installeer de firmware vanuit je browser (Chrome of Edge): sluit de remote aan via USB en druk op Installeren.", "Open the installer":"Open de installer", "Connect your phone to the Wi-Fi network “noir-remote setup” and choose your own Wi-Fi.":"Verbind je telefoon met het wifi-netwerk “noir-remote setup” en kies je eigen wifi.", "Done: Home Assistant adds the remote by itself – no keys, no files.":"Klaar: Home Assistant voegt de remote vanzelf toe – geen sleutels, geen bestanden.", "Firmware":"Firmware", "No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.":"Nog geen update gevonden op je remote. Een remote met firmware 0.2 installeert de nieuwe firmware één keer via de installer (USB); daarna komen updates hier, met één knop.", "Updating…":"Bijwerken…", "keep the remote close to your Wi-Fi.":"houd de remote in de buurt van je wifi.", "New firmware":"Nieuwe firmware", "now":"nu", "Up to date":"Up-to-date", "Update firmware":"Firmware bijwerken", "Started – the remote restarts when it is done.":"Gestart – de remote herstart als hij klaar is.", "Check now":"Nu controleren", "Stable":"Stabiel", "Test channel":"Test", "Released versions":"Vrijgegeven versies", "Newest build – for testers":"Nieuwste versie – voor testers", "Press Save after changing the channel, then Check now.":"Druk na het wisselen op Opslaan, daarna op Nu controleren.", "Airco screen":"Airco-scherm", "— choose —":"— kies —", "Home Assistant (any brand)":"Home Assistant (elk merk)", "Infrared of the remote":"Infrarood van de remote", "Room, e.g. Living room":"Kamer, bijv. Woonkamer", "Your aircos":"Je airco's", "Per room: a climate entity in Home Assistant (any brand, e.g. an ESP32 module on the airco), or the remote's own infrared.":"Per kamer: een climate-entiteit in Home Assistant (elk merk, bijvoorbeeld een ESP32-module op de airco), of de infrarood van de remote zelf.", "Add airco":"Airco toevoegen", "Via Home Assistant the remote shows the modes, fan and swing settings your airco has. Infrared: the remote remembers what it sent (the airco reports nothing back).":"Via Home Assistant toont de remote de standen, ventilator en swing die jouw airco heeft. Infrarood: de remote onthoudt wat hij stuurde (de airco meldt niets terug).", "Add a tile “Airco screen” on Home to open it.":"Zet op Home een tegel “Airco-scherm” om hem te openen.", "Cooling":"Koelen", "room":"kamer", "Audio screen":"Audio-scherm", "Your speaker in Home Assistant":"Je speaker in Home Assistant", "On/off, source and volume go to this speaker. The volume keys of the remote too.":"Aan/uit, bron en volume gaan naar deze speaker. De volumetoetsen van de remote ook.", "Choose your speaker first – its sources appear here.":"Kies eerst je speaker – zijn bronnen verschijnen hier.", "Switch your speaker on – its sources then appear here.":"Zet je speaker aan – dan verschijnen zijn bronnen hier.", "Tap one below to add it. Up to 6.":"Tik hieronder op een bron om hem toe te voegen. Maximaal 6.", "Now playing (optional)":"Nu speelt (optioneel)", "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.":"De speler die laat zien wat er speelt en play/pauze en volgende krijgt. Leeg = de speaker zelf.", "— the speaker —":"— de speaker —", "Subwoofer (optional)":"Subwoofer (optioneel)", "A number entity with the subwoofer level, e.g. the KEF's.":"Een number-entiteit met het niveau van de subwoofer, bijvoorbeeld die van de KEF.", "Add a tile “Audio screen” on Home to open it.":"Zet op Home een tegel “Audio-scherm” om hem te openen.", "Switch it on with":"Aanzetten met", "On (standard)":"Aan (standaard)", "Speaker does not switch on? Choose the source it plays the TV on – choosing a source wakes it up.":"Gaat de speaker niet aan? Kies de bron waarop hij de tv speelt – een bron kiezen maakt hem wakker.", "Checking…":"Controleren…", "not checked yet":"nog niet gecontroleerd", "Switch your TV on – its inputs and apps then appear here.":"Zet je tv aan – dan verschijnen zijn ingangen en apps hier."};
+const NL = {"Home": "Home", "Lights": "Verlichting", "Scenes": "Scènes", "TV": "TV", "Remote": "Remote", "TV screen": "TV", "Lights screen": "Verlichting", "Scenes screen": "Scènes", "All off": "Alles uit", "TV on/off": "TV aan/uit", "Remote settings": "Instellingen remote", "Toggle an entity": "Iets aan/uit zetten", "Run a scene or script": "Scène of script starten", "Tiles on your home screen": "Tegels op je startscherm", "Add tile": "Tegel toevoegen", "Add light": "Lamp toevoegen", "Add scene": "Scène toevoegen", "Name": "Naam", "Opens": "Opent", "Entity": "Entiteit", "Size": "Maat", "Half": "Half", "Full": "Vol", "Dimmable": "Dimbaar", "On/off": "Aan/uit", "Scene or script": "Scène of script", "Also used by": "Ook gebruikt door", "Mode": "Modus", "Language": "Taal", "Always ready": "Altijd klaar", "Longer battery": "Langer op de accu", "First-time setup": "Eerste keer instellen", "Save": "Opslaan", "Unsaved changes": "Niet opgeslagen", "Saved – the remote updates in a few seconds.": "Opgeslagen – de remote past zich zo aan.", "What you see left is what your remote shows.": "Links zie je wat je remote laat zien.", "Tap a tile to edit it": "Tik op een tegel om hem aan te passen", "Tap = on/off · hold = dim": "Tikken = aan/uit · vasthouden = dimmen", "New tile": "Nieuwe tegel", "Up": "Omhoog", "Down": "Omlaag", "Remove": "Verwijderen", "Icon": "Icoon", "Settings": "Instellingen", "Loading…": "Laden…", "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "— none —": "— geen —", "Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.": "Installeer de firmware vanuit je browser (Chrome of Edge): sluit de remote aan via USB en druk op Installeren.", "Open the installer": "Open de installer", "Connect your phone to the Wi-Fi network “noir-remote setup” and choose your own Wi-Fi.": "Verbind je telefoon met het wifi-netwerk “noir-remote setup” en kies je eigen wifi.", "Done: Home Assistant adds the remote by itself – no keys, no files.": "Klaar: Home Assistant voegt de remote vanzelf toe – geen sleutels, geen bestanden.", "No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.": "Nog geen update gevonden op je remote. Een remote met firmware 0.2 installeert de nieuwe firmware één keer via de installer (USB); daarna komen updates hier, met één knop.", "Updating…": "Bijwerken…", "keep the remote close to your Wi-Fi.": "houd de remote in de buurt van je wifi.", "New firmware": "Nieuwe firmware", "now": "nu", "Up to date": "Up-to-date", "Started – the remote restarts when it is done.": "Gestart – de remote herstart als hij klaar is.", "Stable": "Stabiel", "Test channel": "Test", "Released versions": "Vrijgegeven versies", "Newest build – for testers": "Nieuwste versie – voor testers", "Airco screen": "Airco-scherm", "— choose —": "— kies —", "Home Assistant (any brand)": "Home Assistant (elk merk)", "Infrared of the remote": "Infrarood van de remote", "Room, e.g. Living room": "Kamer, bijv. Woonkamer", "Your aircos": "Je airco's", "Per room: a climate entity in Home Assistant (any brand, e.g. an ESP32 module on the airco), or the remote's own infrared.": "Per kamer: een climate-entiteit in Home Assistant (elk merk, bijvoorbeeld een ESP32-module op de airco), of de infrarood van de remote zelf.", "Add airco": "Airco toevoegen", "Via Home Assistant the remote shows the modes, fan and swing settings your airco has. Infrared: the remote remembers what it sent (the airco reports nothing back).": "Via Home Assistant toont de remote de standen, ventilator en swing die jouw airco heeft. Infrarood: de remote onthoudt wat hij stuurde (de airco meldt niets terug).", "Add a tile “Airco screen” on Home to open it.": "Zet op Home een tegel “Airco-scherm” om hem te openen.", "Cooling": "Koelen", "room": "kamer", "Audio screen": "Audio-scherm", "Your speaker in Home Assistant": "Je speaker in Home Assistant", "On/off, source and volume go to this speaker. The volume keys of the remote too.": "Aan/uit, bron en volume gaan naar deze speaker. De volumetoetsen van de remote ook.", "Choose your speaker first – its sources appear here.": "Kies eerst je speaker – zijn bronnen verschijnen hier.", "Switch your speaker on – its sources then appear here.": "Zet je speaker aan – dan verschijnen zijn bronnen hier.", "Tap one below to add it. Up to 6.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 6.", "Now playing (optional)": "Nu speelt (optioneel)", "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.": "De speler die laat zien wat er speelt en play/pauze en volgende krijgt. Leeg = de speaker zelf.", "— the speaker —": "— de speaker —", "Subwoofer (optional)": "Subwoofer (optioneel)", "A number entity with the subwoofer level, e.g. the KEF's.": "Een number-entiteit met het niveau van de subwoofer, bijvoorbeeld die van de KEF.", "Add a tile “Audio screen” on Home to open it.": "Zet op Home een tegel “Audio-scherm” om hem te openen.", "Switch it on with": "Aanzetten met", "On (standard)": "Aan (standaard)", "Speaker does not switch on? Choose the source it plays the TV on – choosing a source wakes it up.": "Gaat de speaker niet aan? Kies de bron waarop hij de tv speelt – een bron kiezen maakt hem wakker.", "Checking…": "Controleren…", "not checked yet": "nog niet gecontroleerd", "Switch your TV on – its inputs and apps then appear here.": "Zet je tv aan – dan verschijnen zijn ingangen en apps hier.", "NOIR app in Home Assistant": "NOIR-app in Home Assistant", "New version": "Nieuwe versie", "Restart Home Assistant": "Home Assistant herstarten", "Downloading the update…": "Update downloaden…", "Home Assistant is restarting – this page reloads by itself.": "Home Assistant herstart – deze pagina laadt daarna vanzelf opnieuw.", "Home Assistant restarts: lights, automations and the remote are offline for about a minute. Continue?": "Home Assistant herstart: lampen, automatiseringen en de remote zijn ongeveer een minuut offline. Doorgaan?", "Not installed through HACS – update it the way you installed it.": "Niet via HACS geïnstalleerd – werk hem bij zoals je hem installeerde.", "Still waiting for Home Assistant… reload this page when it is back.": "Nog steeds wachten op Home Assistant… ververs deze pagina als hij terug is.", "The Builder, its texts and how Home Assistant talks to your remotes.": "De Builder, zijn teksten en hoe Home Assistant met je remotes praat.", "Updates": "Updates", "Update": "Bijwerken", "Everything is up to date.": "Alles is up-to-date.", "Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.": "Bijwerken kijkt bij allebei en doet alleen wat nodig is. Home Assistant herstart alleen als NOIR Remote zelf een nieuwe versie kreeg.", "Press Save after changing the channel.": "Druk na het wisselen op Opslaan."};
 let LANG = "nl";
 let PACKS = {};   // de/fr/es... from NOIR Remote (languages/*.json): {builder: {English: text}, remote: {Dutch: text}}
 const L = (en) => (LANG === "nl" ? NL[en] : PACKS[LANG]?.builder?.[en]) || en;
@@ -355,7 +355,7 @@ class NoirBuilder extends HTMLElement {
       <div class="card"><h3>${L("Language")}</h3><div class="modes">
         ${(this.s.languages?.length ? this.s.languages : [{ code: "nl", name: "Nederlands" }, { code: "en", name: "English" }]).map((x) =>
           `<div class="mode ${LANG === x.code ? "on" : ""}" data-a="lang" data-v="${esc(x.code)}"><b>${esc(x.name)}</b><span>Remote + Builder</span></div>`).join("")}</div></div>
-      ${this._firmware()}
+      ${this._updates()}
       <div class="card"><details><summary>${L("First-time setup")}</summary>
         <p><b>1</b> · ${L("Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.")}</p>
         <p><a class="btn primary" href="${INSTALL_URL}" target="_blank" rel="noopener"><ha-icon icon="mdi:usb"></ha-icon>${L("Open the installer")}</a></p>
@@ -410,8 +410,8 @@ class NoirBuilder extends HTMLElement {
       this._touch();
     }
     else if (a === "channel") { m.channel = b.dataset.v; this._touch(); }
-    else if (a === "fw_install") { this._fwInstall(); return; }
-    else if (a === "fw_check") { this._fwCheck(); return; }
+    else if (a === "update_all") { this._updateAll(); return; }
+    else if (a === "app_restart") { this._restart(false); return; }
     else if (a === "save") { this._save(); return; }
     else if (a === "add") {
       if (l === "tiles") { m.tiles.push({ icon: "mdi:lightbulb", label: L("New tile"), opens: "toggle", entity: "", size: "half" }); this.s.sel = m.tiles.length - 1; }
@@ -443,50 +443,87 @@ class NoirBuilder extends HTMLElement {
     };
     return Object.keys(st).find((e) => e.startsWith("update.") && ours(e)) || "";
   }
-  _firmware() {
-    const e = this._fwEntity(), st = e && this._hass.states[e];
-    if (!st) return `<div class="card"><h3>${L("Firmware")}</h3>
-      <p>${L("No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.")}</p>
-      <p><a class="btn" href="${INSTALL_URL}" target="_blank" rel="noopener"><ha-icon icon="mdi:usb"></ha-icon>${L("Open the installer")}</a></p></div>`;
-    const a = st.attributes;
-    // before its first check the update entity has no version yet: take the remote's own (device: "0.3.0 (ESPHome …)")
-    const dev = this._hass.devices?.[this._hass.entities?.[e]?.device_id];
-    const installed = a.installed_version || String(dev?.sw_version || "").split(" (")[0] || "?";
-    const busy = a.in_progress === true || typeof a.in_progress === "number" || a.update_percentage != null;
-    const pct = typeof a.update_percentage === "number" ? a.update_percentage : (typeof a.in_progress === "number" ? a.in_progress : null);
-    const avail = st.state === "on";
-    const line = busy ? `${L("Updating…")}${pct != null ? " " + pct + "%" : ""} – ${L("keep the remote close to your Wi-Fi.")}`
-      : avail ? `${L("New firmware")}: <b>${esc(a.latest_version || "")}</b> (${L("now")} ${esc(installed)})`
-      : `${a.latest_version ? L("Up to date") : L("Firmware")} · ${esc(installed)}${a.latest_version ? "" : " – " + L("not checked yet")}`;
+  // NOIR Remote itself (this integration + the Builder): HACS keeps an update entity for it (platform hacs)
+  _appEntity() {
+    const h = this._hass || {}, st = h.states || {}, ents = h.entities || {};
+    return Object.keys(st).find((e) => e.startsWith("update.") && ents[e]?.platform === "hacs"
+      && /noir.?remote/i.test(e + " " + (st[e].attributes?.title || ""))) || "";
+  }
+  // One card, one button: check both, then update what needs it - the remote's firmware (it downloads and restarts by
+  // itself) and NOIR Remote in Home Assistant (HACS, then a restart and this page reloads). Nothing new = nothing happens.
+  _updates() {
+    const fe = this._fwEntity(), fs = fe && this._hass.states[fe], fa = fs?.attributes || {};
+    const ae = this._appEntity(), as = ae && this._hass.states[ae], aa = as?.attributes || {};
+    const dev = this._hass.devices?.[this._hass.entities?.[fe]?.device_id];
+    const fwNow = fa.installed_version || String(dev?.sw_version || "").split(" (")[0] || "?";
+    const pct = typeof fa.update_percentage === "number" ? fa.update_percentage : (typeof fa.in_progress === "number" ? fa.in_progress : null);
+    const fwBusy = fa.in_progress === true || pct != null;
+    const fwLine = !fs ? `${L("No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.")}
+        <a href="${INSTALL_URL}" target="_blank" rel="noopener">${L("Open the installer")}</a>`
+      : fwBusy ? `${L("Updating…")}${pct != null ? " " + pct + "%" : ""} – ${L("keep the remote close to your Wi-Fi.")}`
+      : fs.state === "on" ? `${L("New version")}: <b>${esc(fa.latest_version || "")}</b> (${L("now")} ${esc(fwNow)})`
+      : `${fa.latest_version ? L("Up to date") : L("not checked yet")} · ${esc(fwNow)}`;
+    const appLine = !as ? L("Not installed through HACS – update it the way you installed it.")
+      : as.state === "on" ? `${L("New version")}: <b>${esc(aa.latest_version || "")}</b> (${L("now")} ${esc(aa.installed_version || "?")})`
+      : `${L("Up to date")} · ${esc(aa.installed_version || "?")}`;
     const ch = this.s.model.channel === "test" ? "test" : "stable";
-    const chan = `<div class="modes" style="margin-top:12px">
+    const busy = !!this.s.appBusy || fwBusy;
+    return `<div class="card"><h3>${L("Updates")}</h3>
+      <p><ha-icon icon="mdi:remote" style="--mdc-icon-size:18px"></ha-icon> <b>${L("Remote")}</b> · ${fwLine}</p>
+      <p><ha-icon icon="mdi:home-assistant" style="--mdc-icon-size:18px"></ha-icon> <b>${L("NOIR app in Home Assistant")}</b> · ${appLine}</p>
+      <div class="bar"><button class="btn primary" data-a="update_all" ${busy ? "disabled" : ""}><ha-icon icon="mdi:update"></ha-icon>${L("Update")}</button>
+      <button class="btn" data-a="app_restart" ${busy ? "disabled" : ""}><ha-icon icon="mdi:restart"></ha-icon>${L("Restart Home Assistant")}</button>
+      ${this.s.appMsg ? `<span class="${this.s.appErr ? "dirty" : "ok"}">${esc(this.s.appMsg)}</span>` : ""}</div>
+      <p class="note">${L("Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.")}</p>
+      <div class="modes" style="margin-top:12px">
       <div class="mode ${ch === "stable" ? "on" : ""}" data-a="channel" data-v="stable"><ha-icon icon="mdi:shield-check-outline"></ha-icon><b>${L("Stable")}</b><span>${L("Released versions")}</span></div>
       <div class="mode ${ch === "test" ? "on" : ""}" data-a="channel" data-v="test"><ha-icon icon="mdi:flask-outline"></ha-icon><b>${L("Test channel")}</b><span>${L("Newest build – for testers")}</span></div></div>
-      <p class="note">${L("Press Save after changing the channel, then Check now.")}</p>`;
-    return `<div class="card"><h3>${L("Firmware")}</h3><p>${line}</p>${chan}
-      <div class="bar"><button class="btn ${avail ? "primary" : ""}" data-a="fw_install" ${avail && !busy ? "" : "disabled"}><ha-icon icon="mdi:update"></ha-icon>${L("Update firmware")}</button>
-      <button class="btn" data-a="fw_check" ${busy ? "disabled" : ""}><ha-icon icon="mdi:refresh"></ha-icon>${L("Check now")}</button>
-      ${this.s.fwMsg ? `<span class="${this.s.fwErr ? "dirty" : "ok"}">${esc(this.s.fwMsg)}</span>` : ""}</div></div>`;
+      <p class="note">${L("Press Save after changing the channel.")}</p></div>`;
   }
-  async _fwCheck() {   // the remote fetches the manifest from GitHub now (needs internet on the remote's network)
-    const e = this._fwEntity();
-    if (!e) return;
-    this.s.fwErr = false; this.s.fwMsg = L("Checking…");
-    this._render();
-    try { await this._hass.callService("homeassistant", "update_entity", { entity_id: e }); this.s.fwMsg = ""; }
-    catch (err) { this.s.fwErr = true; this.s.fwMsg = String(err?.message || err); }
-    this._render();
-  }
-  async _fwInstall() {
-    const e = this._fwEntity();
-    if (!e) return;
-    this.s.fwErr = false; this.s.fwMsg = L("Started – the remote restarts when it is done.");
-    this._render();
-    try { await this._hass.callService("update", "install", { entity_id: e }); }
-    catch (err) { this.s.fwErr = true; this.s.fwMsg = String(err?.message || err); }
+  async _updateAll() {
+    const say = (t, err) => { this.s.appMsg = t; this.s.appErr = !!err; this._render(); };
+    const st = (e) => e && this._hass.states[e];
+    this.s.appBusy = true;
+    say(L("Checking…"));
+    const fe = this._fwEntity(), ae = this._appEntity();
+    // ask both for their newest version first (the remote fetches its manifest itself), then wait for the answers
+    await Promise.all([fe, ae].filter(Boolean).map((e) => this._hass.callService("homeassistant", "update_entity", { entity_id: e }).catch(() => {})));
+    await new Promise((r) => setTimeout(r, 4000));
+    const fw = st(fe)?.state === "on", app = st(ae)?.state === "on";
+    if (!fw && !app) { this.s.appBusy = false; say(L("Everything is up to date.")); return; }
+    if (fw) {
+      try { await this._hass.callService("update", "install", { entity_id: fe }); say(L("Started – the remote restarts when it is done.")); }
+      catch (err) { say(String(err?.message || err), true); }
+    }
+    if (app) { await this._restart(true); return; }
+    this.s.appBusy = false;
     this._render();
   }
-
+  // install = true: HACS downloads NOIR Remote first. Then Home Assistant restarts and this page reloads when it is
+  // back, so the new Builder opens.
+  async _restart(install) {
+    const say = (t, err) => { this.s.appMsg = t; this.s.appErr = !!err; this._render(); };
+    if (!window.confirm(L("Home Assistant restarts: lights, automations and the remote are offline for about a minute. Continue?"))) {
+      this.s.appBusy = false; say(""); return;
+    }
+    this.s.appBusy = true;
+    try {
+      if (install) {
+        say(L("Downloading the update…"));
+        await this._hass.callService("update", "install", { entity_id: this._appEntity() });
+      }
+      const conn = this._hass.connection;
+      let down = false;
+      conn.addEventListener("disconnected", () => { down = true; });
+      conn.addEventListener("ready", () => { if (down) window.location.reload(); });
+      setTimeout(() => say(L("Still waiting for Home Assistant… reload this page when it is back."), true), 240000);
+      say(L("Home Assistant is restarting – this page reloads by itself."));
+      this._hass.callService("homeassistant", "restart", {}).catch(() => {});   // the connection drops: that is the restart
+    } catch (err) {
+      this.s.appBusy = false;
+      say(String(err?.message || err), true);
+    }
+  }
   _change(e) {
     const t = e.target, l = t.dataset.l, f = t.dataset.f;
     if (!l || !f) return;
