@@ -10,7 +10,8 @@
   <a href="#setup--about-15-minutes"><b>Get started</b></a> ·
   <a href="#the-noir-builder">NOIR Builder</a> ·
   <a href="docs/tv.md">TV</a> ·
-  <a href="#inside">How it works</a>
+  <a href="#inside">How it works</a> ·
+  <a href="#help-translate">Translate</a>
 </p>
 
 <br>
@@ -82,7 +83,7 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 
 - **Left: the preview.** What you see is what the remote shows.
 - **Top: one tab per screen.** Change something and press **Save** – the remote picks it up within seconds (it gets a nudge from Home Assistant; otherwise within 15 minutes).
-- Everything is in Nederlands, English, Deutsch, Français or Español – switch under *Remote → Language*; the remote follows. Want NOIR in your language? All texts are in one file – see [docs/languages.md](docs/languages.md) and send it in with the [translation form](https://github.com/ronsone/Noir_Remote/issues/new?template=translation.yml).
+- Everything is in Nederlands, English, Deutsch, Français or Español – switch under *Remote → Language*; the remote follows. Your language missing? See [Help translate](#help-translate).
 
 <p align="center"><img src="docs/builder/home.png" width="100%" alt="NOIR Builder – the Home tab: the tiles of your home screen, with the preview on the left"></p>
 
@@ -148,6 +149,16 @@ simulator/            all screens on your PC (SDL2 + LVGL)
 ```
 
 **New feature = new module.** Copy `firmware/modules/scenes.h`, give it a name, handle its actions/keys, add it in `noir-app.h`.
+
+## Help translate
+
+NOIR speaks Nederlands, English, Deutsch, Français and Español. Want it in **your** language, or found a better word? You don't need to code:
+
+1. Open **[languages/en.json](custom_components/noir_remote/languages/en.json)** – every text of NOIR Builder and the remote in one file.
+2. Translate the values (not the keys) and keep the remote's texts short.
+3. Send it in with the **[translation form](https://github.com/ronsone/Noir_Remote/issues/new?template=translation.yml)** – paste or attach your file. Or open a pull request.
+
+A new language needs no new firmware: it comes with the next update of the integration. Details in [docs/languages.md](docs/languages.md).
 
 ## Credits
 
