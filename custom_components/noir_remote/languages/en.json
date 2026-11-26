@@ -132,7 +132,11 @@
   "Press Save after changing the channel.": "Press Save after changing the channel.",
   "Updating the remote…": "Updating the remote…",
   "The remote is up to date.": "The remote is up to date.",
-  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back."
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.",
+  "Large": "Large",
+  "columns": "columns",
+  "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "This device shows the same tiles as your first remote. Change something and it gets its own home screen.",
+  "This device has no infrared – the TV goes through Home Assistant.": "This device has no infrared – the TV goes through Home Assistant."
  },
  "remote": {
   "Terug": "Back",

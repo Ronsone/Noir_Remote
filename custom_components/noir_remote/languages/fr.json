@@ -132,7 +132,11 @@
   "Press Save after changing the channel.": "Appuyez sur Enregistrer après avoir changé de canal.",
   "Updating the remote…": "Mise à jour de la télécommande…",
   "The remote is up to date.": "La télécommande est à jour.",
-  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "La télécommande prend du temps – NOIR Remote lui-même n’a pas encore été mis à jour. Appuyez à nouveau sur Mettre à jour quand la télécommande est revenue."
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "La télécommande prend du temps – NOIR Remote lui-même n’a pas encore été mis à jour. Appuyez à nouveau sur Mettre à jour quand la télécommande est revenue.",
+  "Large": "Grande",
+  "columns": "colonnes",
+  "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "Cet appareil affiche les mêmes tuiles que votre première télécommande. Modifiez quelque chose et il aura son propre écran d’accueil.",
+  "This device has no infrared – the TV goes through Home Assistant.": "Cet appareil n’a pas d’infrarouge – la télé passe par Home Assistant."
  },
  "remote": {
   "Terug": "Retour",

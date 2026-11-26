@@ -132,7 +132,11 @@
   "Press Save after changing the channel.": "Pulsa Guardar después de cambiar de canal.",
   "Updating the remote…": "Actualizando el mando…",
   "The remote is up to date.": "El mando está actualizado.",
-  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "El mando tarda – NOIR Remote aún no se ha actualizado. Pulsa Actualizar otra vez cuando vuelva el mando."
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "El mando tarda – NOIR Remote aún no se ha actualizado. Pulsa Actualizar otra vez cuando vuelva el mando.",
+  "Large": "Grande",
+  "columns": "columnas",
+  "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "Este dispositivo muestra los mismos mosaicos que tu primer mando. Cambia algo y tendrá su propia pantalla de inicio.",
+  "This device has no infrared – the TV goes through Home Assistant.": "Este dispositivo no tiene infrarrojos – la tele va por Home Assistant."
  },
  "remote": {
   "Terug": "Atrás",
