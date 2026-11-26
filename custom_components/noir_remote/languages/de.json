@@ -132,7 +132,11 @@
   "Press Save after changing the channel.": "Nach dem Wechseln auf Speichern drücken.",
   "Updating the remote…": "Fernbedienung wird aktualisiert…",
   "The remote is up to date.": "Die Fernbedienung ist aktuell.",
-  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "Die Fernbedienung braucht lange – NOIR Remote selbst wurde noch nicht aktualisiert. Drücke erneut auf Aktualisieren, wenn die Fernbedienung wieder da ist."
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "Die Fernbedienung braucht lange – NOIR Remote selbst wurde noch nicht aktualisiert. Drücke erneut auf Aktualisieren, wenn die Fernbedienung wieder da ist.",
+  "Large": "Groß",
+  "columns": "Spalten",
+  "This device shows the same tiles as your first remote. Change something and it gets its own home screen.": "Dieses Gerät zeigt dieselben Kacheln wie deine erste Fernbedienung. Ändere etwas, und es bekommt seinen eigenen Startbildschirm.",
+  "This device has no infrared – the TV goes through Home Assistant.": "Dieses Gerät hat kein Infrarot – der Fernseher läuft über Home Assistant."
  },
  "remote": {
   "Terug": "Zurück",

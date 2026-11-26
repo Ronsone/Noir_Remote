@@ -1,6 +1,7 @@
 """Link the remote to Home Assistant by itself - no keys, no files.
 
-Since firmware 0.3 the remote holds no secrets. Every 20 seconds this module:
+Since firmware 0.3 a NOIR device holds no secrets. Every 20 seconds this module does, for every NOIR device (the first
+remote and each one with the action noir_setup, e.g. a wall panel):
 1. confirms ESPHome's "New device found" for the remote (Home Assistant then gives it an encryption key itself);
 2. lets the remote run Home Assistant actions (ESPHome switches that off for new devices);
 3. tells the remote where Home Assistant is and the shared key (action noir_setup);
@@ -27,17 +28,28 @@ def _norm(s: str) -> str:
     return "".join(c for c in (s or "").lower() if c.isalnum())
 
 
+def _devices(hass: HomeAssistant, primary: str) -> list[str]:
+    """Every NOIR device: the first remote plus each one whose ESPHome actions include noir_setup (noir-wall, ...)."""
+    out = [primary]
+    for svc in hass.services.async_services().get(ESPHOME, {}):
+        if svc.endswith("_noir_setup"):
+            slug = svc[: -len("_noir_setup")]
+            if all(d.replace("-", "_") != slug for d in out):
+                out.append(slug.replace("_", "-"))
+    return out
+
+
 def start(hass: HomeAssistant, device: str, host_of, key: str, update_url=lambda: ""):
-    """Start the link loop. Returns the function that stops it."""
+    """Start the link loop for every NOIR device. Returns the function that stops it."""
     sent: set[str] = set()
     busy: set[str] = set()
-    was_online = [False]
+    was_online: dict[str, bool] = {}
 
-    def online() -> bool:
-        """True while ESPHome has the remote connected (one of its entities is not unavailable)."""
+    def online(dev: str) -> bool:
+        """True while ESPHome has this device connected (one of its entities is not unavailable)."""
         devs, ents = dr.async_get(hass), er.async_get(hass)
         for d in devs.devices.values():
-            if not any(_norm(device) in _norm(n) for n in (d.name, d.name_by_user) if n):
+            if not any(_norm(n) == _norm(dev) for n in (d.name, d.name_by_user) if n):
                 continue
             for e in er.async_entries_for_device(ents, d.id):
                 if e.platform == ESPHOME and (st := hass.states.get(e.entity_id)) and st.state != "unavailable":
@@ -48,49 +60,51 @@ def start(hass: HomeAssistant, device: str, host_of, key: str, update_url=lambda
         try:
             result = await hass.config_entries.flow.async_configure(flow_id, {})
             if result.get("type") == "create_entry":
-                _LOGGER.info("NOIR remote added to ESPHome")
+                _LOGGER.info("NOIR device added to ESPHome")
         except Exception as err:  # noqa: BLE001 - the person can still confirm it by hand
-            _LOGGER.debug("Could not confirm the ESPHome flow for the remote: %s", err)
+            _LOGGER.debug("Could not confirm the ESPHome flow for the device: %s", err)
         finally:
             busy.discard(flow_id)
 
-    async def setup_remote(svc: str) -> None:
+    async def setup_device(svc: str) -> None:
         host = host_of(hass)   # asked late: early in the start Home Assistant may not know its own address yet
         if "x" in host:
             return
         try:
             await hass.services.async_call(ESPHOME, svc, {"host": host, "key": key}, blocking=True)
             sent.add(svc)
-            _LOGGER.info("NOIR remote set up (Home Assistant at %s)", host)
+            _LOGGER.info("NOIR device set up via %s (Home Assistant at %s)", svc, host)
         except Exception as err:  # noqa: BLE001 - try again next round
-            _LOGGER.debug("noir_setup not sent yet: %s", err)
+            _LOGGER.debug("%s not sent yet: %s", svc, err)
 
     @callback
     def tick(_now=None) -> None:
-        # back online (reset, flash, batteries)? then host, key and channel go again
-        now_online = online()
-        if now_online and not was_online[0]:
-            sent.difference_update({s for s in sent if s.endswith(("_noir_setup", "_noir_channel"))})
-        was_online[0] = now_online
-        # 1. "New device found: noir-remote" -> confirm it
+        # 1. "New device found: noir-..." -> confirm it (the first remote, or any device called noir-something)
         for flow in hass.config_entries.flow.async_progress_by_handler(ESPHOME):
             name = (flow.get("context", {}).get("title_placeholders") or {}).get("name", "")
-            if flow.get("step_id") == "discovery_confirm" and _norm(device) in _norm(name) and flow["flow_id"] not in busy:
+            ours = _norm(device) in _norm(name) or _norm(name).startswith("noir")
+            if flow.get("step_id") == "discovery_confirm" and ours and flow["flow_id"] not in busy:
                 busy.add(flow["flow_id"])
                 hass.async_create_task(confirm(flow["flow_id"]))
-        # 2. actions allowed (once per start, so you can still switch it off yourself)
-        if "allowed" not in sent and allow_actions(hass, None, device):
-            sent.add("allowed")
-        # 3. host + key to the remote (firmware 0.3+ has the action)
-        svc = f"{device.replace('-', '_')}_noir_setup"
-        if svc not in sent and hass.services.has_service(ESPHOME, svc):
-            hass.async_create_task(setup_remote(svc))
-
-        # 4. update channel (firmware 0.7+ has the action)
-        chan = f"{device.replace('-', '_')}_noir_channel"
-        if chan not in sent and hass.services.has_service(ESPHOME, chan):
-            sent.add(chan)
-            hass.async_create_task(hass.services.async_call(ESPHOME, chan, {"url": update_url()}, blocking=False))
+        for dev in _devices(hass, device):
+            slug = dev.replace("-", "_")
+            # back online (reset, flash, batteries)? then host, key and channel go again
+            now_online = online(dev)
+            if now_online and not was_online.get(dev, False):
+                sent.difference_update({f"{slug}_noir_setup", f"{slug}_noir_channel"})
+            was_online[dev] = now_online
+            # 2. actions allowed (once per start, so you can still switch it off yourself)
+            if f"allowed:{dev}" not in sent and allow_actions(hass, None, dev):
+                sent.add(f"allowed:{dev}")
+            # 3. host + key to the device (firmware 0.3+ has the action)
+            svc = f"{slug}_noir_setup"
+            if svc not in sent and hass.services.has_service(ESPHOME, svc):
+                hass.async_create_task(setup_device(svc))
+            # 4. update channel (firmware 0.7+ has the action)
+            chan = f"{slug}_noir_channel"
+            if chan not in sent and hass.services.has_service(ESPHOME, chan):
+                sent.add(chan)
+                hass.async_create_task(hass.services.async_call(ESPHOME, chan, {"url": update_url()}, blocking=False))
 
     tick()
     return async_track_time_interval(hass, tick, INTERVAL)

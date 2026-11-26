@@ -99,6 +99,8 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 
 A screen only works once it has a tile on **Home** – e.g. add a tile *Audio screen* after setting up Audio.
 
+**More NOIR devices** (e.g. a wall panel next to your remote): each one shows up at the top of the Builder by itself, with its board and screen size. Pick one and give it its own home screen – a device starts with the tiles of your first remote and gets its own list as soon as you change something. Tiles come in three sizes (**Half**, **Full**, **Large**); the preview shows the device's real grid. What a device can't do is hidden for it: infrared (TV keys, airco by IR), the battery modes. Lights, scenes, TV, audio and airco are shared by all devices. **Update** updates every NOIR device one after the other, then NOIR Remote itself.
+
 <details><summary><b>Screenshots of every tab</b></summary>
 
 | | |

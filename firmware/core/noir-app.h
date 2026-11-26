@@ -20,6 +20,15 @@
 
 namespace noirapp {
 
+// Who this device is (from its device + board file): Home Assistant gives each device its own home screen and the
+// NOIR Builder hides what it can't do (no IR, no keys, no battery). Call before start().
+inline void device(const char *name, const char *board, int w, int h, bool touch, bool keys, bool ir, bool battery) {
+  std::string c;
+  for (auto p : {std::make_pair(touch, "touch"), std::make_pair(keys, "keys"), std::make_pair(ir, "ir"), std::make_pair(battery, "battery")})
+    if (p.first) c += (c.empty() ? "" : ",") + std::string(p.second);
+  app().who = std::string("&d=") + name + "&b=" + board + "&w=" + std::to_string(w) + "&h=" + std::to_string(h) + "&c=" + c;
+  noir::layout_init(w, h);   // columns and scale follow the screen
+}
 inline void start(const std::string &host, const std::string &key) {   // host + key: kept in flash (noir_setup)
   static Airco airco;
   static Nav nav;

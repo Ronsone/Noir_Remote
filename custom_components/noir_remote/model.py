@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 
-from .const import AIRCO_IR, DEFAULT_MODEL, LANG_PACKS, LANGUAGES, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
+from .const import AIRCO_IR, BOARDS, DEFAULT_MODEL, LANG_PACKS, LANGUAGES, LEGACY_DEVICE, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
 from .tv import clean_apps, ir_block
 
 FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "airco"}
@@ -30,6 +30,9 @@ def normalize(model: dict | None) -> dict:
     m["audio"] = {k: m["audio"].get(k, d) for k, d in DEFAULT_MODEL["audio"].items()}
     m["audio"]["sources"] = clean_sources(m["audio"]["sources"])
     m["airco"] = {"units": clean_units(m["airco"].get("units"))}
+    devs = m.get("devices") if isinstance(m.get("devices"), dict) else {}
+    m["devices"] = {str(k)[:40]: {"tiles": [t for t in v.get("tiles", []) if isinstance(t, dict)][:24]}
+                    for k, v in devs.items() if isinstance(v, dict) and isinstance(v.get("tiles"), list)}
     if m.get("lang") not in LANGUAGES:
         m["lang"] = "nl"
     if m.get("channel") not in ("stable", "test"):
@@ -61,15 +64,30 @@ def clean_sources(sources) -> list:
     return out[:MAX_AUDIO_SOURCES]
 
 
-def payload(model: dict, version: str) -> dict:
+def tiles_of(m: dict, device: str, primary: str) -> list:
+    """The home tiles of a device: its own, else (first remote, or not set up yet) the main list."""
+    own = m.get("devices", {}).get(device)
+    return own["tiles"] if device != primary and own else m["tiles"]
+
+
+SIZES = {"half": "S", "full": "W", "large": "L"}
+
+
+def payload(model: dict, version: str, device: str = "", primary: str = "", info: dict | None = None) -> dict:
+    """What one device gets: its own home screen; infrared, keys and IR aircos only when it has them."""
     m = normalize(model)
+    info = info or LEGACY_DEVICE
+    caps = set(info.get("caps", []))
+    keycodes = BOARDS.get(info.get("board", ""), {}).get("keys", {}) if "keys" in caps else {}
     home, x, y = [], 0, 0
-    for t in m["tiles"][:24]:
-        full = t.get("size") == "full"
+    for t in tiles_of(m, device, primary)[:24]:
+        size = SIZES.get(t.get("size"), "S")
+        full = size != "S"
         if full and x:
             x, y = 0, y + 2
-        it = {"t": "action", "label": str(t.get("label", ""))[:24], "icon": t.get("icon", ""),
-              "x": 0 if full else x, "y": y, "w": 6 if full else 3, "h": 2}
+        # size for the grid (0.7.4+); x/y/w/h for older firmware
+        it = {"t": "action", "label": str(t.get("label", ""))[:24], "icon": t.get("icon", ""), "size": size,
+              "x": 0 if full else x, "y": y, "w": 6 if full else 3, "h": 4 if size == "L" else 2}
         opens = t.get("opens", "")
         if opens in FN:
             it["fn"] = opens
@@ -79,7 +97,7 @@ def payload(model: dict, version: str) -> dict:
                 it["t"] = "light" if t["entity"].startswith("light.") else "toggle"
         home.append(it)
         if full:
-            y += 2
+            y += it["h"]
         elif x == 0:
             x = 3
         else:
@@ -100,11 +118,11 @@ def payload(model: dict, version: str) -> dict:
         "scenes": scenes,
         "tv": {"entity": tv.get("entity", ""), "speaker": tv.get("speaker", ""),
                "speaker_source": str(tv.get("speaker_source", ""))[:40],   # some speakers (KEF LSX II) only wake up by choosing a source
-               "ir": ir_block(tv.get("profile", "")) if tv.get("profile") in PROFILES else {},
+               "ir": ir_block(tv.get("profile", ""), keycodes) if tv.get("profile") in PROFILES and "ir" in caps else {},
                "apps": clean_apps(tv.get("apps"))},
         "audio": audio_block(m["audio"]),
         "airco": {"units": [{"name": u["name"], **({"ir": u["control"][3:]} if u["control"].startswith("ir:") else {"entity": u["control"]})}
-                            for u in m["airco"]["units"]]},
+                            for u in m["airco"]["units"] if "ir" in caps or not u["control"].startswith("ir:")]},
     }
 
 

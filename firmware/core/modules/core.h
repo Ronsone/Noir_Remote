@@ -43,6 +43,7 @@ inline std::vector<Module *> &modules() { static std::vector<Module *> m; return
 // ---- shared state --------------------------------------------------------------------------------------------
 struct App {
   std::string host, key;
+  std::string who;             // "&d=noir-remote&b=rev6&w=240&h=320&c=touch,keys,ir,battery" - who asks for its screens
   JsonDocument cfg;            // current configuration (screens refer into it - keep it alive)
   uint32_t last_input{0};      // last key/touch (ms)
   bool wake{false};            // display should wake up
@@ -209,7 +210,7 @@ inline void download_task_(void *) {
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     Download &d = dl();
-    const std::string url = "http://" + app().host + "/api/noir_remote/config?k=" + app().key;
+    const std::string url = "http://" + app().host + "/api/noir_remote/config?k=" + app().key + app().who;
     esp_http_client_config_t c = {};
     c.url = url.c_str();
     c.timeout_ms = 6000;
