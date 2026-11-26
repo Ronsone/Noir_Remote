@@ -43,7 +43,7 @@ if(EMSCRIPTEN)
   target_compile_definitions(noir-simulator PRIVATE NOIR_FONT_DIR="/fonts")
   set_target_properties(noir-simulator PROPERTIES SUFFIX ".js")
   target_link_options(noir-simulator PRIVATE -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=67108864 -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
-    -sEXPORTED_FUNCTIONS=_main,_noir_web_config,_noir_web_states -sMODULARIZE=1 -sEXPORT_NAME=NoirSim
+    -sEXPORTED_FUNCTIONS=_main,_noir_web_config,_noir_web_states,_noir_web_redraw -sMODULARIZE=1 -sEXPORT_NAME=NoirSim
     "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../firmware/fonts/Inter-Regular.ttf@/fonts/Inter-Regular.ttf"
     "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/fonts/mdi-web.ttf@/fonts/mdi-subset.ttf")   # only the icons NOIR uses (tools/make_sim_font.py)
 else()

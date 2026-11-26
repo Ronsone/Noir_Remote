@@ -19,7 +19,7 @@ class NoirPhone extends HTMLElement {
 
   async _start() {
     this.innerHTML = `<style>
-      noir-phone { display:block; height:100%; background:#07080a; position:relative; }
+      noir-phone { display:block; height:100%; min-height:100vh; background:#07080a; position:relative; overflow:hidden; }
       noir-phone .top
       { position:absolute; left:4px; top:4px; z-index:2; color:#e4e7ec; }
       noir-phone canvas { display:block; margin:0 auto; touch-action:none; outline:none; }
@@ -29,9 +29,14 @@ class NoirPhone extends HTMLElement {
     const mb = this.querySelector("ha-menu-button");
     if (mb) { mb.hass = this._hass; mb.narrow = true; }
     const canvas = this.querySelector("canvas"), msg = this.querySelector(".msg");
-    // the screen: the panel's size in CSS pixels (the layout picks columns and scale from it, like on a wall panel)
+    // the screen: the panel's own size in CSS pixels (the layout picks columns and scale from it, like on a wall panel).
+    // Home Assistant can give us hass before the panel is laid out - wait until it has a size (at most 2 s).
+    for (let i = 0; i < 40 && !(this.clientWidth > 0 && this.clientHeight > 0); i++) await new Promise((r) => setTimeout(r, 50));
     const w = Math.max(240, Math.min(this.clientWidth || window.innerWidth, 1280));
     const h = Math.max(320, Math.min(this.clientHeight || window.innerHeight, 1280));
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    console.info(`NOIR: panel ${this.clientWidth}x${this.clientHeight}, screen ${w}x${h}, pixel ratio ${window.devicePixelRatio}`);
     try {
       if (!window.NoirSim) await new Promise((ok, bad) => {
         const s = document.createElement("script");
@@ -53,6 +58,13 @@ class NoirPhone extends HTMLElement {
     }
     await this._config(w, h);
     this._timer = setInterval(() => this._config(w, h), 60000);   // new screens, weather, calendar, values
+    // the browser can wipe the canvas when the panel is shown, resized or comes back: draw everything again then
+    const redraw = () => { try { this._m.ccall("noir_web_redraw", null, [], []); } catch (e) { /* not started */ } };
+    this._ro = new ResizeObserver(redraw);
+    this._ro.observe(canvas);
+    this._vis = () => { if (!document.hidden) redraw(); };
+    document.addEventListener("visibilitychange", this._vis);
+    for (const t of [100, 500, 1500]) setTimeout(redraw, t);
   }
 
   async _config(w, h) {
@@ -81,6 +93,11 @@ class NoirPhone extends HTMLElement {
     this._m.ccall("noir_web_states", null, ["string"], [sig]);
   }
 
-  disconnectedCallback() { clearInterval(this._timer); }
+  connectedCallback() { if (this._m) setTimeout(() => { try { this._m.ccall("noir_web_redraw", null, [], []); } catch (e) { /* */ } }, 50); }
+  disconnectedCallback() {
+    clearInterval(this._timer);
+    this._ro?.disconnect();
+    if (this._vis) document.removeEventListener("visibilitychange", this._vis);
+  }
 }
 if (!customElements.get("noir-phone")) customElements.define("noir-phone", NoirPhone);

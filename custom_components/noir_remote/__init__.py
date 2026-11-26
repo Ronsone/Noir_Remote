@@ -200,7 +200,8 @@ async def ws_get(hass, connection, msg):
                                        "packs": LANG_PACKS})
 
 
-PHONE = "noir-phone"   # the NOIR panel on your phone (sidebar "NOIR") is a NOIR device too: its own home screen
+PHONE = "noir-phone"       # the NOIR panel (sidebar "NOIR") on a phone is a NOIR device too: its own home screen
+BROWSER = "noir-browser"   # ... and on a bigger screen (PC, tablet) another one, so the two don't share one size
 
 
 @websocket_api.websocket_command({vol.Required("type"): "noir_remote/phone", vol.Required("w"): int, vol.Required("h"): int})
@@ -209,8 +210,10 @@ async def ws_phone(hass, connection, msg):
     """The phone panel: its configuration (like a remote fetches it) plus its info tiles. Not admin-only: anyone who
     may open the panel may use it - the actions it sends run with that person's own rights."""
     nd: NoirData = hass.data[DOMAIN]
-    await nd.seen(PHONE, "phone", max(200, min(msg["w"], 3000)), max(200, min(msg["h"], 3000)), ["touch"])
-    cfg = nd.payload(PHONE)
+    w, h = max(200, min(msg["w"], 3000)), max(200, min(msg["h"], 3000))
+    dev = PHONE if min(w, h) < 600 else BROWSER
+    await nd.seen(dev, "phone" if dev == PHONE else "browser", w, h, ["touch"])
+    cfg = nd.payload(dev)
     lang = nd.model.get("lang", "nl")
     cfg["info"] = {f"i:{t['entity']}": o for t in cfg["home"] if t.get("t") in ("weather", "calendar", "value")
                    if (o := await noir_info.info(hass, t["entity"], lang))}
