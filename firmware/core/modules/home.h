@@ -8,11 +8,11 @@ struct Home : Module {
   // fn of a tile -> screen action
   static int fn_action(const std::string &fn) {
     if (fn == "tv") return noir::TV;
-    if (fn == "lights") return noir::LICHT;
+    if (fn == "lights") return noir::LIGHTS;
     if (fn == "scenes") return noir::SCENES;
-    if (fn == "settings") return noir::INSTELLINGEN;
-    if (fn == "alloff") return noir::SCENE_ALLES_UIT;
-    if (fn == "tv_power") return noir::TV_AANUIT;
+    if (fn == "settings") return noir::SETTINGS;
+    if (fn == "alloff") return noir::SCENE_ALL_OFF;
+    if (fn == "tv_power") return noir::TV_POWER;
     if (fn == "audio") return noir::AUDIO;
     if (fn == "airco") return noir::AIRCO;
     return -1;
@@ -32,7 +32,7 @@ struct Home : Module {
     else ha("homeassistant.toggle", {{"entity_id", e}});
   }
   void configure(JsonObjectConst) override {
-    if (app().built) { noir::thuis_herbouwen(list_of("home")); noir::airco::tonen(); }   // airco tile: fill it right away
+    if (app().built) { noir::home_rebuild(list_of("home")); noir::airco::show(); }   // airco tile: fill it right away
   }
   bool action(int a) override {
     if (a >= noir::ITEM) {
@@ -42,36 +42,36 @@ struct Home : Module {
       return true;
     }
     switch (a) {
-      case noir::THUIS: noir::zeigen_seite(noir::S_THUIS); return true;
-      case noir::TERUG:   // Back closes an open pop-up first (skin list, lamp dimmer)
-        if (noir::keuze().over != nullptr) { noir::keuze_dicht(); return true; }
-        if (noir::dimmer().over != nullptr) { noir::dimmer_dicht(); return true; }
-        if (noir::st().seite != noir::S_THUIS) noir::zeigen_seite(noir::S_THUIS);
+      case noir::HOME: noir::show_screen(noir::S_HOME); return true;
+      case noir::BACK:   // Back closes an open pop-up first (skin list, lamp dimmer)
+        if (noir::choice().over != nullptr) { noir::choice_close(); return true; }
+        if (noir::dimmer().over != nullptr) { noir::dimmer_close(); return true; }
+        if (noir::st().cur_screen != noir::S_HOME) noir::show_screen(noir::S_HOME);
         return true;
-      case noir::INSTELLINGEN: noir::zeigen_seite(noir::S_INST); return true;
-      case noir::INST_FULL: case noir::INST_ECO: {   // mode chosen on the remote: apply now, tell the NOIR Builder
-        const bool eco = a == noir::INST_ECO;
+      case noir::SETTINGS: noir::show_screen(noir::S_SETTINGS); return true;
+      case noir::SET_FULL: case noir::SET_ECO: {   // mode chosen on the remote: apply now, tell the NOIR Builder
+        const bool eco = a == noir::SET_ECO;
         set_mode(eco);
         ha("noir_remote.set_mode", {{"mode", eco ? "eco" : "full"}});
-        noir::alles_herbouwen();
+        noir::rebuild_all();
         noir::toast(eco ? "Eco" : "Full");
         return true;
       }
-      case noir::INST_WIFI:
+      case noir::SET_WIFI:
         noir::toast("Reconnecting Wi-Fi\xE2\x80\xA6", 2500);
         esphome::wifi::global_wifi_component->retry_connect();
         return true;
-      case noir::KNOPTEST: noir::knoptest::reset(); noir::zeigen_seite(noir::S_TEST); return true;
-      case noir::TEST_RESET: noir::knoptest::reset(); return true;
+      case noir::KEYTEST: noir::keytest::reset(); noir::show_screen(noir::S_TEST); return true;
+      case noir::TEST_RESET: noir::keytest::reset(); return true;
       default: return false;
     }
   }
   bool key(int k, bool pressed) override {
     if (!pressed) return false;
     switch (k) {
-      case 13: action(noir::TERUG); return true;        // back
-      case 41: action(noir::THUIS); return true;        // return key: home
-      case 3: action(noir::INSTELLINGEN); return true;  // menu: settings
+      case 13: action(noir::BACK); return true;        // back
+      case 41: action(noir::HOME); return true;        // return key: home
+      case 3: action(noir::SETTINGS); return true;  // menu: settings
       default: return false;
     }
   }

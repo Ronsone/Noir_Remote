@@ -38,8 +38,8 @@ inline void start(const std::string &host, const std::string &key) {   // host +
   noir::st().actie = [](int x) { action(x); };
   noir::st().items = []() { return list_of("home"); };
   noir::st().scenes_items = []() { return list_of("scenes"); };
-  noir::kef::melding() = [](const char *t) { noir::toast(t); };
-  noir::licht_http::url_basis() = []() -> std::string {
+  noir::speaker_e::notice() = [](const char *t) { noir::toast(t); };
+  noir::lights_http::url_basis() = []() -> std::string {
     if (app().host.empty() || app().key.empty()) return "";
     return "http://" + app().host + "/api/noir_remote/states?k=" + app().key;
   };
@@ -48,8 +48,8 @@ inline void start(const std::string &host, const std::string &key) {   // host +
     nvs_handle_t h;
     int32_t skin = 0;
     if (nvs_open("noir", NVS_READONLY, &h) == ESP_OK) { nvs_get_i32(h, "skin", &skin); nvs_close(h); }
-    noir::thema_laden(skin);
-    noir::opslaan() = [](int nr) {
+    noir::theme_load(skin);
+    noir::save_skin() = [](int nr) {
       nvs_handle_t w;
       if (nvs_open("noir", NVS_READWRITE, &w) != ESP_OK) return;
       nvs_set_i32(w, "skin", nr);
@@ -70,21 +70,21 @@ inline void setup(const std::string &host, const std::string &key) {
   if (changed && a.built) fetch_config();
 }
 
-struct Images { esphome::image::Image *wall, *tv, *audio, *licht, *scenes; };
+struct Images { esphome::image::Image *wall, *tv, *audio, *light, *scenes; };
 // Logos for the TV source tiles (registered by logos.yaml, before build)
 inline void logo(const char *key, esphome::image::Image *img) { noir::logos()[key] = img->get_lv_image_dsc(); }
 inline void build(lv_obj_t *home, const noir::Fonts &f, const Images &b) {
-  noir::Beelden bl;
+  noir::ImageSet bl;
   bl.wall = b.wall->get_lv_image_dsc();
   bl.tv = b.tv->get_lv_image_dsc(); bl.audio = b.audio->get_lv_image_dsc();
-  bl.licht = b.licht->get_lv_image_dsc(); bl.scenes = b.scenes->get_lv_image_dsc();
+  bl.light = b.light->get_lv_image_dsc(); bl.scenes = b.scenes->get_lv_image_dsc();
   noir::st().toast_font = f.f14;
-  noir::bouwen(home, f, bl, list_of("home"));
+  noir::build_all(home, f, bl, list_of("home"));
   app().built = true;
   noir::tv_status("", "");
-  noir::zeigen(true);
-  noir::zeigen_seite(noir::S_THUIS);
-  noir::airco::tonen();
+  noir::show_page(true);
+  noir::show_screen(noir::S_HOME);
+  noir::airco::show();
   fetch_config();
 }
 
@@ -119,7 +119,7 @@ inline void key(int k, bool pressed, bool held_long) {
   a.last_input = millis();
   a.wake = true;
   // Button test (Settings): every key shows its name and number unfiltered, so ghosts are visible; Terug leaves it
-  if (noir::st().seite == noir::S_TEST && k != 102) { noir::knoptest::taste(k, pressed); return; }
+  if (noir::st().cur_screen == noir::S_TEST && k != 102) { noir::keytest::key_in(k, pressed); return; }
   if (k < 1 || k > 127) { key_to_modules_(k, pressed); return; }   // power key (GPI) etc.
   KeyFilter &f = kf();
   const uint32_t now = millis();

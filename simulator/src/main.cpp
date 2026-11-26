@@ -64,28 +64,28 @@ static void ha_print(const std::string &svc, const Data &d) {
 }
 static void ha_stub(const std::string &svc, Data d) {
   ha_print(svc, d);
-  if (svc == "media_player.turn_off" && d["entity_id"] == tv::entiteit()) tv_status("off", "");
+  if (svc == "media_player.turn_off" && d["entity_id"] == tv::entity_ref()) tv_status("off", "");
 }
 
 static void sample_audio() {
   audio::Data &x = audio::d();
-  x.kef = "media_player.woonkamer"; x.muziek = x.kef; x.sub_e = "number.woonkamer_sw_gain";
-  x.kef_state = "on"; x.bron = 2; x.volume = 38; x.sub = 2; x.sub_bekend = true;
-  x.sp_state = "playing"; x.titel = "Midnight Drive"; x.artiest = "Nova Lane";
+  x.speaker_e = "media_player.woonkamer"; x.muziek = x.speaker_e; x.sub_e = "number.woonkamer_sw_gain";
+  x.speaker_state = "on"; x.src = 2; x.volume = 38; x.sub = 2; x.sub_known = true;
+  x.sp_state = "playing"; x.title = "Midnight Drive"; x.artist = "Nova Lane";
 }
 static void sample_airco() {
   airco::Data &d = airco::d();
   airco::Unit u;
-  u.naam = english() ? "Living room" : "Woonkamer";
-  u.aan = true; u.modus = 1; u.temp = 21; u.kamer = 23;
+  u.name_s = english() ? "Living room" : "Woonkamer";
+  u.is_on = true; u.mode = 1; u.temp = 21; u.room = 23;
   u.fans = airco::mhi::fans();
   u.swings = airco::mhi::swings();
   u.tmin = 18; u.tmax = 30;
   d.units = {u};
   d.cur = 0;
-  airco::wijziging() = [](int i) {
+  airco::on_change() = [](int i) {
     const airco::Unit &n = airco::d().units[i];
-    std::printf("[IR] Mitsubishi Heavy: %s mode %d %d C fan %d swing %d\n", n.aan ? "on" : "off", n.modus, n.temp, n.fan, n.swing);
+    std::printf("[IR] Mitsubishi Heavy: %s mode %d %d C fan %d swing %d\n", n.is_on ? "on" : "off", n.mode, n.temp, n.fan, n.swing);
   };
 }
 
@@ -97,10 +97,10 @@ static void run_tile(int i) {
   extern void action(int a);
   if (fn == "tv") action(TV);
   else if (fn == "audio") action(AUDIO);
-  else if (fn == "lights") action(LICHT);
+  else if (fn == "lights") action(LIGHTS);
   else if (fn == "scenes") action(SCENES);
   else if (fn == "airco") action(AIRCO);
-  else if (fn == "alloff") action(SCENE_ALLES_UIT);
+  else if (fn == "alloff") action(SCENE_ALL_OFF);
   else std::printf("[remote] tile %d: %s\n", i, fn.c_str());
 }
 
@@ -111,9 +111,9 @@ void action(int a) {
     return;
   }
   if (a >= ITEM) { run_tile(a - ITEM); return; }
-  if (a >= AUDIO_BRON && a < AUDIO_BRON + audio::BRONNEN) { audio::bron_kiezen(a - AUDIO_BRON); return; }
-  if (a >= AIRCO_MODUS && a < AIRCO_MODUS + airco::MODI) { airco::modus(a - AIRCO_MODUS); return; }
-  if (a >= LAMP && a < LAMP + 12) { lamp_schakelen(a - LAMP, lv_tick_get()); return; }
+  if (a >= AUDIO_SOURCE && a < AUDIO_SOURCE + audio::MAX_SOURCES) { audio::source_select(a - AUDIO_SOURCE); return; }
+  if (a >= AIRCO_MODE && a < AIRCO_MODE + airco::MODES) { airco::mode(a - AIRCO_MODE); return; }
+  if (a >= LAMP && a < LAMP + 12) { lamp_toggle(a - LAMP, lv_tick_get()); return; }
   if (a >= TV_APP && a < TV_APP + (int) tv_apps().size()) {
     const TvApp &app = tv_apps()[a - TV_APP];
     if (!tv_aan()) tv_status("on", "");
@@ -123,40 +123,40 @@ void action(int a) {
     return;
   }
   switch (a) {
-    case TV: zeigen_seite(S_TV); break;
-    case TV_AANUIT:
-      if (tv_aan()) { ha_print("media_player.turn_off", {{"entity_id", tv::entiteit()}}); tv_status("off", ""); toast("TV uit"); }
+    case TV: show_screen(S_TV); break;
+    case TV_POWER:
+      if (tv_aan()) { ha_print("media_player.turn_off", {{"entity_id", tv::entity_ref()}}); tv_status("off", ""); toast("TV uit"); }
       else { tv_status("on", "Live TV"); toast("TV aan"); }
       break;
-    case AUDIO: zeigen_seite(S_AUDIO); break;
-    case AUDIO_AANUIT: audio::aanuit(); break;
-    case AUDIO_NU: ha_print("media_player.media_play_pause", {{"entity_id", audio::d().muziek}}); break;
-    case LICHT: zeigen_seite(S_LICHT); break;
-    case SCENES: zeigen_seite(S_SCENES); break;
-    case SCENE_ALLES_UIT:
-      for (auto &l : lampen()) l.state = "off";
-      lampen_tekst();
+    case AUDIO: show_screen(S_AUDIO); break;
+    case AUDIO_POWER: audio::toggle_power(); break;
+    case AUDIO_NOW: ha_print("media_player.media_play_pause", {{"entity_id", audio::d().muziek}}); break;
+    case LIGHTS: show_screen(S_LIGHTS); break;
+    case SCENES: show_screen(S_SCENES); break;
+    case SCENE_ALL_OFF:
+      for (auto &l : lamps()) l.state = "off";
+      lamps_text();
       ha_print("light.turn_off", {{"entity_id", "all lamps"}});
       toast("Alles uit");
       break;
-    case AIRCO: zeigen_seite(S_AIRCO); break;
-    case AIRCO_AANUIT: airco::aanuit(); break;
+    case AIRCO: show_screen(S_AIRCO); break;
+    case AIRCO_POWER: airco::toggle_power(); break;
     case AIRCO_MIN: airco::temp_stap(-1); break;
     case AIRCO_PLUS: airco::temp_stap(1); break;
-    case AIRCO_FAN: airco::fan_volgende(); break;
-    case AIRCO_SWING: airco::swing_volgende(); break;
-    case AIRCO_UNIT: airco::unit_volgende(); break;
-    case KNOPTEST: knoptest::reset(); zeigen_seite(S_TEST); break;
-    case TEST_RESET: knoptest::reset(); break;
-    case INSTELLINGEN: zeigen_seite(S_INST); break;
-    case INST_FULL: case INST_ECO: eco_mode() = a == INST_ECO; alles_herbouwen(); break;
-    case INST_WIFI: toast("Reconnecting Wi-Fi\xE2\x80\xA6"); break;
-    case DIM_GEREED: dimmer_dicht(); break;
-    case TERUG:
-      if (keuze().over != nullptr) keuze_dicht();
-      else if (st().seite != S_THUIS) zeigen_seite(S_THUIS);
+    case AIRCO_FAN: airco::fan_next(); break;
+    case AIRCO_SWING: airco::swing_next(); break;
+    case AIRCO_UNIT: airco::unit_next(); break;
+    case KEYTEST: keytest::reset(); show_screen(S_TEST); break;
+    case TEST_RESET: keytest::reset(); break;
+    case SETTINGS: show_screen(S_SETTINGS); break;
+    case SET_FULL: case SET_ECO: eco_mode() = a == SET_ECO; rebuild_all(); break;
+    case SET_WIFI: toast("Reconnecting Wi-Fi\xE2\x80\xA6"); break;
+    case DIM_DONE: dimmer_close(); break;
+    case BACK:
+      if (choice().over != nullptr) choice_close();
+      else if (st().cur_screen != S_HOME) show_screen(S_HOME);
       break;
-    case THUIS: zeigen_seite(S_THUIS); break;
+    case HOME: show_screen(S_HOME); break;
     default: std::printf("[remote] action %d\n", a); break;
   }
 }
@@ -164,13 +164,13 @@ void action(int a) {
 // ---------------------------------------------------------------- hardware keys (Rev6 key codes)
 static void key(int k) {
   for (bool down : {true, false}) {
-    if (kef::taste(k, down)) continue;   // volume / mute -> speaker
+    if (speaker_e::key_in(k, down)) continue;   // volume / mute -> speaker
     if (!down) continue;
-    if (st().seite == S_TEST) { knoptest::taste(k, true); knoptest::taste(k, false); continue; }
-    if (k == 13) action(TERUG);
-    else if (k == 41 || k == 3) action(THUIS);
-    else if (st().seite == S_AIRCO && (k == 14 || k == 35)) airco::temp_stap(k == 14 ? 1 : -1);
-    else if (k == 2) action(AUDIO_NU);
+    if (st().cur_screen == S_TEST) { keytest::key_in(k, true); keytest::key_in(k, false); continue; }
+    if (k == 13) action(BACK);
+    else if (k == 41 || k == 3) action(HOME);
+    else if (st().cur_screen == S_AIRCO && (k == 14 || k == 35)) airco::temp_stap(k == 14 ? 1 : -1);
+    else if (k == 2) action(AUDIO_NOW);
     else std::printf("[remote] key %d (D-pad: see the firmware's module Nav)\n", k);
   }
 }
@@ -219,23 +219,23 @@ static void clock_cb(lv_timer_t *) {
   std::time_t t = std::time(nullptr);
   std::tm *l = std::localtime(&t);
   status(l->tm_hour, l->tm_min, 78, false, true, -60);
-  herhaal_tik(lv_tick_get());
+  repeat_tick(lv_tick_get());
 }
 
 // --demo: every screen once, a screenshot of each
 static void demo_cb(lv_timer_t *tm) {
   static int step = 0;
   struct S { int action; const char *file; };
-  static const S steps[] = {{THUIS, "demo-01-home.bmp"}, {TV, "demo-02-tv.bmp"}, {LICHT, "demo-03-lights.bmp"},
+  static const S steps[] = {{HOME, "demo-01-home.bmp"}, {TV, "demo-02-tv.bmp"}, {LIGHTS, "demo-03-lights.bmp"},
                             {SCENES, "demo-04-scenes.bmp"}, {AUDIO, "demo-05-audio.bmp"}, {-1, "demo-05b-audio-bottom.bmp"},
-                            {AIRCO, "demo-06-airco.bmp"}, {INSTELLINGEN, "demo-07-settings.bmp"}, {KNOPTEST, "demo-08-buttontest.bmp"}};
+                            {AIRCO, "demo-06-airco.bmp"}, {SETTINGS, "demo-07-settings.bmp"}, {KEYTEST, "demo-08-buttontest.bmp"}};
   const int n = sizeof(steps) / sizeof(steps[0]);
   if (step > 0) screenshot(steps[step - 1].file);
   if (step >= n) { lv_timer_delete(tm); std::exit(0); }
   if (steps[step].action == -1) lv_obj_scroll_to_y(st().audio_body, 200, LV_ANIM_OFF);
   else action(steps[step].action);
-  if (steps[step].action == LICHT) action(LAMP + 0);
-  if (steps[step].action == KNOPTEST) { key(14); key(41); }
+  if (steps[step].action == LIGHTS) action(LAMP + 0);
+  if (steps[step].action == KEYTEST) { key(14); key(41); }
   step++;
 }
 
@@ -265,33 +265,33 @@ int main(int argc, char **argv) {
 
   // the outside world
   ha() = ha_stub;
-  tv::entiteit() = "media_player.lg_tv";
-  kef::entiteit() = "media_player.woonkamer";
-  kef::melding() = [](const char *t) { toast(t); };
+  tv::entity_ref() = "media_player.lg_tv";
+  speaker_e::entity_ref() = "media_player.woonkamer";
+  speaker_e::notice() = [](const char *t) { toast(t); };
   st().actie = action;
   deserializeJson(g_home, english() ? HOME_JSON_EN : HOME_JSON);
   deserializeJson(g_scenes, english() ? SCENES_JSON_EN : SCENES_JSON);
   st().items = []() { return g_home.as<JsonArrayConst>(); };
   st().scenes_items = []() { return g_scenes.as<JsonArrayConst>(); };
-  lampen_uit_tekst(english() ? LAMPS_EN : LAMPS);
-  for (auto &l : lampen()) { l.state = "off"; l.bri = -1; }
+  lamps_from_text(english() ? LAMPS_EN : LAMPS);
+  for (auto &l : lamps()) { l.state = "off"; l.bri = -1; }
   sample_audio();
   sample_airco();
 
   Fonts f{&inter12, &inter14, &inter16, &mdi20, &inter20, &inter48};
-  Beelden bl;
+  ImageSet bl;
   bl.wall = &wall;
-  bl.tv = &ic_tv; bl.audio = &ic_audio; bl.licht = &ic_light; bl.scenes = &ic_scenes;
+  bl.tv = &ic_tv; bl.audio = &ic_audio; bl.light = &ic_light; bl.scenes = &ic_scenes;
   sim_logos();
   tv_apps() = {{"PS5", "PS5 Gameconsole", "playstation"}, {"Netflix", "Netflix", "netflix"}, {"YouTube", "YouTube", "youtube"},
                {"Xbox", "HDMI 3", "game"}, {"Live TV", "Live TV", "tv"}, {"Spotify", "Spotify", "spotify"}};
   st().toast_font = &inter14;
-  bouwen(scr, f, bl, g_home.as<JsonArrayConst>());
+  build_all(scr, f, bl, g_home.as<JsonArrayConst>());
   tv_status("on", "PS5 Gameconsole");
-  audio::tonen();
-  airco::tonen();
-  zeigen(true);
-  zeigen_seite(S_THUIS);
+  audio::show();
+  airco::show();
+  show_page(true);
+  show_screen(S_HOME);
 
   lv_timer_create(clock_cb, 1000, nullptr);
   clock_cb(nullptr);

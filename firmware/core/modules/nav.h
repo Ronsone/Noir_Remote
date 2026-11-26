@@ -73,9 +73,9 @@ struct Nav : Module {
 
   // Where the buttons are: an open pop-up (skin list, lamp dimmer) on the top layer, else the screen itself
   lv_obj_t *root() const {
-    if (noir::keuze().over != nullptr && lv_obj_is_valid(noir::keuze().over)) return noir::keuze().over;
+    if (noir::choice().over != nullptr && lv_obj_is_valid(noir::choice().over)) return noir::choice().over;
     if (noir::dimmer().over != nullptr && lv_obj_is_valid(noir::dimmer().over)) return noir::dimmer().over;
-    return noir::laag_van(noir::st().seite);
+    return noir::layer_of(noir::st().cur_screen);
   }
   void move(int k) {
     lv_obj_t *layer = root();
@@ -131,7 +131,7 @@ struct Nav : Module {
 
   bool key(int k, bool pressed) override {
     if (!is_dir(k) && k != 34) return false;
-    if (noir::st().seite != page) { clear(); page = noir::st().seite; }
+    if (noir::st().cur_screen != page) { clear(); page = noir::st().cur_screen; }
     last = millis();
     if (k == 34) {   // OK: short = tap, held 0.5 s = long press
       if (pressed) {
@@ -157,7 +157,7 @@ struct Nav : Module {
         lv_obj_send_event(focus, LV_EVENT_RELEASED, nullptr);
       }
     }
-    if (focus != nullptr && (noir::st().seite != page || now - last > 8000 || !noir::st().zichtbaar)) { clear(); return; }
+    if (focus != nullptr && (noir::st().cur_screen != page || now - last > 8000 || !noir::st().visible)) { clear(); return; }
     if (focus != nullptr) place_ring();   // follow scrolling and rebuilt screens
   }
 };

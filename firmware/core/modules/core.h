@@ -62,16 +62,16 @@ struct Poll {
 inline std::map<std::string, Poll> &polls() { static std::map<std::string, Poll> p; return p; }
 inline void poll_set(const std::string &name, Poll p) {
   polls()[name] = std::move(p);
-  noir::licht_http::extra_open() = []() {
+  noir::lights_http::extra_open() = []() {
     for (auto &kv : polls()) if (kv.second.open && kv.second.open()) return true;
     return false;
   };
-  noir::licht_http::extra_e() = []() {
+  noir::lights_http::extra_e() = []() {
     std::string e;
     for (auto &kv : polls()) if (kv.second.open && kv.second.open() && kv.second.entities) e += kv.second.entities();
     return e;
   };
-  noir::licht_http::extra_lees() = [](JsonDocument &doc) {
+  noir::lights_http::extra_read() = [](JsonDocument &doc) {
     for (auto &kv : polls()) if (kv.second.read) kv.second.read(doc);
   };
 }
@@ -160,9 +160,9 @@ inline void apply_config() {
   if (l != lang) {
     lang = l;
     noir::english() = l != "nl";
-    noir::teksten().clear();
-    for (JsonPairConst kv : a.cfg["texts"].as<JsonObjectConst>()) noir::teksten()[kv.key().c_str()] = kv.value() | "";
-    if (a.built) noir::alles_herbouwen();   // every screen in the new language
+    noir::texts().clear();
+    for (JsonPairConst kv : a.cfg["texts"].as<JsonObjectConst>()) noir::texts()[kv.key().c_str()] = kv.value() | "";
+    if (a.built) noir::rebuild_all();   // every screen in the new language
   }
   JsonObjectConst cfg = a.cfg.as<JsonObjectConst>();
   for (Module *m : modules()) m->configure(cfg);
