@@ -142,12 +142,16 @@ struct Stand {
 inline Stand &st() { static Stand s; return s; }
 
 
-// Language (NOIR Remote): the screens are written in Dutch; tr() gives the English text when English is chosen.
+// Language (NOIR Remote): the screens are written in Dutch; tr() gives the English text when another language is chosen.
 // Text that is not in the table (names from the configuration) stays as it is.
 inline bool &english() { static bool e = false; return e; }
 inline bool &eco_mode() { static bool e = false; return e; }   // shown on the settings screen
+// Other languages (de, fr, es, ...): a language pack from NOIR Remote (cfg.texts, text -> translation); what is missing
+// there falls back to English.
+inline std::map<std::string, std::string> &teksten() { static std::map<std::string, std::string> t; return t; }
 inline const char *tr(const char *nl) {
   if (!english() || nl == nullptr) return nl;
+  if (!teksten().empty()) { auto it = teksten().find(nl); if (it != teksten().end()) return it->second.c_str(); }
   static const char *const T[][2] = {
     {"Terug", "Back"}, {"Thuis", "Home"}, {"Verlichting", "Lights"}, {"Sc\xC3\xA8nes", "Scenes"}, {"Alles uit", "All off"},
     {"Instellingen", "Settings"}, {"Skin", "Skin"}, {"Modus", "Mode"}, {"Wi-Fi herstellen", "Restore Wi-Fi"},

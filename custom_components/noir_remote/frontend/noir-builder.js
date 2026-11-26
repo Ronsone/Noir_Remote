@@ -18,9 +18,12 @@ const ICONS = ["noir:tv", "noir:audio", "noir:licht", "noir:scenes", "mdi:power"
 const INSTALL_URL = "https://ronsone.github.io/Noir_Remote/";
 const LOGO_URL = (k) => `/noir_remote_static/logos/${k}.png`;
 const NL = {"Home": "Home", "Lights": "Verlichting", "Scenes": "Scènes", "TV": "TV", "Remote": "Remote", "TV screen": "TV", "Lights screen": "Verlichting", "Scenes screen": "Scènes", "All off": "Alles uit", "TV on/off": "TV aan/uit", "Remote settings": "Instellingen remote", "Toggle an entity": "Iets aan/uit zetten", "Run a scene or script": "Scène of script starten", "Netflix (coming soon)": "Netflix (binnenkort)", "Tiles on your home screen": "Tegels op je startscherm", "Add tile": "Tegel toevoegen", "Add light": "Lamp toevoegen", "Add scene": "Scène toevoegen", "Name": "Naam", "Opens": "Opent", "Entity": "Entiteit", "Size": "Maat", "Half": "Half", "Full": "Vol", "Dimmable": "Dimbaar", "On/off": "Aan/uit", "Scene or script": "Scène of script", "Also used by": "Ook gebruikt door", "App tiles": "App-tegels", "Your TV": "Je tv", "Speaker (on with the TV, volume keys)": "Speaker (aan met de tv, volumetoetsen)", "Advanced · infrared codes (LG is filled in)": "Geavanceerd · infraroodcodes (LG staat ingevuld)", "Address": "Adres", "Command": "Commando", "Power on": "Aan", "Power off": "Uit", "Power toggle": "Aan/uit", "Mode": "Modus", "Language": "Taal", "Always ready": "Altijd klaar", "Longer battery": "Langer op de accu", "First-time setup": "Eerste keer instellen", "Copy": "Kopiëren", "Copied": "Gekopieerd", "Save": "Opslaan", "Unsaved changes": "Niet opgeslagen", "Saved – the remote updates in a few seconds.": "Opgeslagen – de remote past zich zo aan.", "What you see left is what your remote shows.": "Links zie je wat je remote laat zien.", "Tap a tile to edit it": "Tik op een tegel om hem aan te passen", "Tap = on/off · hold = dim": "Tikken = aan/uit · vasthouden = dimmen", "New tile": "Nieuwe tegel", "Up": "Omhoog", "Down": "Omlaag", "Remove": "Verwijderen", "Icon": "Icoon", "TV input / app": "Tv-ingang / app", "Settings": "Instellingen", "Loading…": "Laden…", "Copy into your ESPHome": "Kopieer naar je ESPHome", "Your remote YAML:": "YAML van je remote:", "Flash via USB, then add it in Home Assistant (ESPHome) – it asks for": "Flash via USB en voeg hem toe in Home Assistant (ESPHome) – die vraagt om",
-  "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Add": "Toevoegen", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "tested": "getest", "— none —": "— geen —", "Save as": "Bewaar als", "and fill in your Wi-Fi": "en vul je wifi in", "Connect the remote by USB and run in the firmware folder:": "Sluit de remote aan via USB en voer uit in de map firmware:", "Home Assistant finds the remote (ESPHome) – it asks for": "Home Assistant vindt de remote (ESPHome) – die vraagt om", "Your Wi-Fi (only used for this file, not stored):": "Je wifi (alleen voor dit bestand, wordt niet opgeslagen):", "Wi-Fi name": "Wifi-naam", "Wi-Fi password": "Wifi-wachtwoord", "Download secrets.yaml": "Download secrets.yaml", "Put the file in the folder": "Zet het bestand in de map", "Show the text": "Toon de tekst", "Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.": "Installeer de firmware vanuit je browser (Chrome of Edge): sluit de remote aan via USB en druk op Installeren.", "Open the installer": "Open de installer", "Connect your phone to the Wi-Fi network “noir-remote setup” and choose your own Wi-Fi.": "Verbind je telefoon met het wifi-netwerk “noir-remote setup” en kies je eigen wifi.", "Done: Home Assistant adds the remote by itself – no keys, no files.": "Klaar: Home Assistant voegt de remote vanzelf toe – geen sleutels, geen bestanden.", "Firmware": "Firmware", "No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.": "Nog geen update gevonden op je remote. Een remote met firmware 0.2 installeert de nieuwe firmware één keer via de installer (USB); daarna komen updates hier, met één knop.", "Updating…": "Bijwerken…", "keep the remote close to your Wi-Fi.": "houd de remote in de buurt van je wifi.", "New firmware": "Nieuwe firmware", "now": "nu", "Up to date": "Up-to-date", "Update firmware": "Firmware bijwerken", "Started – the remote restarts when it is done.": "Gestart – de remote herstart als hij klaar is.", "Check now": "Nu controleren", "Airco screen": "Airco-scherm", "— choose —": "— kies —", "Home Assistant (any brand)": "Home Assistant (elk merk)", "Infrared of the remote": "Infrarood van de remote", "Room, e.g. Living room": "Kamer, bijv. Woonkamer", "Your aircos": "Je airco's", "Per room: a climate entity in Home Assistant (any brand, e.g. an ESP32 module on the airco), or the remote's own infrared.": "Per kamer: een climate-entiteit in Home Assistant (elk merk, bijvoorbeeld een ESP32-module op de airco), of de infrarood van de remote zelf.", "Add airco": "Airco toevoegen", "Via Home Assistant the remote shows the modes, fan and swing settings your airco has. Infrared: the remote remembers what it sent (the airco reports nothing back).": "Via Home Assistant toont de remote de standen, ventilator en swing die jouw airco heeft. Infrarood: de remote onthoudt wat hij stuurde (de airco meldt niets terug).", "Add a tile “Airco screen” on Home to open it.": "Zet op Home een tegel “Airco-scherm” om hem te openen.", "Cooling": "Koelen", "room": "kamer", "Audio screen": "Audio-scherm", "Your speaker in Home Assistant": "Je speaker in Home Assistant", "On/off, source and volume go to this speaker. The volume keys of the remote too.": "Aan/uit, bron en volume gaan naar deze speaker. De volumetoetsen van de remote ook.", "Choose your speaker first – its sources appear here.": "Kies eerst je speaker – zijn bronnen verschijnen hier.", "Switch your speaker on – its sources then appear here.": "Zet je speaker aan – dan verschijnen zijn bronnen hier.", "Tap one below to add it. Up to 6.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 6.", "Now playing (optional)": "Nu speelt (optioneel)", "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.": "De speler die laat zien wat er speelt en play/pauze en volgende krijgt. Leeg = de speaker zelf.", "— the speaker —": "— de speaker —", "Subwoofer (optional)": "Subwoofer (optioneel)", "A number entity with the subwoofer level, e.g. the KEF's.": "Een number-entiteit met het niveau van de subwoofer, bijvoorbeeld die van de KEF.", "Add a tile “Audio screen” on Home to open it.": "Zet op Home een tegel “Audio-scherm” om hem te openen.", "Switch it on with": "Aanzetten met", "On (standard)": "Aan (standaard)", "Speaker does not switch on? Choose the source it plays the TV on – choosing a source wakes it up.": "Gaat de speaker niet aan? Kies de bron waarop hij de tv speelt – een bron kiezen maakt hem wakker.", "Checking…": "Controleren…", "not checked yet": "nog niet gecontroleerd", "Switch your TV on – its inputs and apps then appear here.": "Zet je tv aan – dan verschijnen zijn ingangen en apps hier.", "Done: the remote is added to Home Assistant (ESPHome) by itself, about a minute after it starts.": "Klaar: de remote wordt vanzelf aan Home Assistant (ESPHome) toegevoegd, ongeveer een minuut nadat hij start."};
+  "Your TV in Home Assistant": "Je tv in Home Assistant", "Switching on and keys": "Aanzetten en toetsen", "No infrared": "Geen infrarood", "Everything via Home Assistant": "Alles via Home Assistant", "Test": "Testen", "On": "Aan", "Off": "Uit", "Sent – did your TV react?": "Verstuurd – reageerde je tv?", "Brand not listed? See docs/tv.md – one small file adds it.": "Merk staat er niet bij? Zie docs/tv.md – één klein bestand voegt het toe.", "Speaker (optional)": "Speaker (optioneel)", "Switches on with the TV, gets the volume keys.": "Gaat aan met de tv en krijgt de volumetoetsen.", "Sources on your remote": "Bronnen op je remote", "Tap one below to add it. Up to 8.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 8.", "Add": "Toevoegen", "Choose your TV first – its inputs and apps appear here.": "Kies eerst je tv – zijn ingangen en apps verschijnen hier.", "Add by hand": "Zelf toevoegen", "Logo": "Logo", "No logo": "Geen logo", "Brands": "Merken", "General": "Algemeen", "Source": "Bron", "No sources yet": "Nog geen bronnen", "tested": "getest", "— none —": "— geen —", "Save as": "Bewaar als", "and fill in your Wi-Fi": "en vul je wifi in", "Connect the remote by USB and run in the firmware folder:": "Sluit de remote aan via USB en voer uit in de map firmware:", "Home Assistant finds the remote (ESPHome) – it asks for": "Home Assistant vindt de remote (ESPHome) – die vraagt om", "Your Wi-Fi (only used for this file, not stored):": "Je wifi (alleen voor dit bestand, wordt niet opgeslagen):", "Wi-Fi name": "Wifi-naam", "Wi-Fi password": "Wifi-wachtwoord", "Download secrets.yaml": "Download secrets.yaml", "Put the file in the folder": "Zet het bestand in de map", "Show the text": "Toon de tekst", "Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.": "Installeer de firmware vanuit je browser (Chrome of Edge): sluit de remote aan via USB en druk op Installeren.", "Open the installer": "Open de installer", "Connect your phone to the Wi-Fi network “noir-remote setup” and choose your own Wi-Fi.": "Verbind je telefoon met het wifi-netwerk “noir-remote setup” en kies je eigen wifi.", "Done: Home Assistant adds the remote by itself – no keys, no files.": "Klaar: Home Assistant voegt de remote vanzelf toe – geen sleutels, geen bestanden.", "Firmware": "Firmware", "No update found on your remote yet. Remotes with firmware 0.2 install the new firmware once via the installer (USB); after that, updates come here with one button.": "Nog geen update gevonden op je remote. Een remote met firmware 0.2 installeert de nieuwe firmware één keer via de installer (USB); daarna komen updates hier, met één knop.", "Updating…": "Bijwerken…", "keep the remote close to your Wi-Fi.": "houd de remote in de buurt van je wifi.", "New firmware": "Nieuwe firmware", "now": "nu", "Up to date": "Up-to-date", "Update firmware": "Firmware bijwerken", "Started – the remote restarts when it is done.": "Gestart – de remote herstart als hij klaar is.", "Check now": "Nu controleren", "Stable": "Stabiel", "Test channel": "Test", "Released versions": "Vrijgegeven versies", "Newest build – for testers": "Nieuwste versie – voor testers", "Press Save after changing the channel, then Check now.": "Druk na het wisselen op Opslaan, daarna op Nu controleren.", "Airco screen": "Airco-scherm", "— choose —": "— kies —", "Home Assistant (any brand)": "Home Assistant (elk merk)", "Infrared of the remote": "Infrarood van de remote", "Room, e.g. Living room": "Kamer, bijv. Woonkamer", "Your aircos": "Je airco's", "Per room: a climate entity in Home Assistant (any brand, e.g. an ESP32 module on the airco), or the remote's own infrared.": "Per kamer: een climate-entiteit in Home Assistant (elk merk, bijvoorbeeld een ESP32-module op de airco), of de infrarood van de remote zelf.", "Add airco": "Airco toevoegen", "Via Home Assistant the remote shows the modes, fan and swing settings your airco has. Infrared: the remote remembers what it sent (the airco reports nothing back).": "Via Home Assistant toont de remote de standen, ventilator en swing die jouw airco heeft. Infrarood: de remote onthoudt wat hij stuurde (de airco meldt niets terug).", "Add a tile “Airco screen” on Home to open it.": "Zet op Home een tegel “Airco-scherm” om hem te openen.", "Cooling": "Koelen", "room": "kamer", "Audio screen": "Audio-scherm", "Your speaker in Home Assistant": "Je speaker in Home Assistant", "On/off, source and volume go to this speaker. The volume keys of the remote too.": "Aan/uit, bron en volume gaan naar deze speaker. De volumetoetsen van de remote ook.", "Choose your speaker first – its sources appear here.": "Kies eerst je speaker – zijn bronnen verschijnen hier.", "Switch your speaker on – its sources then appear here.": "Zet je speaker aan – dan verschijnen zijn bronnen hier.", "Tap one below to add it. Up to 6.": "Tik hieronder op een bron om hem toe te voegen. Maximaal 6.", "Now playing (optional)": "Nu speelt (optioneel)", "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.": "De speler die laat zien wat er speelt en play/pauze en volgende krijgt. Leeg = de speaker zelf.", "— the speaker —": "— de speaker —", "Subwoofer (optional)": "Subwoofer (optioneel)", "A number entity with the subwoofer level, e.g. the KEF's.": "Een number-entiteit met het niveau van de subwoofer, bijvoorbeeld die van de KEF.", "Add a tile “Audio screen” on Home to open it.": "Zet op Home een tegel “Audio-scherm” om hem te openen.", "Switch it on with": "Aanzetten met", "On (standard)": "Aan (standaard)", "Speaker does not switch on? Choose the source it plays the TV on – choosing a source wakes it up.": "Gaat de speaker niet aan? Kies de bron waarop hij de tv speelt – een bron kiezen maakt hem wakker.", "Checking…": "Controleren…", "not checked yet": "nog niet gecontroleerd", "Switch your TV on – its inputs and apps then appear here.": "Zet je tv aan – dan verschijnen zijn ingangen en apps hier.", "Done: the remote is added to Home Assistant (ESPHome) by itself, about a minute after it starts.": "Klaar: de remote wordt vanzelf aan Home Assistant (ESPHome) toegevoegd, ongeveer een minuut nadat hij start."};
 let LANG = "nl";
-const L = (en) => (LANG === "nl" && NL[en]) || en;
+let PACKS = {};   // de/fr/es... from NOIR Remote (languages/*.json): {builder: {English: text}, remote: {Dutch: text}}
+const L = (en) => (LANG === "nl" ? NL[en] : PACKS[LANG]?.builder?.[en]) || en;
+// texts in the remote preview: written as on the remote (nl, en); other languages from the pack's remote texts
+const P = (nl, en) => LANG === "nl" ? nl : LANG === "en" ? en : (PACKS[LANG]?.remote?.[nl] || en);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const haIcon = (i) => ({ "noir:tv": "mdi:television", "noir:audio": "mdi:waveform", "noir:licht": "mdi:floor-lamp-outline", "noir:scenes": "mdi:layers-outline" }[i] || i || "mdi:square-rounded-outline");
 
@@ -101,7 +104,7 @@ class NoirBuilder extends HTMLElement {
   async _load() {
     try {
       const r = await this._hass.callWS({ type: "noir_remote/get" });
-      this.s.model = r.model; this.s.device = r.device; this.s.profiles = r.profiles || []; this.s.aircoIr = r.airco_ir || []; this.s.logos = r.logos || [];
+      this.s.model = r.model; this.s.device = r.device; this.s.profiles = r.profiles || []; this.s.aircoIr = r.airco_ir || []; this.s.languages = r.languages || []; PACKS = r.packs || {}; this.s.logos = r.logos || [];
     } catch (e) { this.s.msg = `Could not load: ${e.message || e}`; }
     this._render();
   }
@@ -169,7 +172,7 @@ class NoirBuilder extends HTMLElement {
     const now = new Date();
     return `<div class="noirv"><div class="nvbar"><span>${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}</span>82%</div>
       <div class="nvbody">${title}${inner}</div>
-      <div class="nvfoot"><span class="nvk"><ha-icon icon="mdi:arrow-left"></ha-icon>${LANG === "en" ? "Back" : "Terug"}</span><span class="nvk"><ha-icon icon="mdi:home"></ha-icon>${LANG === "en" ? "Home" : "Thuis"}</span></div></div>`;
+      <div class="nvfoot"><span class="nvk"><ha-icon icon="mdi:arrow-left"></ha-icon>${P("Terug", "Back")}</span><span class="nvk"><ha-icon icon="mdi:home"></ha-icon>${P("Thuis", "Home")}</span></div></div>`;
   }
 
   _list_(l) { const m = this.s.model; return l === "apps" ? m.tv.apps : l === "asrc" ? m.audio.sources : l === "units" ? m.airco.units : m[l]; }
@@ -215,11 +218,11 @@ class NoirBuilder extends HTMLElement {
     try { if (list.length) localStorage.setItem(ck, JSON.stringify(list)); else list = JSON.parse(localStorage.getItem(ck) || "[]"); } catch (e) { /* storage blocked */ }
     const used = new Set(au.sources.map((x) => x.source));
     const on = sp && !["off", "standby", "unavailable", "unknown"].includes(sp.state);
-    const name = sp?.attributes?.friendly_name || (LANG === "en" ? "Speaker" : "Speaker");
+    const name = sp?.attributes?.friendly_name || P("Speaker", "Speaker");
     // preview: status, now playing, source buttons (3 per row)
     const btns = au.sources.map((x, n) => `<span class="nvk" style="left:${(n % 3) * 74}px;top:${150 + Math.floor(n / 3) * 38}px;width:68px;height:32px;justify-content:center;${on && sp.attributes.source === x.source ? "border-color:#bfc2c9" : ""}">${esc(x.name)}</span>`).join("");
-    const preview = this._phone(`<b class="nvt">Audio</b><small class="nvs">${esc(name)} · ${on ? esc(sp.attributes.source || (LANG === "en" ? "on" : "aan")) : (LANG === "en" ? "off" : "uit")}</small>`,
-      `<span class="nvk" style="left:0;top:52px;width:216px;height:76px;align-items:flex-start;flex-direction:column;justify-content:center;padding-left:12px;box-sizing:border-box"><b style="font-size:13px">${esc(sp?.attributes?.media_title || (LANG === "en" ? "Nothing playing" : "Niets aan het afspelen"))}</b><small style="color:#969aa3">${esc(sp?.attributes?.media_artist || "")}</small></span>${btns}`);
+    const preview = this._phone(`<b class="nvt">Audio</b><small class="nvs">${esc(name)} · ${on ? esc(sp.attributes.source || P("aan", "on")) : P("uit", "off")}</small>`,
+      `<span class="nvk" style="left:0;top:52px;width:216px;height:76px;align-items:flex-start;flex-direction:column;justify-content:center;padding-left:12px;box-sizing:border-box"><b style="font-size:13px">${esc(sp?.attributes?.media_title || P("Niets aan het afspelen", "Nothing playing"))}</b><small style="color:#969aa3">${esc(sp?.attributes?.media_artist || "")}</small></span>${btns}`);
     const c1 = `<div class="card"><h3>1 · ${L("Your speaker in Home Assistant")}</h3>${this._sel("speaker", au.speaker, ["media_player"], at)}
       <p class="note">${L("On/off, source and volume go to this speaker. The volume keys of the remote too.")}</p></div>`;
     const rows = au.sources.map((x, i) => `<div class="row lights">
@@ -265,7 +268,7 @@ class NoirBuilder extends HTMLElement {
     const m = this.s.model, st = this._hass?.states || {};
     const shown = m.lights.filter((l) => l.entity).map((l, i) => {
       const z = st[l.entity], on = z?.state === "on", b = z?.attributes?.brightness;
-      const txt = !z ? "?" : !on ? (LANG === "en" ? "Off" : "Uit") : b != null ? `${Math.round(b / 2.55)}%` : (LANG === "en" ? "On" : "Aan");
+      const txt = !z ? "?" : !on ? P("Uit", "Off") : b != null ? `${Math.round(b / 2.55)}%` : P("Aan", "On");
       return `<span class="nvk ${on ? "" : "off"}" style="left:0;top:${40 + i * 46}px;width:216px;height:38px;justify-content:center">${esc(l.label || l.entity)} · ${txt}</span>`;
     }).join("");
     const at = (i) => `data-l="lights" data-i="${i}"`;
@@ -274,21 +277,21 @@ class NoirBuilder extends HTMLElement {
       <input list="dl-toggle" ${at(i)} data-f="entity" value="${esc(l.entity)}" placeholder="light.… / switch.…">
       ${(l.entity || "").startsWith("light.") ? `<label><input type="checkbox" ${at(i)} data-f="dim" ${l.dim !== false ? "checked" : ""}> ${L("Dimmable")}</label>` : `<span class="muted">${L("On/off")}</span>`}
       ${this._acts("lights", i, m.lights.length)}</div>`).join("");
-    return { preview: this._phone(`<b class="nvt">${LANG === "en" ? "Lights" : "Verlichting"}</b>`, shown), hint: L("Tap = on/off · hold = dim"), body: `<div class="card"><h3>${L("Lights")}</h3>
+    return { preview: this._phone(`<b class="nvt">${P("Verlichting", "Lights")}</b>`, shown), hint: L("Tap = on/off · hold = dim"), body: `<div class="card"><h3>${L("Lights")}</h3>
       <p>${L("Also used by")} <b>${L("All off")}</b>.</p>
       <div class="row lights head"><span>${L("Name")}</span><span>${L("Entity")}</span><span>${L("Dimmable")}</span><span></span></div>
       ${rows}<button class="btn" data-a="add" data-l="lights"><ha-icon icon="mdi:plus"></ha-icon>${L("Add light")}</button></div>` };
   }
   _scenes() {
     const m = this.s.model;
-    const all = [{ label: LANG === "en" ? "All off" : "Alles uit", icon: "mdi:power" }, ...m.scenes.filter((s) => s.label)];
+    const all = [{ label: P("Alles uit", "All off"), icon: "mdi:power" }, ...m.scenes.filter((s) => s.label)];
     const tiles = all.map((s, n) => `<span class="nvk big" style="left:${(n % 2) * 112}px;top:${36 + Math.floor(n / 2) * 64}px;width:104px;height:56px"><ha-icon icon="${esc(haIcon(s.icon))}"></ha-icon><b>${esc(s.label)}</b></span>`).join("");
     const at = (i) => `data-l="scenes" data-i="${i}"`;
     const rows = m.scenes.map((s, i) => `<div class="row scenes">${this._icon("icon", s.icon, at(i))}
       <input ${at(i)} data-f="label" value="${esc(s.label)}" maxlength="24" placeholder="${L("Name")}">
       <input list="dl-run" ${at(i)} data-f="entity" value="${esc(s.entity)}" placeholder="scene.… / script.…">
       ${this._acts("scenes", i, m.scenes.length)}</div>`).join("");
-    return { preview: this._phone(`<b class="nvt">${LANG === "en" ? "Scenes" : "Scènes"}</b>`, tiles), hint: "“All off” is always there", body: `<div class="card"><h3>${L("Scenes")}</h3>
+    return { preview: this._phone(`<b class="nvt">${P("Scènes", "Scenes")}</b>`, tiles), hint: "“All off” is always there", body: `<div class="card"><h3>${L("Scenes")}</h3>
       
       <div class="row scenes head"><span></span><span>${L("Name")}</span><span>${L("Scene or script")}</span><span></span></div>
       ${rows}<button class="btn" data-a="add" data-l="scenes"><ha-icon icon="mdi:plus"></ha-icon>${L("Add scene")}</button></div>` };
@@ -302,7 +305,7 @@ class NoirBuilder extends HTMLElement {
       || `<small class="nvs" style="top:80px">${L("No sources yet")}</small>`;
     const tvs = st[tv.entity];
     const on = tvs && !["off", "unavailable", "unknown"].includes(tvs.state);
-    const preview = this._phone(`<b class="nvt">TV</b><small class="nvs">${on ? "● " + (LANG === "en" ? "On" : "Aan") + (tvs.attributes.source ? " · " + esc(tvs.attributes.source) : "") : (LANG === "en" ? "Off" : "Uit")}</small>`, tiles);
+    const preview = this._phone(`<b class="nvt">TV</b><small class="nvs">${on ? "● " + P("Aan", "On") + (tvs.attributes.source ? " · " + esc(tvs.attributes.source) : "") : P("Uit", "Off")}</small>`, tiles);
     // 1 · TV
     const c1 = `<div class="card"><h3>1 · ${L("Your TV in Home Assistant")}</h3>${this._sel("entity", tv.entity, ["media_player"], at)}</div>`;
     // 2 · infrared profile
@@ -351,8 +354,8 @@ class NoirBuilder extends HTMLElement {
         ${card("full", "mdi:lightning-bolt", "Full", L("Always ready"))}
         ${card("eco", "mdi:leaf", "Eco", L("Longer battery"))}</div></div>
       <div class="card"><h3>${L("Language")}</h3><div class="modes">
-        <div class="mode ${LANG === "nl" ? "on" : ""}" data-a="lang" data-v="nl"><b>Nederlands</b><span>Remote + Builder</span></div>
-        <div class="mode ${LANG === "en" ? "on" : ""}" data-a="lang" data-v="en"><b>English</b><span>Remote + Builder</span></div></div></div>
+        ${(this.s.languages?.length ? this.s.languages : [{ code: "nl", name: "Nederlands" }, { code: "en", name: "English" }]).map((x) =>
+          `<div class="mode ${LANG === x.code ? "on" : ""}" data-a="lang" data-v="${esc(x.code)}"><b>${esc(x.name)}</b><span>Remote + Builder</span></div>`).join("")}</div></div>
       ${this._firmware()}
       <div class="card"><details><summary>${L("First-time setup")}</summary>
         <p><b>1</b> · ${L("Install the firmware from your browser (Chrome or Edge): connect the remote by USB and press Install.")}</p>
@@ -366,7 +369,7 @@ class NoirBuilder extends HTMLElement {
     this._painted = true;
     const m = this.s.model;
     if (!m) { this.shadowRoot.innerHTML = `<style>${CSS}</style><div class="wrap"><h1>NOIR Builder</h1><p class="sub">${esc(this.s.msg || "Loading…")}</p></div>`; return; }
-    LANG = m.lang === "en" ? "en" : "nl";
+    LANG = m.lang || "nl";
     const t = { home: this._home, lights: this._lights, scenes: this._scenes, tv: this._tv, audio: this._audio, airco: this._airco, remote: this._remote }[this.s.tab].call(this);
     const y = this.scrollTop;   // the panel scrolls itself (Home Assistant gives it a fixed height)
     this.shadowRoot.innerHTML = `<style>${CSS}</style><div class="wrap">
@@ -390,10 +393,13 @@ class NoirBuilder extends HTMLElement {
     else if (a === "pick") { this.s.sel = i; }
     else if (a === "mode") { m.mode = b.dataset.m; this._touch(); }
     else if (a === "lang") {   // switch language; standard tile names follow
-      const NAMES = [["Verlichting", "Lights"], ["Scènes", "Scenes"], ["Alles uit", "All off"], ["Instellingen", "Settings"]];
-      const en = b.dataset.v === "en";
-      m.lang = b.dataset.v;
-      for (const t of m.tiles) for (const [nl, e] of NAMES) if (t.label === (en ? nl : e)) t.label = en ? e : nl;
+      // a standard name in any language -> the same name in the new language
+      const STD = [["Verlichting", "Lights"], ["Scènes", "Scenes"], ["Alles uit", "All off"], ["Instellingen", "Settings"], ["Airco", "Airco"]];
+      const name = (nl, en, lang) => lang === "nl" ? nl : lang === "en" ? en : (PACKS[lang]?.builder?.[en] || en);
+      const langs = ["nl", "en", ...Object.keys(PACKS)];
+      const to = b.dataset.v;
+      for (const t of m.tiles) for (const [nl, en] of STD) if (langs.some((lg) => name(nl, en, lg) === t.label)) t.label = name(nl, en, to);
+      m.lang = to;
       this._touch();
     }
     else if (a === "profile") { m.tv.profile = b.dataset.v; this.s.testMsg = ""; this._touch(); }
@@ -404,6 +410,7 @@ class NoirBuilder extends HTMLElement {
       if (au.sources.length < 6 && !au.sources.some((x) => x.source === src)) au.sources.push({ name: src.slice(0, 14), source: src });
       this._touch();
     }
+    else if (a === "channel") { m.channel = b.dataset.v; this._touch(); }
     else if (a === "fw_install") { this._fwInstall(); return; }
     else if (a === "fw_check") { this._fwCheck(); return; }
     else if (a === "save") { this._save(); return; }
@@ -452,7 +459,12 @@ class NoirBuilder extends HTMLElement {
     const line = busy ? `${L("Updating…")}${pct != null ? " " + pct + "%" : ""} – ${L("keep the remote close to your Wi-Fi.")}`
       : avail ? `${L("New firmware")}: <b>${esc(a.latest_version || "")}</b> (${L("now")} ${esc(installed)})`
       : `${a.latest_version ? L("Up to date") : L("Firmware")} · ${esc(installed)}${a.latest_version ? "" : " – " + L("not checked yet")}`;
-    return `<div class="card"><h3>${L("Firmware")}</h3><p>${line}</p>
+    const ch = this.s.model.channel === "test" ? "test" : "stable";
+    const chan = `<div class="modes" style="margin-top:12px">
+      <div class="mode ${ch === "stable" ? "on" : ""}" data-a="channel" data-v="stable"><ha-icon icon="mdi:shield-check-outline"></ha-icon><b>${L("Stable")}</b><span>${L("Released versions")}</span></div>
+      <div class="mode ${ch === "test" ? "on" : ""}" data-a="channel" data-v="test"><ha-icon icon="mdi:flask-outline"></ha-icon><b>${L("Test channel")}</b><span>${L("Newest build – for testers")}</span></div></div>
+      <p class="note">${L("Press Save after changing the channel, then Check now.")}</p>`;
+    return `<div class="card"><h3>${L("Firmware")}</h3><p>${line}</p>${chan}
       <div class="bar"><button class="btn ${avail ? "primary" : ""}" data-a="fw_install" ${avail && !busy ? "" : "disabled"}><ha-icon icon="mdi:update"></ha-icon>${L("Update firmware")}</button>
       <button class="btn" data-a="fw_check" ${busy ? "disabled" : ""}><ha-icon icon="mdi:refresh"></ha-icon>${L("Check now")}</button>
       ${this.s.fwMsg ? `<span class="${this.s.fwErr ? "dirty" : "ok"}">${esc(this.s.fwMsg)}</span>` : ""}</div></div>`;

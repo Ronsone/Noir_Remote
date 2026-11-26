@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NOIR Remote",
+        "description": "Name deiner Fernbedienung in ESPHome (device_name).",
+        "data": {
+          "device": "Name der Fernbedienung"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NOIR Remote ist bereits eingerichtet."
+    }
+  }
+}

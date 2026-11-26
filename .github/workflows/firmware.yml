@@ -1,4 +1,7 @@
-# Builds the NOIR firmware. Remotes only get it when you release it:
+# Builds the NOIR firmware. Two channels on GitHub Pages:
+#   stable  firmware/manifest.json       = the latest GitHub release (everyone)
+#   test    firmware/beta/manifest.json  = the newest build, published by "Run workflow" (testers, NOIR Builder > Test)
+# Stable only changes when you release:
 #   GitHub > Releases > Draft a new release > tag v<version> (same as substitutions: version in firmware/noir-remote.yaml) > Publish
 # Then it is published on GitHub Pages:
 #   https://ronsone.github.io/Noir_Remote/                         installer (USB, from the browser)
@@ -12,10 +15,10 @@ on:
     paths: ["firmware/**", "site/**", ".github/workflows/firmware.yml"]
   release:
     types: [published]
-  workflow_dispatch:   # publish again by hand (e.g. after turning on Pages), same version
+  workflow_dispatch:   # publish the newest build to the test channel (stable stays the latest release)
 
 permissions:
-  contents: read
+  contents: write   # keep the firmware with a release
   pages: write
   id-token: write
 
@@ -39,32 +42,36 @@ jobs:
           key: esphome-2026.11.1
       - name: Build
         run: esphome compile firmware/noir-remote.yaml
-      - name: Site and manifest
+      - name: Site and manifests (stable + test)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           version=$(sed -n 's/^  version: "\(.*\)"/\1/p' firmware/noir-remote.yaml)
           if [ "${{ github.event_name }}" = "release" ] && [ "${{ github.event.release.tag_name }}" != "v$version" ]; then
             echo "::error::Release tag ${{ github.event.release.tag_name }} does not match firmware version v$version"; exit 1
           fi
           build=firmware/.esphome/build/noir-remote/build
-          mkdir -p out/firmware
-          cp -r site/. out/
-          cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/
-          md5=$(md5sum out/firmware/firmware.ota.bin | cut -d' ' -f1)
-          cat > out/firmware/manifest.json <<JSON
-          {
-            "name": "NOIR Remote",
-            "version": "$version",
-            "home_assistant_domain": "esphome",
-            "new_install_prompt_erase": true,
-            "builds": [{
-              "chipFamily": "ESP32-S3",
-              "ota": {"path": "firmware.ota.bin", "md5": "$md5", "summary": "NOIR Remote $version",
-                      "release_url": "https://github.com/${{ github.repository }}"},
-              "parts": [{"path": "firmware.factory.bin", "offset": 0}]
-            }]
+          manifest() {   # dir version
+            md5=$(md5sum "$1/firmware.ota.bin" | cut -d' ' -f1)
+            printf '{"name":"NOIR Remote","version":"%s","home_assistant_domain":"esphome","new_install_prompt_erase":true,"builds":[{"chipFamily":"ESP32-S3","ota":{"path":"firmware.ota.bin","md5":"%s","summary":"NOIR Remote %s","release_url":"https://github.com/${{ github.repository }}/releases"},"parts":[{"path":"firmware.factory.bin","offset":0}]}]}' "$2" "$md5" "$2" > "$1/manifest.json"
           }
-          JSON
-          cat out/firmware/manifest.json
+          mkdir -p out/firmware/beta
+          cp -r site/. out/
+          # test channel: always this build
+          cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/beta/
+          manifest out/firmware/beta "$version"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            # a release: this build is stable too, and is kept with the release for later deploys
+            cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/
+            manifest out/firmware "$version"
+            gh release upload "${{ github.event.release.tag_name }}" out/firmware/firmware.ota.bin out/firmware/firmware.factory.bin --clobber
+          elif tag=$(gh release view --json tagName -q .tagName 2>/dev/null) && gh release download "$tag" -p 'firmware.*.bin' -D out/firmware; then
+            manifest out/firmware "${tag#v}"   # stable = the latest release
+          else
+            echo "No release yet: stable = this build"
+            cp out/firmware/beta/firmware.* out/firmware/ && manifest out/firmware "$version"
+          fi
+          cat out/firmware/manifest.json; echo; cat out/firmware/beta/manifest.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

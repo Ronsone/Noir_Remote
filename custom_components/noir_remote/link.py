@@ -3,7 +3,8 @@
 Since firmware 0.3 the remote holds no secrets. Every 20 seconds this module:
 1. confirms ESPHome's "New device found" for the remote (Home Assistant then gives it an encryption key itself);
 2. lets the remote run Home Assistant actions (ESPHome switches that off for new devices);
-3. tells the remote where Home Assistant is and the shared key (action noir_setup), once per Home Assistant start.
+3. tells the remote where Home Assistant is and the shared key (action noir_setup), once per Home Assistant start;
+4. tells the remote where its updates come from (action noir_channel: stable or test), once per start.
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ def _norm(s: str) -> str:
     return "".join(c for c in (s or "").lower() if c.isalnum())
 
 
-def start(hass: HomeAssistant, device: str, host_of, key: str):
+def start(hass: HomeAssistant, device: str, host_of, key: str, update_url=lambda: ""):
     """Start the link loop. Returns the function that stops it."""
     sent: set[str] = set()
     busy: set[str] = set()
@@ -64,6 +65,12 @@ def start(hass: HomeAssistant, device: str, host_of, key: str):
         svc = f"{device.replace('-', '_')}_noir_setup"
         if svc not in sent and hass.services.has_service(ESPHOME, svc):
             hass.async_create_task(setup_remote(svc))
+
+        # 4. update channel (firmware 0.7+ has the action)
+        chan = f"{device.replace('-', '_')}_noir_channel"
+        if chan not in sent and hass.services.has_service(ESPHOME, chan):
+            sent.add(chan)
+            hass.async_create_task(hass.services.async_call(ESPHOME, chan, {"url": update_url()}, blocking=False))
 
     tick()
     return async_track_time_interval(hass, tick, INTERVAL)

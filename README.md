@@ -17,11 +17,11 @@
 
 | ✦ **Simple** | ✦ **Yours** | ✦ **Open** |
 |---|---|---|
-| One screen per task. Text only where it helps. Nederlands or English. | Build your screens in the **NOIR Builder** – what you see is what the remote shows. | Any TV, speaker, light or airco in Home Assistant. One firmware for everyone, free, MIT licensed, every feature a small module. |
+| One screen per task. Text only where it helps. Nederlands, English, Deutsch, Français or Español. | Build your screens in the **NOIR Builder** – what you see is what the remote shows. | Any TV, speaker, light or airco in Home Assistant. One firmware for everyone, free, MIT licensed, every feature a small module. |
 
 <p align="center"><img src="docs/screens.png" width="100%" alt="Home, TV, Lights, Scenes, Settings"></p>
 
-## What it does (version 0.6)
+## What it does (version 0.7)
 
 | | |
 |---|---|
@@ -82,7 +82,7 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 
 - **Left: the preview.** What you see is what the remote shows.
 - **Top: one tab per screen.** Change something and press **Save** – the remote picks it up within seconds (it gets a nudge from Home Assistant; otherwise within 15 minutes).
-- Everything is in Nederlands or English – switch under *Remote → Language*; the remote follows.
+- Everything is in Nederlands, English, Deutsch, Français or Español – switch under *Remote → Language*; the remote follows. More languages: see [docs/languages.md](docs/languages.md).
 
 <p align="center"><img src="docs/builder/home.png" width="100%" alt="NOIR Builder – the Home tab: the tiles of your home screen, with the preview on the left"></p>
 
@@ -94,7 +94,7 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 | **TV** | 1 your TV · 2 its brand for infrared – press **Test · On** to check · 3 your speaker (optional, with *Switch it on with: source* for speakers that wake up that way) · 4 tap the inputs and apps you want; logos are picked for you. Your TV must be on to see its inputs. More in [docs/tv.md](docs/tv.md). |
 | **Audio** | 1 your speaker · 2 tap its sources (up to 6), rename them · 3 *Now playing* from another player (optional, e.g. Music Assistant) · 4 a subwoofer level (optional). |
 | **Airco** | Per room: a name and how it is controlled – a **climate entity** in Home Assistant (any brand) or the remote's **own infrared** (Mitsubishi Heavy). Up to 4 rooms; on the remote you switch between them. |
-| **Remote** | Mode (**Full** / **Eco**), language, **Firmware** (version, **Check now**, **Update firmware**) and *First-time setup* with a link to the installer. |
+| **Remote** | Mode (**Full** / **Eco**), language, **Firmware** (version, **Check now**, **Update firmware**, channel **Stable** or **Test**) and *First-time setup* with a link to the installer. |
 
 A screen only works once it has a tile on **Home** – e.g. add a tile *Audio screen* after setting up Audio.
 
@@ -113,6 +113,7 @@ A screen only works once it has a tile on **Home** – e.g. add a tile *Audio sc
 Your screens and settings stay.
 
 - **Remote:** *NOIR Builder → Remote → Firmware* → **Update firmware**. The remote downloads the new firmware itself and restarts. (Home Assistant also shows the update under *Settings → Updates*.)
+  **Stable** (default) gets released versions only. **Test** gets the newest build first – for testers; switch back to Stable any time.
 - **Home Assistant:** HACS shows the update – press **Update**, then restart Home Assistant.
 
 **Coming from version 0.2** (with a `secrets.yaml`)? Install the new firmware once with the [installer](https://ronsone.github.io/Noir_Remote/) via USB and set up Wi-Fi (steps 2 and 3).
@@ -121,9 +122,9 @@ In Home Assistant, delete the old *noir-remote* under ESPHome first; the new one
 <details><summary>Build the firmware yourself (developers)</summary>
 
 With Python 3: `pip install esphome`, then in the folder `firmware`: `esphome run noir-remote.yaml`.
-GitHub checks that the firmware builds on every change in `firmware/` (`.github/workflows/firmware.yml`). Remotes only get it when you **release** it:
+GitHub checks that the firmware builds on every change in `firmware/` (`.github/workflows/firmware.yml`). **Run workflow** publishes the newest build to the **test** channel. The **stable** channel only changes when you **release**:
 raise `substitutions: version` in `noir-remote.yaml`, then *GitHub → Releases → Draft a new release*, tag `v` + that version (e.g. `v0.3.1`) → **Publish**.
-Only then is it published for the installer and the update button.
+Only then do the installer and the remotes on Stable get it.
 </details>
 
 ## Inside
@@ -140,6 +141,7 @@ custom_components/noir_remote/
   link.py             links the remote by itself (confirm, actions, host + key)
   frontend/           the NOIR Builder (one file, noir-builder.js)
   profiles.json       infrared codes per TV brand
+  languages/          language packs (de, fr, es) – texts of NOIR Builder and the remote
   logos.json          which source name gets which logo
 site/                 the installer page and the demo (GitHub Pages)
 simulator/            all screens on your PC (SDL2 + LVGL)

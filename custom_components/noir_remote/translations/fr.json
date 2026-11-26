@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NOIR Remote",
+        "description": "Nom de ta télécommande dans ESPHome (device_name).",
+        "data": {
+          "device": "Nom de la télécommande"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "NOIR Remote est déjà configuré."
+    }
+  }
+}

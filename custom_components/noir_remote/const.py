@@ -21,6 +21,7 @@ AIRCO_IR = {"mhi": "Mitsubishi Heavy (SRK…ZS)"}   # infrared profiles in the f
 
 DEFAULT_MODEL = {
     "mode": "full",   # full = always ready, eco = longer battery
+    "channel": "stable",   # firmware updates: stable (releases) or test (newest build)
     "lang": "nl",     # nl | en - remote and NOIR Builder
     "tiles": [
         {"icon": "noir:tv", "label": "TV", "opens": "tv", "entity": "", "size": "half"},
@@ -39,3 +40,17 @@ DEFAULT_MODEL = {
     # airco: up to 4 units - control = "climate.x" (Home Assistant) or "ir:mhi" (the remote's infrared, Mitsubishi Heavy)
     "airco": {"units": []},
 }
+
+# Where the remote gets its firmware updates (NOIR Builder > Remote > Firmware)
+UPDATE_URLS = {
+    "stable": "",   # "" = the URL built into the firmware (releases)
+    "test": "https://ronsone.github.io/Noir_Remote/firmware/beta/manifest.json",
+}
+
+# Languages: nl and en are built in; the others are packs in languages/<code>.json (NOIR Builder + remote texts)
+LANGUAGES = {"nl": "Nederlands", "en": "English"}
+LANG_PACKS: dict[str, dict] = {}
+for _f in sorted((_HERE / "languages").glob("*.json")):
+    _p = json.loads(_f.read_text(encoding="utf-8"))
+    LANG_PACKS[_f.stem] = {"builder": _p.get("builder", {}), "remote": _p.get("remote", {})}
+    LANGUAGES[_f.stem] = _p.get("name", _f.stem)

@@ -147,9 +147,14 @@ inline void set_mode(bool eco) {
 inline void apply_config() {
   App &a = app();
   set_mode(strcmp(a.cfg["mode"] | "full", "eco") == 0);
-  const bool en = strcmp(a.cfg["lang"] | "nl", "en") == 0;
-  if (en != noir::english()) {
-    noir::english() = en;
+  // language: nl = built in, en = built in, other = pack (cfg.texts) with English as fallback
+  static std::string lang = "nl";
+  const std::string l = a.cfg["lang"] | "nl";
+  if (l != lang) {
+    lang = l;
+    noir::english() = l != "nl";
+    noir::teksten().clear();
+    for (JsonPairConst kv : a.cfg["texts"].as<JsonObjectConst>()) noir::teksten()[kv.key().c_str()] = kv.value() | "";
     if (a.built) noir::alles_herbouwen();   // every screen in the new language
   }
   JsonObjectConst cfg = a.cfg.as<JsonObjectConst>();
