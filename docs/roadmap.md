@@ -18,6 +18,6 @@ What comes next, roughly in this order. Every item is a module or data, so the f
 8. **Colour keys as shortcuts** – choose in NOIR Builder what red, green, yellow and blue do.
 9. **Notifications** – Home Assistant shows a short message on the remote (doorbell, washing machine).
 10. **Netflix module.**
-11. **Clean-up** – English names in `noir-ui.h`, remove what is left from the time NOIR was a layer on another firmware.
+11. **Clean-up** – English names in `noir-ui.h` (the old Aggro600 parts are gone since 0.7.2).
 
 Ideas and requests: open an issue on GitHub.

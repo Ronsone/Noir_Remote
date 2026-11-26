@@ -36,7 +36,6 @@ inline void start(const std::string &host, const std::string &key) {   // host +
   a.last_input = millis();
   noir::ha() = [](const std::string &svc, noir::Data d) { ha(svc, d); };
   noir::st().actie = [](int x) { action(x); };
-  noir::st().aan = true;
   noir::st().items = []() { return list_of("home"); };
   noir::st().scenes_items = []() { return list_of("scenes"); };
   noir::kef::melding() = [](const char *t) { noir::toast(t); };
@@ -44,6 +43,20 @@ inline void start(const std::string &host, const std::string &key) {   // host +
     if (app().host.empty() || app().key.empty()) return "";
     return "http://" + app().host + "/api/noir_remote/states?k=" + app().key;
   };
+  // skin: kept in flash (Settings > Skin)
+  {
+    nvs_handle_t h;
+    int32_t skin = 0;
+    if (nvs_open("noir", NVS_READONLY, &h) == ESP_OK) { nvs_get_i32(h, "skin", &skin); nvs_close(h); }
+    noir::thema_laden(skin);
+    noir::opslaan() = [](int nr) {
+      nvs_handle_t w;
+      if (nvs_open("noir", NVS_READWRITE, &w) != ESP_OK) return;
+      nvs_set_i32(w, "skin", nr);
+      nvs_commit(w);
+      nvs_close(w);
+    };
+  }
   nvs_load();   // last known screens, so the remote works right away
   if (a.host.empty()) ESP_LOGI("noir", "Not set up yet - waiting for NOIR Remote in Home Assistant (action noir_setup)");
 }

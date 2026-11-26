@@ -1,18 +1,7 @@
 #pragma once
-// NOIR / SIGNATURE (2026-11-21): startscherm uit het NOIR-bouwpakket (simulator/main.c, LVGL 8.3) overgezet naar
-// LVGL 9 op de bestaande Aggro600-firmware. Display-, touch-, knop-, IR- en HA-drivers blijven ongewijzigd.
-//
-// Opbouw: een laag over de volle 240 x 320 van page_home (kind van de pagina). Daardoor blijft alles van de firmware
-// gelijk: cur_page = 0, wekken, slapen, dock, toetsindeling. De laag verschijnt bij elk laden van de startpagina
-// (noir::bij_home) en verdwijnt als je op "TV" tikt - dan zie je de gewone Aggro600-startpagina (activiteit,
-// nu-afspelen-kaart). Menutoets -> menu -> Terug brengt je weer op NOIR Thuis.
-//
-// Posities, maten, kleuren en labels komen uit build(0) van de simulator: body op (12,30) 216 breed, titel op y=5,
-// tandwiel 32 x 32 rechtsboven, tegels 104 x 66 op (0|112, 58|132), Terug/Thuis 104 x 42 op y=270.
-//
-// KEF (noir::kef): de fysieke volumetoetsen (33 Lauter, 43 Leiser, 44 Stumm) gaan op elk scherm naar de KEF LSX II
-// (substitution noir_kef_entity) - in on_key vóór alle scherm- en invoerlogica en vóór de toetsindeling. Leeg = uit
-// (dan geldt de toetsindeling zoals voorheen). Ingedrukt houden herhaalt elke 300 ms (hoogstens 30 x).
+// NOIR - the screens of the remote (LVGL 9). Shared by the firmware and the simulator (simulator/).
+// One layer per screen over page_home; the status bar moves to the visible one. The firmware modules (modules/*.h)
+// fill the data and handle the actions; this file only builds and shows.
 #include <functional>
 #include <map>
 #include <set>
@@ -25,13 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #endif
-#if __has_include("esphome/components/menu/mdi_icons.h")
-#include "esphome/components/menu/mdi_icons.h"   // ESPHomeRemote (Aggro600-basis)
-#else
-#include "mdi_icons.h"                            // eigen NOIR-firmware: tabel naast deze header
-#endif
-// LVGL-beeldcache legen voor een src (staat in lv_image_cache.h, dat lvgl.h niet meeneemt)
-extern "C" void lv_image_cache_drop(const void *src);
+#include "mdi_icons.h"   // mdi:name -> glyph (next to this header)
 
 namespace noir {
 
@@ -47,19 +30,17 @@ static const uint32_t BG = 0x07080A, SURF = 0x1A1C20, SURF2 = 0x101114, SURF_DIM
 // Skin = vier grondkleuren + afronding; alle vaste kleuren hierboven worden bij het tekenen omgezet zoals c() in de
 // simulator (k()). Skin 0 Obsidian geeft precies de kleuren van de simulator.
 struct Thema {
-  int skin{0};        // 0 Obsidian, 1 Graphite, 2 Pure Black, 3 Nautisch, 4 Eigen (kleuren van de actieve Aggro600-skin)
-  int wall{0};        // wallpaper: 0 Obsidian / satijn, 1 Graphite / zacht, 2 effen
+  int skin{0};        // 0 Obsidian, 1 Graphite, 2 Pure Black, 3 Nautisch
   int radius{16};     // afronding van knoppen en tegels (8-20 px)
   uint32_t bg{BG}, surf{SURF}, text{TEXT}, accent{0xBFC2C9};
 };
 inline Thema &thema() { static Thema t; return t; }
-static const int SKINS = 5, WALLS = 3;
-static const char *SKIN_NAMEN[5] = {"NOIR / Obsidian", "SIGNATURE / Graphite", "PURE / Black", "Nautisch / Navy", "Eigen (Aggro600-skin)"};
-static const char *WALL_NAMEN[3] = {"Obsidian / satijn", "Graphite / zacht", "Effen"};
-// bg, surf, text, accent - radius - wallpaper (simulator preset_colors / preset_radii)
+static const int SKINS = 4;
+static const char *SKIN_NAMEN[SKINS] = {"NOIR / Obsidian", "SIGNATURE / Graphite", "PURE / Black", "Nautisch / Navy"};
+// bg, surf, text, accent - radius
 static const uint32_t SKIN_KLEUR[4][4] = {{0x07080A, 0x1A1C20, 0xF2F3F5, 0xBFC2C9}, {0x0C0E12, 0x20242B, 0xF2F3F5, 0xD4D9E2},
                                           {0x000000, 0x111214, 0xF5F5F5, 0xCCCCCC}, {0x071322, 0x14283A, 0xF5EEDC, 0xD6AB61}};
-static const int SKIN_RADIUS[4] = {16, 14, 12, 16}, SKIN_WALL[4] = {0, 1, 2, 2};
+static const int SKIN_RADIUS[4] = {16, 14, 12, 16};
 
 inline uint32_t mix(uint32_t a, uint32_t b, int pct) {
   uint32_t v = 0;
@@ -86,16 +67,11 @@ inline lv_color_t k(uint32_t c) { return lv_color_hex(kleur(c)); }
 inline int rnd(int r) { return r >= 10 && r < LV_RADIUS_CIRCLE ? thema().radius : r; }
 
 enum Actie : int { TERUG = 1, THUIS = 100, TV = 101, AUDIO = 102, LICHT = 103, SCENES = 104, AIRCO = 105, INSTELLINGEN = 113,
-                   INST_AFRONDING = 129, INST_REMOTE = 130, INST_WIFI = 131, INST_FULL = 132, INST_ECO = 133, DIM_GEREED = 128,
-                   AIRCO_AANUIT = 140, AIRCO_MIN = 141, AIRCO_PLUS = 142, AIRCO_FAN = 143, AIRCO_SWING = 144, AIRCO_HI = 145, AIRCO_ECO = 146, AIRCO_UNIT = 147, KNOPTEST = 160, TEST_RESET = 161, SCENE_ALLES_UIT = 170,
-                   NETFLIX = 106, NF_AFSPELEN = 186,
-                   AUDIO_MUZIEK = 107, AUDIO_AANUIT = 189, SP_SHUFFLE = 187, SP_REPEAT = 188,
-                   ZOEK_OPEN = 108, ZOEK_WIS = 190, ZOEK_SPATIE = 191, ZOEK_GA = 192, ZOEK_VELD = 193,
-                   ZOEK_TOETS = 5000 /* +i: letter i van het toetsenbord */, ZOEK_RES = 5100 /* +i: zoekresultaat */,
-                   ZOEK_INVOER = 194, WIEL_GROEP = 195, WIEL_CIJFERS = 196, WIEL_TEKENS = 197,
-                   AUDIO_BRON = 4600 /* 4600+i: KEF-ingang */, SP_LIJST = 4700 /* +i playlist */, SP_RECENT = 4800 /* +i */,
-                   NF_TITEL = 3200 /* 3200 + lijst*100 + i: lijst 0 Top 10, 1 Populair, 2 Laatst gestart */,
-                   SCENE = 3000 /* 3000+i: scène i van de configuratorpagina "noir_scenes" */,
+                   INST_WIFI = 131, INST_FULL = 132, INST_ECO = 133, DIM_GEREED = 128,
+                   AIRCO_AANUIT = 140, AIRCO_MIN = 141, AIRCO_PLUS = 142, AIRCO_FAN = 143, AIRCO_SWING = 144, AIRCO_UNIT = 147, KNOPTEST = 160, TEST_RESET = 161, SCENE_ALLES_UIT = 170,
+                   AUDIO_NU = 107 /* tap "now playing": play/pause */, AUDIO_AANUIT = 189,
+                   AUDIO_BRON = 4600 /* 4600+i: source i of the speaker */,
+                   SCENE = 3000 /* 3000+i: scene i (NOIR Builder) */,
                    AIRCO_MODUS = 150 /* 150-154 */,
                    LAMP = 400 /* 400+i: lamp i op NOIR Verlichting */,
                    TV_AANUIT = 120, TV_APP = 200 /* 200-207: source tiles */,
@@ -112,7 +88,7 @@ struct Beelden {
   const void *wall{nullptr}, *tv{nullptr}, *audio{nullptr}, *licht{nullptr}, *scenes{nullptr};
 };
 
-enum Seite : int { S_THUIS = 0, S_TV = 1, S_LICHT = 2, S_INST = 3, S_AIRCO = 4, S_TEST = 5, S_SCENES = 6, S_NETFLIX = 7, S_NF_DETAIL = 8, S_AUDIO = 9, S_MUZIEK = 10, S_ZOEK = 11, S_ANZ = 12 };
+enum Seite : int { S_THUIS = 0, S_TV = 1, S_LICHT = 2, S_INST = 3, S_AIRCO = 4, S_TEST = 5, S_SCENES = 6, S_AUDIO = 7, S_ANZ = 8 };
 
 struct Stand {
   lv_obj_t *laag{nullptr};                  // NOIR Thuis
@@ -126,16 +102,13 @@ struct Stand {
   Beelden beelden;
   int seite{S_THUIS};                       // laatst getoonde NOIR-pagina
   std::string tv_state;                     // "on", "off", "unavailable" ... (uit HA)
-  bool aan{false};      // NOIR als startscherm gebruiken
   bool zichtbaar{false};
-  std::function<void(int)> actie;   // wordt door de firmware ingevuld (tasten::noir_actie)
+  std::function<void(int)> actie;   // filled in by the firmware (noirapp::action)
   const lv_font_t *toast_font{nullptr};
   // 2026-11-22: Verlichting en UI-instellingen, herbouwen na skinwissel
   lv_obj_t *licht{nullptr}, *inst{nullptr}, *licht_body{nullptr}, *airco{nullptr}, *test{nullptr}, *scenes{nullptr}, *scenes_body{nullptr};
   std::function<JsonArrayConst()> scenes_items;   // configuratorpagina "noir_scenes"
-  lv_obj_t *netflix{nullptr}, *netflix_body{nullptr}, *nfd_laag{nullptr}, *nfd_body{nullptr};   // NOIR Netflix (2026-11-22)
-  lv_obj_t *audio{nullptr}, *audio_body{nullptr}, *muziek{nullptr}, *muziek_body{nullptr};    // NOIR Audio + Muziek
-  lv_obj_t *zoek{nullptr}, *zoek_body{nullptr};                                               // NOIR Muziek zoeken
+  lv_obj_t *audio{nullptr}, *audio_body{nullptr};
   lv_obj_t *home{nullptr};
   std::function<JsonArrayConst()> items;    // tegels van NOIR Thuis (configurator), voor het herbouwen
 };
@@ -295,17 +268,15 @@ inline lv_obj_t *laag_maken(lv_obj_t *home, const Beelden &bl) {
   // Posities van kinderen tellen vanaf de binnenrand (padding) van page_home: terugschuiven naar de schermhoek
   lv_obj_set_pos(laag, -lv_obj_get_style_pad_left(home, LV_PART_MAIN), -lv_obj_get_style_pad_top(home, LV_PART_MAIN));
   lv_obj_set_size(laag, 240, 320);
-  lv_obj_add_flag(laag, LV_OBJ_FLAG_USER_4);   // Aggro600-skins (esphomeremote-skin.h) laten NOIR met rust
-  const int wall = thema().wall;
-  lv_obj_set_style_bg_color(laag, k(wall == 1 ? 0x101216 : BG), 0);   // simulator: wallpaper_mode 1 iets lichter
+  lv_obj_set_style_bg_color(laag, k(BG), 0);
   lv_obj_set_style_bg_opa(laag, LV_OPA_COVER, 0);
   lv_obj_remove_flag(laag, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_add_flag(laag, LV_OBJ_FLAG_CLICKABLE);   // tikken op de achtergrond gaat niet door naar de Aggro600-startpagina
-  if (bl.wall != nullptr && wall != 2) {   // Obsidian-wallpaper: satijn 210, zacht 100, effen = geen
+  lv_obj_add_flag(laag, LV_OBJ_FLAG_CLICKABLE);   // a tap on the background stays on this layer
+  if (bl.wall != nullptr) {   // wallpaper
     lv_obj_t *bg = lv_image_create(laag);
     lv_image_set_src(bg, bl.wall);
     lv_obj_set_pos(bg, 0, 0);
-    lv_obj_set_style_image_opa(bg, wall == 0 ? 210 : 100, 0);
+    lv_obj_set_style_image_opa(bg, 210, 0);
     lv_obj_remove_flag(bg, LV_OBJ_FLAG_CLICKABLE);
   }
   lv_obj_add_flag(laag, LV_OBJ_FLAG_HIDDEN);
@@ -366,7 +337,7 @@ inline std::string utf8_(uint32_t cp) {
 // "mdi:air-conditioner" -> UTF-8 van het teken in mdi_menu, "" = onbekend
 inline std::string mdi_teken(const char *icon) {
   if (icon == nullptr || strncmp(icon, "mdi:", 4) != 0) return "";
-  for (const auto &e : esphome::menue::MDI_ICONS)
+  for (const auto &e : MDI_ICONS)
     if (strcmp(e.name, icon + 4) == 0) return utf8_(e.cp);
   return "";
 }
@@ -387,6 +358,7 @@ inline AircoTegel &airco_tegel() { static AircoTegel t; return t; }
 inline void airco_tegel_maken(lv_obj_t *b, int w, const Fonts &f) {
   AircoTegel &t = airco_tegel();
   lv_obj_t *naam0 = lv_obj_get_child(b, -1);   // the name label tegel() made last
+  lv_obj_t *icoon0 = lv_obj_get_child(b, -2);  // the icon before it (child 0 is the thin top line)
   t.boog = lv_arc_create(b);
   lv_obj_set_size(t.boog, 36, 36);
   lv_obj_set_pos(t.boog, w - 44, 6);
@@ -405,8 +377,7 @@ inline void airco_tegel_maken(lv_obj_t *b, int w, const Fonts &f) {
   lv_obj_t *naam = naam0;
   lv_obj_update_layout(b);
   const int h = lv_obj_get_height(b);
-  lv_obj_t *icoon = lv_obj_get_child(b, 0);
-  if (icoon != nullptr && icoon != naam) lv_obj_set_y(icoon, 4);   // three lines in 56 px: icon 4-24, name 22-39, mode 40-55
+  if (icoon0 != nullptr && icoon0 != naam) lv_obj_set_y(icoon0, 4);   // three lines in 56 px: icon 4-24, name 22-39, mode 40-55
   if (naam != nullptr && lv_obj_check_type(naam, &lv_label_class)) lv_obj_set_y(naam, h - 34);
   t.stand = label(b, "", 12, h - 17, w - 56, f.f12, MUTED);
   lv_label_set_long_mode(t.stand, LV_LABEL_LONG_MODE_CLIP);
@@ -529,7 +500,7 @@ inline void tv_bouwen(lv_obj_t *laag, const Fonts &f, const Beelden &bl) {
 // ---- NOIR Verlichting (2026-11-22, simulator build(3)) ---------------------------------------------------------
 // Per lamp een brede knop "Naam  ·  Aan/Uit" of (dimbaar) "Naam  ·  65%". Tikken = aan/uit, lang drukken (dimbaar)
 // = dimvenster met schuifregler (light.turn_on brightness_pct bij loslaten). De echte stand komt elke 3 s uit HA
-// (dezelfde /api/esphomeremote/states als de menutegels), alleen zolang het scherm open is.
+// (/api/noir_remote/states), only while the screen is open.
 using Data = std::map<std::string, std::string>;
 inline std::function<void(const std::string &, Data)> &ha();
 inline void tv_status(const std::string &state, const std::string &bron);
@@ -600,7 +571,7 @@ inline bool lampen_uit_items(JsonArrayConst items) {
   return true;
 }
 
-// HTTP-opvraag in een eigen taak (zoals Menue::abfrage_*): url_basis() = "http://host/api/esphomeremote/states?k=..."
+// HTTP request in its own task: url_basis() = "http://host/api/noir_remote/states?k=..."
 namespace licht_http {
 inline std::function<std::string()> &url_basis() { static std::function<std::string()> f; return f; }
 struct Abfrage { volatile bool laeuft{false}, fertig{false}; std::string url; char *buf{nullptr}; size_t len{0}; int status{0};
@@ -826,7 +797,7 @@ namespace airco {
 // The screen only reads and changes st(); the module sends it (debounced) and fills in what the unit can do.
 static const int MODI = 5;   // 0 auto, 1 cool, 2 dry, 3 fan, 4 heat
 static const char *MODUS_LANG[MODI] = {"Automatisch", "Koelen", "Ontvochtigen", "Ventileren", "Verwarmen"};
-static const char *MODUS_ICO[MODI] = {"\U000F0B09", "\U000F0717", "\U000F058C", "\U000F0210", "\U000F05A8"};   // alpha-a-circle-outline, snowflake, water, fan, sunny
+static const char *MODUS_ICO[MODI] = {"\U000F0BED", "\U000F0717", "\U000F058C", "\U000F0210", "\U000F05A8"};   // alpha-a-circle-outline, snowflake, water, fan, white-balance-sunny
 static const int MAX_UNITS = 4;
 struct Unit {
   std::string naam;                 // "Woonkamer"
@@ -995,7 +966,7 @@ inline lv_obj_t *tekst_knop_(lv_obj_t *p, int x, int y, int w, int h, int actie,
 
 // NOIR Airco, design B "Boog": title + power, status, a dial arc around the temperature with - and +,
 // the modes as icons, fan and swing. More units: the swap button next to power picks the next room.
-static const char *ICO_WISSEL = "\U000F04E1", *ICO_SWING = "\U000F0C47", *ICO_FAN = "\U000F0210";   // swap-vertical, arrow-oscillating, fan
+static const char *ICO_WISSEL = "\U000F04E1", *ICO_SWING = "\U000F1C91", *ICO_FAN = "\U000F0210";   // swap-horizontal, arrow-oscillating, fan
 inline lv_obj_t *pil_(lv_obj_t *p, int x, int y, int w, int h, int actie, const char *ico, const Fonts &f) {
   lv_obj_t *b = knop(p, x, y, w, h, actie);
   lv_obj_set_style_radius(b, h / 2, 0);
@@ -1230,432 +1201,8 @@ inline void scenes_bouwen(lv_obj_t *laag, const Fonts &f, const Beelden &bl, Jso
   }
 }
 
-// ---- NOIR Netflix-dashboard (2026-11-22) -----------------------------------------------------------------------
-// Achter de Netflix-tegel van het TV-scherm. Posterrijen (horizontaal vegen): Top 10 in Nederland (officiele
-// weeklijst van Netflix), Populair op Netflix (TMDB, dagelijks) en Laatst gestart (de laatste 4 via de remote).
-// Tik = detailscherm met achtergrond, tekst en "Afspelen in Netflix". Alle gegevens en beelden komen van de
-// integratie (netflix.py) via HA (/api/esphomeremote/netflix...): de remote komt niet zelf op internet.
-// Bediening van de tv met de fysieke knoppen (play/pauze, stop, spoelen, D-pad, OK) - zie tv::taste.
-static const uint32_t NETFLIX_ROOD = 0xE50914;
-inline bool op_netflix();
-inline bool op_audio();
-namespace nf {
-struct Titel { int id{0}; std::string naam, zoek, jaar, genre, leeftijd, tekst, netflix; int seizoenen{0}; };   // netflix = titelnummer (Wikidata)
-struct Beeld { uint8_t *px{nullptr}; lv_image_dsc_t dsc{}; };
-struct Wacht { lv_obj_t *img; int id; char soort; };
-struct Taak { std::string url; int id; char soort; size_t max; };   // soort 'j' json, 'p' poster, 'b' achtergrond
-struct Data {
-  std::string week;
-  std::vector<Titel> top10, populair, laatst;
-  bool geladen{false}, bezig{false};
-  uint32_t volgende{0};             // wanneer de lijsten opnieuw mogen
-  std::map<int, Beeld> posters, klein;   // klein = 48 x 72 voor het detailscherm (de remote schaalt niet)
-  Beeld achter; int achter_id{0};
-  std::vector<Wacht> wacht_dash, wacht_detail;   // beeld-objecten die op een download wachten
-  std::vector<Taak> rij;            // downloads
-  std::set<int> gevraagd;           // posters die al in de rij staan/stonden
-  Titel detail; int detail_plek{0}; // plek in de Top 10 (1-10), 0 = niet
-  std::function<void(const std::string &)> bewaar;   // laatst gestart -> global
-};
-inline Data &d() { static Data x; return x; }
-inline std::function<std::string()> &url_basis() { static std::function<std::string()> f; return f; }   // ".../states?k=.."
-// Andere downloads in dezelfde rij (NOIR Audio: 'a' lijst, 'c' hoes): klaar(taak, status, buf, len) - true = buf overgenomen
-inline std::function<bool(const Taak &, int, uint8_t *, size_t)> &extra_klaar() { static std::function<bool(const Taak &, int, uint8_t *, size_t)> f; return f; }
-
-// ---- downloads (eigen taak, een tegelijk) ----
-struct Abfrage { volatile bool laeuft{false}, fertig{false}; Taak taak; uint8_t *buf{nullptr}; size_t len{0}; int status{0};
-                 void *handle{nullptr}; };
-inline Abfrage &q() { static Abfrage x; return x; }
-#ifdef ESP_PLATFORM
-inline void einmal_() {
-  Abfrage &a = q();
-  esp_http_client_config_t cfg = {};
-  cfg.url = a.taak.url.c_str();
-  cfg.timeout_ms = 6000;
-  cfg.buffer_size = 1024;
-  cfg.buffer_size_tx = std::max<int>(512, (int) a.taak.url.size() + 256);
-  cfg.keep_alive_enable = false;
-  esp_http_client_handle_t c = esp_http_client_init(&cfg);
-  int status = -1;
-  size_t len = 0;
-  uint8_t *buf = nullptr;
-  if (c != nullptr && esp_http_client_open(c, 0) == ESP_OK) {
-    esp_http_client_fetch_headers(c);
-    status = esp_http_client_get_status_code(c);
-    if (status == 200) {
-      const size_t MAX = a.taak.max;
-      buf = (uint8_t *) heap_caps_malloc(MAX + 1, MALLOC_CAP_SPIRAM);
-      while (buf != nullptr && len < MAX) {
-        int r = esp_http_client_read(c, (char *) buf + len, MAX - len);
-        if (r <= 0) break;
-        len += r;
-      }
-    }
-  }
-  if (c != nullptr) { esp_http_client_close(c); esp_http_client_cleanup(c); }
-  a.buf = buf; a.len = len; a.status = status; a.fertig = true;
-}
-inline void taak_(void *) {
-  UBaseType_t laagste = ~0u;
-  for (;;) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    einmal_();
-    const UBaseType_t vrij = uxTaskGetStackHighWaterMark(nullptr);   // minst vrije stapel tot nu toe (bytes)
-    if (vrij < laagste) { laagste = vrij; ESP_LOGD("noir", "%s: stapel minimaal %u bytes vrij", pcTaskGetName(nullptr), (unsigned) vrij); }
-  }
-}
-inline void starten_(const Taak &t) {
-  Abfrage &a = q();
-  if (a.handle == nullptr) {
-    static StaticTask_t tcb;
-    const size_t groesse = 8192;   // 2026-11-25: 4096 was te krap voor esp_http_client (DNS/lwIP) - overloop gaf panics
-    auto *stapel = (StackType_t *) heap_caps_malloc(groesse, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    if (stapel != nullptr) a.handle = xTaskCreateStaticPinnedToCore(taak_, "noir_nf", groesse, nullptr, 1, stapel, &tcb, tskNO_AFFINITY);
-  }
-  if (a.handle == nullptr) return;
-  a.taak = t;
-  a.laeuft = true;
-  a.fertig = false;
-  xTaskNotifyGive((TaskHandle_t) a.handle);
-}
-inline void vrij_(void *p) { if (p != nullptr) heap_caps_free(p); }
-#else
-inline void starten_(const Taak &) {}
-inline void vrij_(void *p) { free(p); }
-#endif
-inline std::string url_(const char *pad, const std::string &extra) {
-  if (!url_basis()) return "";
-  std::string u = url_basis()();
-  const size_t p = u.find("/states?");
-  if (p == std::string::npos) return "";
-  return u.substr(0, p) + pad + u.substr(p + 8) + extra;   // ".../netflix?k=.." + extra
-}
-inline void beeld_vullen_(Beeld &b, uint8_t *px, int w, int h) {
-  b.px = px;
-  b.dsc = {};
-  b.dsc.header.magic = LV_IMAGE_HEADER_MAGIC;
-  b.dsc.header.cf = LV_COLOR_FORMAT_RGB565;
-  b.dsc.header.w = w;
-  b.dsc.header.h = h;
-  b.dsc.header.stride = w * 2;
-  b.dsc.data_size = w * h * 2;
-  b.dsc.data = px;
-}
-inline void tonen_(std::vector<Wacht> &lijst, int id, char soort, const lv_image_dsc_t *dsc) {
-  for (auto &w : lijst)
-    if (w.id == id && w.soort == soort && w.img != nullptr) { lv_image_set_src(w.img, (const void *) nullptr); lv_image_set_src(w.img, dsc); lv_obj_remove_flag(w.img, LV_OBJ_FLAG_HIDDEN); }
-}
-inline void poster_vragen(int id) {
-  Data &x = d();
-  if (id <= 0 || x.posters.count(id) || x.gevraagd.count(id)) return;
-  x.gevraagd.insert(id);
-  x.rij.push_back({url_("/netflix/img?", "&s=p&id=" + std::to_string(id)), id, 'p', 64 * 96 * 2});
-}
-inline void klein_vragen(int id) {
-  Data &x = d();
-  if (id <= 0 || x.klein.count(id)) return;
-  for (const Taak &t : x.rij) if (t.soort == 'k' && t.id == id) return;
-  x.rij.push_back({url_("/netflix/img?", "&s=k&id=" + std::to_string(id)), id, 'k', 48 * 72 * 2});
-}
-inline void achter_vragen(int id) {
-  Data &x = d();
-  if (id <= 0 || x.achter_id == id) return;
-  x.rij.push_back({url_("/netflix/img?", "&s=b&id=" + std::to_string(id)), id, 'b', 216 * 110 * 2});
-}
-inline Titel titel_uit_(JsonObjectConst o) {
-  Titel t;
-  t.id = o["i"] | 0; t.naam = o["n"] | ""; t.zoek = o["z"] | t.naam.c_str(); t.jaar = o["j"] | "";
-  t.genre = o["g"] | ""; t.leeftijd = o["l"] | ""; t.tekst = o["o"] | ""; t.seizoenen = o["s"] | 0;
-  return t;
-}
-inline void herbouwen_();   // verderop (netflix_herbouwen)
-inline void klaar_() {
-  Abfrage &a = q();
-  Data &x = d();
-  const Taak t = a.taak;
-  if (t.soort == 'j') {
-    // Tekstregels van HA (geen ArduinoJson: een tweede JSON-variant gaf "l32r: literal target out of range" bij het
-    // linken): "w\t<week>" en "t|p\t<id>\t<naam>\t<zoek>\t<jaar>\t<genre>\t<seizoenen>\t<leeftijd>\t<tekst>"
-    x.bezig = false;
-    if (a.status == 200 && a.buf != nullptr && a.len > 0) {
-      x.week.clear(); x.top10.clear(); x.populair.clear();
-      x.gevraagd.clear();   // posters die eerder mislukten (404, time-out) bij nieuwe lijsten opnieuw vragen
-      const char *p = (const char *) a.buf, *eind = p + a.len;
-      while (p < eind) {
-        const char *e = (const char *) memchr(p, '\n', eind - p);
-        if (e == nullptr) e = eind;
-        std::vector<std::string> v;
-        const char *q2 = p;
-        for (const char *c = p; c <= e; c++)
-          if (c == e || *c == '\t') { v.emplace_back(q2, c - q2); q2 = c + 1; }
-        if (!v.empty() && v[0] == "w" && v.size() > 1) x.week = v[1];
-        else if (!v.empty() && (v[0] == "t" || v[0] == "p") && v.size() >= 9) {
-          Titel ti;
-          ti.id = atoi(v[1].c_str()); ti.naam = v[2]; ti.zoek = v[3].empty() ? v[2] : v[3]; ti.jaar = v[4];
-          ti.genre = v[5]; ti.seizoenen = atoi(v[6].c_str()); ti.leeftijd = v[7]; ti.tekst = v[8];
-          if (v.size() > 9) ti.netflix = v[9];
-          (v[0] == "t" ? x.top10 : x.populair).push_back(ti);
-        }
-        p = e + 1;
-      }
-      x.geladen = true;
-      herbouwen_();
-    }
-    vrij_(a.buf);
-  } else if (t.soort == 'p') {
-    if (a.status == 200 && a.buf != nullptr && a.len == t.max) {
-      Beeld &b = x.posters[t.id];
-      beeld_vullen_(b, a.buf, 64, 96);
-      tonen_(x.wacht_dash, t.id, 'p', &b.dsc);
-      tonen_(x.wacht_detail, t.id, 'p', &b.dsc);
-    } else vrij_(a.buf);
-  } else if (t.soort == 'k') {
-    if (a.status == 200 && a.buf != nullptr && a.len == t.max) {
-      Beeld &b = x.klein[t.id];
-      beeld_vullen_(b, a.buf, 48, 72);
-      tonen_(x.wacht_detail, t.id, 'k', &b.dsc);
-    } else vrij_(a.buf);
-  } else if (t.soort != 'p' && t.soort != 'b') {
-    if (!(extra_klaar() && extra_klaar()(t, a.status, a.buf, a.len))) vrij_(a.buf);
-  } else if (t.soort == 'b') {
-    if (a.status == 200 && a.buf != nullptr && a.len == t.max) {
-      if (x.achter.px != nullptr) lv_image_cache_drop(&x.achter.dsc);   // LVGL mag de oude pixels niet meer uit de cache tekenen (ruis)
-      vrij_(x.achter.px);
-      beeld_vullen_(x.achter, a.buf, 216, 110);
-      x.achter_id = t.id;
-      tonen_(x.wacht_detail, t.id, 'b', &x.achter.dsc);
-    } else vrij_(a.buf);
-  }
-  a.buf = nullptr; a.len = 0;
-}
-// Elke 100 ms (via licht_http::tik). zichtbaar = NOIR Netflix of het detailscherm staat open.
-inline void tik(uint32_t nu, bool zichtbaar) {
-  Abfrage &a = q();
-  Data &x = d();
-  if (a.fertig) { a.fertig = false; a.laeuft = false; klaar_(); }
-  if (zichtbaar && op_netflix() && !x.bezig && (int32_t) (nu - x.volgende) >= 0) {   // lijsten: bij openen, daarna elk uur
-    const std::string u = url_("/netflix?", "&f=tsv");
-    if (!u.empty()) {
-      x.bezig = true;
-      bool zonder = !x.geladen || x.top10.empty();   // nog niets of titels zonder TMDB: vaker vragen
-      for (auto &t : x.top10) if (t.id <= 0) zonder = true;
-      x.volgende = nu + (zonder ? 60000u : 3600000u);
-      x.rij.insert(x.rij.begin(), {u, 0, 'j', 24 * 1024});
-    }
-  }
-  if (a.laeuft || x.rij.empty() || !zichtbaar) return;
-  Taak t = x.rij.front();
-  x.rij.erase(x.rij.begin());
-  if (t.url.empty()) { if (t.soort == 'j') x.bezig = false; return; }
-  starten_(t);
-}
-// Laatst gestart: "id\tzoeknaam\tnetflixnr\n" x4 (global van max. 254 tekens, overleeft herstarten)
-inline void laatst_laden(const std::string &s) {
-  Data &x = d();
-  x.laatst.clear();
-  size_t p = 0;
-  while (p < s.size() && x.laatst.size() < 4) {
-    size_t e = s.find('\n', p);
-    if (e == std::string::npos) e = s.size();
-    const std::string r = s.substr(p, e - p);
-    const size_t t1 = r.find('\t');
-    if (t1 != std::string::npos && t1 + 1 < r.size()) {
-      Titel t;
-      t.id = atoi(r.substr(0, t1).c_str()); t.zoek = r.substr(t1 + 1);
-      const size_t t2 = t.zoek.find('\t');
-      if (t2 != std::string::npos) { t.netflix = t.zoek.substr(t2 + 1); t.zoek = t.zoek.substr(0, t2); }
-      t.naam = t.zoek;
-      x.laatst.push_back(t);
-    }
-    p = e + 1;
-  }
-}
-inline void laatst_toevoegen(const Titel &t) {
-  Data &x = d();
-  for (size_t i = 0; i < x.laatst.size(); i++)
-    if ((t.id > 0 && x.laatst[i].id == t.id) || x.laatst[i].zoek == t.zoek) { x.laatst.erase(x.laatst.begin() + i); break; }
-  x.laatst.insert(x.laatst.begin(), t);
-  if (x.laatst.size() > 4) x.laatst.resize(4);
-  std::string s;
-  for (auto &l : x.laatst) s += std::to_string(l.id) + "\t" + l.zoek.substr(0, 34) + "\t" + l.netflix.substr(0, 10) + "\n";
-  if (x.bewaar) x.bewaar(s);
-}
-// Titel bij een actie (lijst*100 + i); volledige gegevens uit Top 10/Populair als de laatst-gestart-regel kort is
-inline bool titel_van(int code, Titel &t, int &plek) {
-  Data &x = d();
-  const int lijst = code / 100, i = code % 100;
-  const std::vector<Titel> *v = lijst == 0 ? &x.top10 : lijst == 1 ? &x.populair : &x.laatst;
-  if (i < 0 || i >= (int) v->size()) return false;
-  t = (*v)[i];
-  plek = lijst == 0 ? i + 1 : 0;
-  if (lijst == 2) {
-    for (int k = 0; k < (int) x.top10.size(); k++) if (x.top10[k].id == t.id && t.id > 0) { t = x.top10[k]; plek = k + 1; }
-    if (plek == 0) for (auto &p : x.populair) if (p.id == t.id && t.id > 0) t = p;
-  }
-  return true;
-}
-}  // namespace nf
-
-inline lv_obj_t *rood_label_(lv_obj_t *p, const char *t, int x, int y, int w, const lv_font_t *f) {
-  lv_obj_t *l = label(p, t, x, y, w, f, NETFLIX_ROOD);
-  lv_obj_set_style_text_color(l, lv_color_hex(NETFLIX_ROOD), 0);   // merkkleur: niet door het thema laten omzetten
-  lv_obj_add_flag(l, LV_OBJ_FLAG_USER_4);
-  return l;
-}
-// Poster (64 x 96 of kleiner): titel als tekst tot het beeld binnen is (of zonder TMDB-sleutel blijft)
-inline lv_obj_t *nf_poster_(lv_obj_t *p, const nf::Titel &t, int x, int y, int w, int h, int actie, const Fonts &f,
-                            std::vector<nf::Wacht> &wacht) {
-  lv_obj_t *b = actie >= 0 ? knop(p, x, y, w, h, actie) : lv_obj_create(p);
-  if (actie < 0) { lv_obj_remove_style_all(b); lv_obj_set_pos(b, x, y); lv_obj_set_size(b, w, h);
-                   lv_obj_set_style_bg_color(b, k(SURF), 0); lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
-                   lv_obj_remove_flag(b, (lv_obj_flag_t) (LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE)); }
-  lv_obj_set_style_radius(b, 8, 0);
-  // geen clip_corner (2026-11-25): op de remote tekent LVGL die laag niet gewist - ruis in posters/hoesjes
-  lv_obj_add_flag(b, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);   // vegen schuift de rij, niet de knop
-  lv_obj_t *l = label(b, t.naam.c_str(), 0, 0, w - 6, f.f12, TEXT2);
-  lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_WRAP);
-  lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_style_max_height(l, h - 8, 0);
-  lv_obj_center(l);
-  lv_obj_t *im = lv_image_create(b);
-  lv_obj_remove_flag(im, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_center(im);
-  // Geen lv_image_set_scale (2026-11-25): geschaalde beelden gaven op de remote ruis - HA levert de juiste maat
-  const bool klein = w != 64;
-  auto &bron = klein ? nf::d().klein : nf::d().posters;
-  auto it = bron.find(t.id);
-  if (it != bron.end()) lv_image_set_src(im, &it->second.dsc);
-  else { lv_obj_add_flag(im, LV_OBJ_FLAG_HIDDEN); if (klein) nf::klein_vragen(t.id); else nf::poster_vragen(t.id); }
-  wacht.push_back({im, t.id, klein ? 'k' : 'p'});
-  return b;
-}
-inline lv_obj_t *nf_rij_(lv_obj_t *body, int y, int h) {
-  lv_obj_t *r = lv_obj_create(body);
-  lv_obj_remove_style_all(r);
-  lv_obj_set_pos(r, 0, y);
-  lv_obj_set_size(r, 216, h);
-  lv_obj_set_scroll_dir(r, LV_DIR_HOR);
-  lv_obj_set_scrollbar_mode(r, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_remove_flag(r, LV_OBJ_FLAG_SCROLL_ELASTIC);
-  return r;
-}
-inline void nf_kop_(lv_obj_t *body, int y, const char *l, const char *r, const Fonts &f) {
-  label(body, l, 0, y, 150, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
-  if (r != nullptr && *r) {
-    lv_obj_t *m = label(body, r, 96, y + 2, 120, f.f12, MUTED);
-    lv_obj_set_style_text_align(m, LV_TEXT_ALIGN_RIGHT, 0);
-  }
-}
-inline void netflix_bouwen(lv_obj_t *laag, const Fonts &f) {
-  Stand &s = st();
-  nf::Data &x = nf::d();
-  x.wacht_dash.clear();
-  lv_obj_t *body = s.netflix_body = body_maken(laag, true);
-  rood_label_(body, "NETFLIX", 0, 0, 110, f.f20 != nullptr ? f.f20 : f.f16);
-  int y = 36;
-  // Top 10: groot rangnummer half achter de poster, zoals de Top 10-rij in de app
-  nf_kop_(body, y, "Top 10 in Nederland", x.week.c_str(), f);
-  y += 20;
-  if (x.top10.empty()) {
-    label(body, x.geladen ? "Nog geen lijst - kijk in de log van HA" : "Wordt geladen\xE2\x80\xA6", 0, y + 4, 216, f.f12, MUTED);
-    y += 30;
-  } else {
-    lv_obj_t *r = nf_rij_(body, y, 100);
-    const lv_font_t *groot = f.groot != nullptr ? f.groot : (f.f20 != nullptr ? f.f20 : f.f16);
-    const int gh = lv_font_get_line_height(groot);
-    for (int i = 0; i < (int) x.top10.size() && i < 10; i++) {
-      const int px = i * 92;
-      char nr[4];
-      snprintf(nr, sizeof(nr), "%d", i + 1);
-      lv_obj_t *n = rood_label_(r, nr, i == 9 ? px - 24 : px - 4, 98 - gh, i == 9 ? 58 : 38, groot);
-      lv_obj_set_style_text_align(n, LV_TEXT_ALIGN_RIGHT, 0);
-      nf_poster_(r, x.top10[i], px + 28, 2, 64, 96, NF_TITEL + i, f, x.wacht_dash);
-    }
-    y += 110;
-  }
-  if (!x.populair.empty()) {
-    nf_kop_(body, y, "Populair op Netflix", "vandaag", f);
-    lv_obj_t *r = nf_rij_(body, y + 20, 100);
-    for (int i = 0; i < (int) x.populair.size() && i < 10; i++)
-      nf_poster_(r, x.populair[i], i * 72, 2, 64, 96, NF_TITEL + 100 + i, f, x.wacht_dash);
-    y += 130;
-  }
-  nf_kop_(body, y, "Laatst gestart", nullptr, f);
-  if (x.laatst.empty()) {
-    lv_obj_t *h = label(body, "Tik op een titel en kies Afspelen, dan staat hij hier.", 0, y + 22, 216, f.f12, MUTED);
-    lv_label_set_long_mode(h, LV_LABEL_LONG_MODE_WRAP);
-  } else {
-    lv_obj_t *r = nf_rij_(body, y + 20, 100);
-    for (int i = 0; i < (int) x.laatst.size(); i++)
-      nf_poster_(r, x.laatst[i], i * 72, 2, 64, 96, NF_TITEL + 200 + i, f, x.wacht_dash);
-  }
-}
-// Detailscherm van de gekozen titel (nf::d().detail)
-inline void nf_detail_bouwen(lv_obj_t *laag, const Fonts &f) {
-  Stand &s = st();
-  nf::Data &x = nf::d();
-  x.wacht_detail.clear();
-  const nf::Titel &t = x.detail;
-  lv_obj_t *body = s.nfd_body = body_maken(laag, true);
-  lv_obj_t *bd = lv_obj_create(body);
-  lv_obj_remove_style_all(bd);
-  lv_obj_set_pos(bd, 0, 0);
-  lv_obj_set_size(bd, 216, 110);
-  lv_obj_set_style_radius(bd, 12, 0);
-  lv_obj_set_style_bg_color(bd, k(SURF), 0);
-  lv_obj_set_style_bg_opa(bd, LV_OPA_COVER, 0);
-  lv_obj_remove_flag(bd, (lv_obj_flag_t) (LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
-  lv_obj_t *im = lv_image_create(bd);
-  lv_obj_set_pos(im, 0, 0);
-  if (x.achter_id == t.id && x.achter.px != nullptr) lv_image_set_src(im, &x.achter.dsc);
-  else { lv_obj_add_flag(im, LV_OBJ_FLAG_HIDDEN); nf::achter_vragen(t.id); }
-  x.wacht_detail.push_back({im, t.id, 'b'});
-  nf_poster_(body, t, 8, 40, 48, 72, -1, f, x.wacht_detail);
-  if (x.detail_plek > 0) {
-    char p[32];
-    snprintf(p, sizeof(p), "#%d IN NEDERLAND", x.detail_plek);
-    rood_label_(body, p, 64, 58, 150, f.f12);
-  }
-  lv_obj_t *n = label(body, t.naam.c_str(), 64, 74, 150, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
-  lv_label_set_long_mode(n, LV_LABEL_LONG_MODE_DOTS);
-  std::string meta = t.jaar;
-  auto plus = [&](const std::string &v) { if (!v.empty()) meta += (meta.empty() ? "" : " \xC2\xB7 ") + v; };
-  plus(t.genre);
-  if (t.seizoenen > 0) plus(std::to_string(t.seizoenen) + (t.seizoenen == 1 ? " seizoen" : " seizoenen"));
-  plus(t.leeftijd);
-  lv_obj_t *m = label(body, meta.c_str(), 0, 118, 216, f.f12, MUTED);
-  lv_label_set_long_mode(m, LV_LABEL_LONG_MODE_DOTS);
-  lv_obj_set_height(m, lv_font_get_line_height(f.f12));   // een regel; te lang = "..." (anders loopt hij over de tekst)
-  int y = 138;
-  if (!t.tekst.empty()) {
-    // drie regels, dan "..." - de knop blijft zo zonder scrollen in beeld
-    lv_obj_t *o = label(body, t.tekst.c_str(), 0, y, 216, f.f12, 0xC9CCD3);
-    lv_label_set_long_mode(o, LV_LABEL_LONG_MODE_DOTS);
-    lv_obj_set_height(o, 3 * lv_font_get_line_height(f.f12));
-    y += 3 * lv_font_get_line_height(f.f12) + 8;
-  }
-  lv_obj_t *b = knop(body, 0, y, 216, 38, NF_AFSPELEN);
-  lv_obj_set_style_bg_color(b, lv_color_hex(NETFLIX_ROOD), 0);
-  lv_obj_set_style_bg_grad_color(b, lv_color_hex(0xB20710), 0);
-  lv_obj_set_style_border_width(b, 0, 0);
-  lv_obj_add_flag(b, LV_OBJ_FLAG_USER_4);
-  if (f.ico != nullptr) {
-    lv_obj_t *pi = lv_label_create(b);
-    lv_label_set_text(pi, "\U000F040A");   // mdi:play
-    lv_obj_set_style_text_font(pi, f.ico, 0);
-    lv_obj_set_style_text_color(pi, lv_color_hex(0xFFFFFF), 0);
-    lv_obj_align(pi, LV_ALIGN_CENTER, -78, 0);
-  }
-  lv_obj_t *bl = label(b, "Afspelen in Netflix", 0, 0, 170, f.f14 != nullptr ? f.f14 : f.f12, 0xFFFFFF);
-  lv_obj_set_style_text_color(bl, lv_color_hex(0xFFFFFF), 0);
-  lv_obj_add_flag(bl, LV_OBJ_FLAG_USER_4);
-  lv_obj_align(bl, LV_ALIGN_CENTER, 18, 0);
-}
-
-// ---- NOIR Audio (2026-11-22): KEF LSX II (ingang, volume, subwoofer) + Muziek (MA) --------------------------------
-// Concept: het scherm leest alles uit audio::d(); de firmware (of de simulator) vult die en roept audio::tonen().
-// Bediening gaat via ha() (media_player.*) en - voor wat per integratie verschilt (subwoofer, muzieklijsten) - via
-// de callbacks hieronder, zodat de keuze voor KEF- en muziekintegratie later kan vallen zonder het scherm te wijzigen.
+// ---- NOIR Audio: one speaker in Home Assistant (on/off, sources, volume, subwoofer, now playing) -------------------
+// The screen reads audio::d(); module Audio (modules/audio.h) fills it from /states and sends the actions via ha().
 namespace audio {
 static const int BRONNEN = 6;   // at most 6 source buttons on the Audio screen
 // Sources of the speaker: names on the buttons + source values of its media_player (NOIR Builder > Audio).
@@ -1664,107 +1211,26 @@ inline std::vector<std::string> &bron_naam() { static std::vector<std::string> v
 inline std::vector<std::string> &bron_id() { static std::vector<std::string> v{"wifi", "bluetooth", "tv", "optical", "analog", "usb"}; return v; }
 inline int bronnen() { return std::min<int>(BRONNEN, std::min(bron_naam().size(), bron_id().size())); }
 inline std::string &speaker_naam() { static std::string n{"KEF LSX II"}; return n; }
-struct Beeld { uint8_t *px{nullptr}; lv_image_dsc_t dsc{}; };
-struct Lijst { std::string naam, sub, uri, type; int beeld{0}; };   // beeld = sleutel in covers (0 = geen)
-static const int COVER_NU = 1, COVER_KLEIN = 2, COVER_LIJST = 100, COVER_RECENT = 200, COVER_ZOEK = 300;   // sleutels in covers
 struct Data {
-  std::string kef, muziek, sub_e;    // entiteiten (sub_e = number.* van de subwoofer)
+  std::string kef, muziek, sub_e;    // entities: speaker, player for "now playing", subwoofer level (number.*)
   std::string kef_state;              // on/off/unavailable
-  int bron{-1};                       // index in BRON_NAAM, -1 = onbekend
+  int bron{-1};                       // index in bron_id(), -1 = unknown
   int volume{-1};                     // 0-100
   int sub{0};                         // subwoofer in dB (-10..+10)
   bool sub_bekend{false};
-  std::string sp_state, titel, artiest, album;
-  int pos{-1}, duur{0};               // s
-  int cover{0};                       // sleutel in covers voor "nu speelt"
-  bool shuffle{false};
-  int repeat{0};                      // 0 uit, 1 alles, 2 nummer
-  std::vector<Lijst> playlists, recent, zoek;
-  std::string zoek_tekst;
-  bool zoek_bezig{false}, zoek_toetsen{true};   // zoek_toetsen = toetsenbord zichtbaar (anders de resultaten groot)
-  int invoer{0};                                // 0 letterwiel, 1 QWERTY
-  int wiel_groep{0}, wiel_pos{0};               // letterwiel: tekenset (abc/ABC/123/#+=) en gekozen teken
-  std::map<int, Beeld> covers;
-  std::vector<std::pair<lv_obj_t *, int>> wacht;   // beeldobjecten per cover-sleutel
-  std::string cover_van_titel;                      // titel waarvoor de hoes is gevraagd
-  bool lijst_bezig{false}, lijst_geladen{false};
-  uint32_t lijst_volgende{0};
+  std::string sp_state, titel, artiest;
 };
 inline Data &d() { static Data x; return x; }
-inline bool &scherm_aan() { static bool b = true; return b; }   // firmware: startpagina zichtbaar en display aan
-// Per integratie in te vullen (firmware). Ontbreekt er een, dan doet die knop niets.
-inline std::function<void(int)> &sub_zetten() { static std::function<void(int)> f; return f; }            // dB
-inline std::function<void(const Lijst &)> &spelen() { static std::function<void(const Lijst &)> f; return f; }  // playlist/album
 struct Ui {
-  lv_obj_t *status{nullptr}, *aan{nullptr}, *np_titel{nullptr}, *np_sub{nullptr}, *np_cover{nullptr}, *np_balk{nullptr};
+  lv_obj_t *status{nullptr}, *aan{nullptr}, *np_titel{nullptr}, *np_sub{nullptr}, *np_bron{nullptr};
   lv_obj_t *bron[BRONNEN]{};
   lv_obj_t *vol_sld{nullptr}, *vol_w{nullptr}, *sub_sld{nullptr}, *sub_w{nullptr};
-  lv_obj_t *sp_titel{nullptr}, *sp_sub{nullptr}, *sp_cover{nullptr}, *sp_balk{nullptr}, *sp_tijd{nullptr}, *sp_app{nullptr};
-  lv_obj_t *sp_shuffle{nullptr}, *sp_repeat{nullptr};
-  lv_obj_t *np_bron{nullptr};
 };
 inline Ui &ui() { static Ui u; return u; }
-inline void beeld_vullen(Beeld &b, uint8_t *px, int w, int h) {
-  b.px = px;
-  b.dsc = {};
-  b.dsc.header.magic = LV_IMAGE_HEADER_MAGIC;
-  b.dsc.header.cf = LV_COLOR_FORMAT_RGB565;
-  b.dsc.header.w = w;
-  b.dsc.header.h = h;
-  b.dsc.header.stride = w * 2;
-  b.dsc.data_size = w * h * 2;
-  b.dsc.data = px;
-}
-inline const lv_image_dsc_t *cover_van(int sleutel) {
-  auto it = d().covers.find(sleutel);
-  return it == d().covers.end() || it->second.px == nullptr ? nullptr : &it->second.dsc;
-}
-inline std::string mmss_(int s) { char b[12]; snprintf(b, sizeof(b), "%d:%02d", s / 60, s % 60); return b; }
 inline std::string sub_tekst_(int db) { char b[12]; snprintf(b, sizeof(b), db > 0 ? "+%d dB" : "%d dB", db); return b; }
-inline void cover_zetten_(lv_obj_t *im, int sleutel, int maat) {
-  if (im == nullptr) return;
-  const lv_image_dsc_t *c = cover_van(sleutel);
-  if (c == nullptr) { lv_obj_add_flag(im, LV_OBJ_FLAG_HIDDEN); return; }
-  // Nooit schalen (2026-11-25): geschaalde beelden gaven op de remote ruis. Een groter beeld wordt in het vak
-  // bijgesneden (midden), een kleiner staat in het midden. HA levert de hoes voor de Audio-kaart apart op 56 px.
-  (void) maat;
-  lv_image_set_src(im, (const void *) nullptr);   // zelfde dsc met nieuwe pixels: opnieuw laten lezen
-  lv_image_set_src(im, c);
-  lv_obj_remove_flag(im, LV_OBJ_FLAG_HIDDEN);
-}
 inline bool speelt() { return d().sp_state == "playing" || d().sp_state == "paused"; }
-inline void wacht_(lv_obj_t *im, int sleutel) { if (sleutel > 0) d().wacht.push_back({im, sleutel}); }
-// Hoesjes met sleutel in [lo, hi) weggooien (2026-11-22). Eerst alles wat ze toont loskoppelen: anders tekent
-// LVGL uit vrijgegeven geheugen (= ruis in de speler, bv. de hoes van een zoekresultaat na een nieuwe zoekopdracht).
-inline void tonen();
-inline void covers_weg_(int lo, int hi) {
-  Data &x = d();
-  if (x.cover >= lo && x.cover < hi) { x.cover = x.covers.count(COVER_NU) ? COVER_NU : 0; }
-  for (auto &w : x.wacht)
-    if (w.second >= lo && w.second < hi && lv_obj_is_valid(w.first)) { lv_image_set_src(w.first, (const void *) nullptr); lv_obj_add_flag(w.first, LV_OBJ_FLAG_HIDDEN); }
-  tonen();   // speler/kaart naar de nieuwe x.cover
-  for (auto it = x.covers.begin(); it != x.covers.end();) {
-    if (it->first >= lo && it->first < hi) {
-      lv_image_cache_drop(&it->second.dsc);
-      nf::vrij_(it->second.px);
-      it = x.covers.erase(it);
-    } else ++it;
-  }
-}
-// Binnengekomen hoes: overal tonen waar hij op wacht (objecten van een herbouwd scherm zijn intussen weg)
-inline void cover_binnen_(int sleutel) {
-  auto &w = d().wacht;
-  for (size_t i = 0; i < w.size();) {
-    if (!lv_obj_is_valid(w[i].first)) { w.erase(w.begin() + i); continue; }
-    if (w[i].second == sleutel) {
-      lv_obj_t *vak = lv_obj_get_parent(w[i].first);
-      cover_zetten_(w[i].first, sleutel, lv_obj_get_width(vak));
-    }
-    i++;
-  }
-}
 
-// Alles wat zichtbaar is uit d() bijwerken (na elke statusvraag)
+// Everything visible from d() (after every poll)
 inline void tonen() {
   Ui &u = ui();
   Data &x = d();
@@ -1794,39 +1260,12 @@ inline void tonen() {
     lv_slider_set_value(u.sub_sld, x.sub, LV_ANIM_OFF);
     lv_label_set_text(u.sub_w, x.sub_bekend ? sub_tekst_(x.sub).c_str() : "\xE2\x80\x94");
   }
-  // Nu speelt (Audio-kaart en Muziek-scherm)
-  const std::string titel = speelt() ? x.titel : tr("Niets aan het afspelen");
-  std::string sub = speelt() ? x.artiest : "";
   if (u.np_titel != nullptr) {
-    lv_label_set_text(u.np_titel, titel.c_str());
-    lv_label_set_text(u.np_sub, sub.c_str());
-    cover_zetten_(u.np_cover, x.cover == COVER_NU && x.covers.count(COVER_KLEIN) ? COVER_KLEIN : x.cover, 56);
-    lv_obj_set_width(u.np_balk, x.duur > 0 && x.pos >= 0 ? std::max(2, 204 * std::min(x.pos, x.duur) / x.duur) : 0);
-  }
-  if (u.sp_titel != nullptr) {
-    lv_label_set_text(u.sp_titel, titel.c_str());
-    lv_label_set_text(u.sp_sub, (speelt() && !x.album.empty() ? sub + " \xC2\xB7 " + x.album : sub).c_str());
-    cover_zetten_(u.sp_cover, x.cover, 96);
-    lv_obj_set_width(u.sp_balk, x.duur > 0 && x.pos >= 0 ? std::max(2, 216 * std::min(x.pos, x.duur) / x.duur) : 0);
-    lv_label_set_text(u.sp_tijd, x.duur > 0 ? (mmss_(std::max(0, x.pos)) + " / " + mmss_(x.duur)).c_str() : "");
-    lv_label_set_text(u.sp_app, x.sp_state == "paused" ? "gepauzeerd" : "");
-    lv_obj_set_style_border_color(u.sp_shuffle, k(x.shuffle ? 0xBFC2C9 : RAND), 0);
-    lv_obj_set_style_border_opa(u.sp_shuffle, x.shuffle ? 230 : 115, 0);
-    lv_obj_set_style_border_color(u.sp_repeat, k(x.repeat ? 0xBFC2C9 : RAND), 0);
-    lv_obj_set_style_border_opa(u.sp_repeat, x.repeat ? 230 : 115, 0);
-    lv_obj_t *rl = lv_obj_get_child(u.sp_repeat, -1);
-    if (rl != nullptr) lv_label_set_text(rl, x.repeat == 2 ? "Herhaal 1" : x.repeat == 1 ? "Herhaal" : "Herhaal uit");
+    lv_label_set_text(u.np_titel, speelt() ? x.titel.c_str() : tr("Niets aan het afspelen"));
+    lv_label_set_text(u.np_sub, speelt() ? x.artiest.c_str() : "");
   }
 }
-}  // namespace audio
-
-// ---- NOIR Audio: gegevens uit HA en bediening ------------------------------------------------------------------
-inline void muziek_herbouwen();
-inline void zoek_herbouwen();
-namespace kef { inline std::string &entiteit(); }   // verderop gedefinieerd (NOIR Builder zet de speaker)
-namespace audio {
-// Stand uit /states (licht_http, elke 2 s zolang Audio/Muziek open is): KEF, subwoofer, Music Assistant
-// media_player: [state, bri, volume 0-100, unit, titel, artiest, stil, shuffle, repeat, app, source, positie, duur, leeftijd]
+// /states rows of speaker, subwoofer and player: [state, bri, volume 0-100, unit, title, artist, ..., source]
 inline std::string entiteiten_() {
   std::string e;
   for (const std::string *x : {&d().kef, &d().sub_e, &d().muziek}) if (!x->empty()) { e += *x; e += ","; }
@@ -1853,134 +1292,11 @@ inline void lees_(JsonDocument &doc) {
   }
   if (!x.muziek.empty()) {
     JsonArrayConst v = doc[x.muziek];
-    if (!v.isNull()) {
-      x.sp_state = v[0] | "";
-      x.titel = v[4] | "";
-      x.artiest = v[5] | "";
-      x.shuffle = v[7] | false;
-      const std::string rep = v[8] | "";
-      x.repeat = rep == "all" ? 1 : rep == "one" ? 2 : 0;
-      const float pos = v[11] | -1.0f, duur = v[12] | 0.0f, leeftijd = v[13] | 0.0f;
-      x.duur = (int) duur;
-      x.pos = pos < 0 ? -1 : (int) (pos + (x.sp_state == "playing" ? leeftijd : 0));
-      // andere titel: nieuwe hoes
-      if (speelt() && !x.titel.empty() && x.titel != x.cover_van_titel && !nf::url_("/muziek/img?", "").empty()) {
-        x.cover_van_titel = x.titel;
-        const std::string t = std::to_string(lv_tick_get() & 0xFFFF);
-        nf::d().rij.push_back({nf::url_("/muziek/img?", "&e=" + x.muziek + "&s=c&t=" + t), COVER_NU, 'c', 96 * 96 * 2});
-        nf::d().rij.push_back({nf::url_("/muziek/img?", "&e=" + x.muziek + "&s=c&m=56&t=" + t), COVER_KLEIN, 'n', 56 * 56 * 2});
-      }
-      if (speelt()) x.cover = COVER_NU;
-    }
+    if (!v.isNull()) { x.sp_state = v[0] | ""; x.titel = v[4] | ""; x.artiest = v[5] | ""; }
   }
   tonen();
 }
-// Lijst van HA (TSV): "p|r\t<naam>\t<sub>\t<uri>\t<type>" (Music Assistant)
-inline bool klaar_(const nf::Taak &t, int status, uint8_t *buf, size_t len) {
-  Data &x = d();
-  if (t.soort == 'c' || t.soort == 'n' || t.soort == 'l') {
-    if (status != 200 || buf == nullptr || len != t.max) return false;
-    const int maat = t.soort == 'c' ? 96 : t.soort == 'n' ? 56 : 64;
-    Beeld &b = x.covers[t.id];
-    if (b.px != nullptr) lv_image_cache_drop(&b.dsc);   // oude pixels niet meer uit een cache tekenen
-    nf::vrij_(b.px);
-    beeld_vullen(b, buf, maat, maat);
-    cover_binnen_(t.id);
-    if (t.id == COVER_NU || t.id == COVER_KLEIN) tonen();
-    return true;
-  }
-  if (t.soort == 'z') {
-    x.zoek_bezig = false;
-    x.zoek.clear();
-    covers_weg_(COVER_ZOEK, 1 << 30);
-    if (status == 200 && buf != nullptr) {
-      const char *p = (const char *) buf, *eind = p + len;
-      while (p < eind) {
-        const char *e = (const char *) memchr(p, '\n', eind - p);
-        if (e == nullptr) e = eind;
-        std::vector<std::string> v;
-        const char *q2 = p;
-        for (const char *c = p; c <= e; c++) if (c == e || *c == '\t') { v.emplace_back(q2, c - q2); q2 = c + 1; }
-        if (v.size() >= 5 && v[0] == "z" && x.zoek.size() < 10) x.zoek.push_back({v[1], v[2], v[3], v[4], COVER_ZOEK + (int) x.zoek.size()});
-        p = e + 1;
-      }
-      for (size_t i = 0; i < x.zoek.size(); i++)
-        nf::d().rij.push_back({nf::url_("/muziek/img?", "&e=" + x.muziek + "&s=l&w=z&i=" + std::to_string(i)), x.zoek[i].beeld, 'l', 64 * 64 * 2});
-    }
-    x.zoek_toetsen = x.zoek.empty();
-    zoek_herbouwen();
-    if (buf != nullptr) nf::vrij_(buf);
-    return true;
-  }
-  if (t.soort != 'a') return false;
-  x.lijst_bezig = false;
-  if (status != 200 || buf == nullptr || len == 0) return false;
-  x.playlists.clear(); x.recent.clear();
-  covers_weg_(COVER_LIJST, COVER_ZOEK);   // hoesjes van de oude lijst (sleutel = plek) weg
-  const char *p = (const char *) buf, *eind = p + len;
-  while (p < eind) {
-    const char *e = (const char *) memchr(p, '\n', eind - p);
-    if (e == nullptr) e = eind;
-    std::vector<std::string> v;
-    const char *q2 = p;
-    for (const char *c = p; c <= e; c++) if (c == e || *c == '\t') { v.emplace_back(q2, c - q2); q2 = c + 1; }
-    if (v.size() >= 5 && (v[0] == "p" || v[0] == "r")) {
-      auto &l = v[0] == "p" ? x.playlists : x.recent;
-      if (l.size() < 12) l.push_back({v[1], v[2], v[3], v[4], (v[0] == "p" ? COVER_LIJST : COVER_RECENT) + (int) l.size()});
-    }
-    p = e + 1;
-  }
-  x.lijst_geladen = true;
-  // hoesjes van de rijen (64 x 64) achter elkaar ophalen
-  auto vraag = [&](const std::vector<Lijst> &l, char w) {
-    for (size_t i = 0; i < l.size(); i++)
-      if (!x.covers.count(l[i].beeld))
-        nf::d().rij.push_back({nf::url_("/muziek/img?", "&e=" + x.muziek + "&s=l&w=" + std::string(1, w) + "&i=" + std::to_string(i)), l[i].beeld, 'l', 64 * 64 * 2});
-  };
-  vraag(x.playlists, 'p');
-  vraag(x.recent, 'r');
-  muziek_herbouwen();
-  nf::vrij_(buf);
-  return true;
-}
-// Elke 100 ms (in nf::tik's ritme): lijst bij openen en daarna elke 10 minuten
-inline void tik(uint32_t nu) {
-  Data &x = d();
-  if (!scherm_aan() || !op_audio() || x.muziek.empty() || x.lijst_bezig || (int32_t) (nu - x.lijst_volgende) < 0) return;
-  const std::string u = nf::url_("/muziek?", "&e=" + x.muziek);
-  if (u.empty()) return;
-  x.lijst_bezig = true;
-  x.lijst_volgende = nu + (x.lijst_geladen ? 600000u : 30000u);
-  nf::d().rij.insert(nf::d().rij.begin(), {u, 0, 'a', 8 * 1024});
-}
-inline void koppelen() {
-  licht_http::extra_open() = []() { return scherm_aan() && op_audio() && !entiteiten_().empty(); };
-  licht_http::extra_e() = entiteiten_;
-  licht_http::extra_lees() = lees_;
-  nf::extra_klaar() = klaar_;
-}
-// Entiteiten: substitutions uit de YAML (instellen) met daarboven de keuze uit de NOIR Builder (cfg.noir_audio,
-// 2026-11-24) - wat in de builder gekozen is wint, leeg = de YAML-waarde
-struct Bronnen_ { std::string kef, sub, muziek; };
-inline Bronnen_ &yaml_() { static Bronnen_ b; return b; }
-inline Bronnen_ &cfg_() { static Bronnen_ b; return b; }
-inline void toepassen_() {
-  const Bronnen_ &y = yaml_(), &c = cfg_();
-  d().kef = c.kef.empty() ? y.kef : c.kef;
-  d().sub_e = c.sub.empty() ? y.sub : c.sub;
-  d().muziek = c.muziek.empty() ? y.muziek : c.muziek;
-  if (!d().kef.empty()) kef::entiteit() = d().kef;   // ook de volumetoetsen op die speaker
-  koppelen();
-}
-inline void instellen(const std::string &kef, const std::string &sub, const std::string &muziek) {
-  yaml_() = {kef, sub, muziek};
-  toepassen_();
-}
-inline void cfg_laden(JsonObjectConst o) {
-  cfg_() = {o["kef"] | "", o["sub"] | "", o["music"] | ""};
-  toepassen_();
-}
-// ---- bediening (acties van het scherm) ----
+// ---- actions of the screen ----
 inline void bron_kiezen(int i) {
   Data &x = d();
   if (i < 0 || i >= bronnen() || x.kef.empty() || !ha()) return;
@@ -1996,106 +1312,8 @@ inline void aanuit() {
   x.kef_state = aan ? "on" : "off";
   tonen();
 }
-inline void shuffle_wissel() {
-  Data &x = d();
-  if (x.muziek.empty() || !ha()) return;
-  x.shuffle = !x.shuffle;
-  ha()("media_player.shuffle_set", {{"entity_id", x.muziek}, {"shuffle", x.shuffle ? "true" : "false"}});
-  tonen();
-}
-inline void repeat_wissel() {
-  static const char *rep[3] = {"off", "all", "one"};
-  Data &x = d();
-  if (x.muziek.empty() || !ha()) return;
-  x.repeat = (x.repeat + 1) % 3;
-  ha()("media_player.repeat_set", {{"entity_id", x.muziek}, {"repeat", rep[x.repeat]}});
-  tonen();
-}
-// ---- zoeken ----
-static const char *LETTERS = "QWERTYUIOPASDFGHJKLZXCVBNM";
-inline std::string url_code_(const std::string &t) {
-  std::string o;
-  for (unsigned char c : t) {
-    if (isalnum(c) || c == '-' || c == '_' || c == '.') o += (char) c;
-    else { char b[4]; snprintf(b, sizeof(b), "%%%02X", c); o += b; }
-  }
-  return o;
-}
-inline void zoek_veld_();   // verderop (tekstveld bijwerken)
-inline void zoek_toets(int i) {
-  Data &x = d();
-  if (i < 0 || i >= 26 || x.zoek_tekst.size() >= 40) return;
-  x.zoek_tekst += (char) tolower(LETTERS[i]);
-  zoek_veld_();
-}
-// Letterwiel (zoals het wiel in de NOIR-bouwgids): pijlen draaien, OK zet het teken, Terug wist
-static const char *WIEL_SET[4] = {"abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0123456789", ".,!?@-_:/+()#&'"};
-static const char *WIEL_NAAM[4] = {"abc", "ABC", "123", "#+="};
-inline void wiel_tonen_();   // verderop
-inline int wiel_n_() { return (int) strlen(WIEL_SET[d().wiel_groep]); }
-inline char wiel_teken_(int delta = 0) { const int n = wiel_n_(); return WIEL_SET[d().wiel_groep][((d().wiel_pos + delta) % n + n) % n]; }
-inline void wiel_stap(int delta) { const int n = wiel_n_(); d().wiel_pos = ((d().wiel_pos + delta) % n + n) % n; wiel_tonen_(); }
-inline void wiel_groep(int g) {
-  Data &x = d();
-  if (g == -1) g = x.wiel_groep == 0 ? 1 : 0;   // abc <-> ABC
-  if (g < 0 || g > 3) return;
-  if (x.wiel_groep != g) { x.wiel_groep = g; x.wiel_pos = 0; }
-  zoek_herbouwen();
-}
-inline void wiel_zet() {
-  Data &x = d();
-  if (x.zoek_tekst.size() >= 40) return;
-  x.zoek_tekst += wiel_teken_();
-  zoek_veld_();
-}
-inline void zoek_spatie() { Data &x = d(); if (!x.zoek_tekst.empty() && x.zoek_tekst.back() != ' ') { x.zoek_tekst += ' '; zoek_veld_(); } }
-inline void zoek_wis() { Data &x = d(); if (!x.zoek_tekst.empty()) { x.zoek_tekst.pop_back(); zoek_veld_(); } }
-inline void zoek_ga() {
-  Data &x = d();
-  std::string q = x.zoek_tekst;
-  while (!q.empty() && q.back() == ' ') q.pop_back();
-  if (q.empty() || x.muziek.empty() || x.zoek_bezig) return;
-  const std::string u = nf::url_("/muziek/zoek?", "&e=" + x.muziek + "&q=" + url_code_(q));
-  if (u.empty()) return;
-  x.zoek_bezig = true;
-  nf::d().rij.insert(nf::d().rij.begin(), {u, 0, 'z', 4 * 1024});
-  zoek_veld_();
-}
-inline void zoek_veld_tik() { d().zoek_toetsen = !d().zoek_toetsen || d().zoek.empty(); zoek_herbouwen(); }
-inline void invoer_wissel() { d().invoer = 1 - d().invoer; d().zoek_toetsen = true; zoek_herbouwen(); }
-// Afspelen: Music Assistant speelt direct op de gekozen speler (Chromecast/AirPlay zet de KEF zelf aan)
-inline void spelen_(const std::string &uri, const std::string &type) {
-  if (d().muziek.empty() || !ha()) return;
-  // enqueue: nummer = nu spelen (2026-11-25: zoeken zette het alleen in de wachtrij), lijst/album = wachtrij vervangen
-  ha()("media_player.play_media", {{"entity_id", d().muziek}, {"media_content_id", uri}, {"media_content_type", type},
-                                   {"enqueue", type == "track" ? "play" : "replace"}});
-}
-inline void zoek_spelen(int i) {
-  Data &x = d();
-  if (i < 0 || i >= (int) x.zoek.size() || x.muziek.empty() || !ha()) return;
-  const Lijst &l = x.zoek[i];
-  spelen_(l.uri, l.type.empty() ? "track" : l.type);
-  x.titel = l.naam; x.artiest = l.sub; x.cover = l.beeld; x.pos = 0; x.sp_state = "playing";
-  x.cover_van_titel = x.titel;
-  tonen();
-}
-// a = SP_LIJST/SP_RECENT + i; false = geen geldige keuze
-inline bool lijst_actie(int a, int lijst0, int recent0) {
-  Data &x = d();
-  const bool rec = a >= recent0;
-  const auto &l = rec ? x.recent : x.playlists;
-  const int i = a - (rec ? recent0 : lijst0);
-  if (i < 0 || i >= (int) l.size()) return false;
-  if (spelen()) spelen()(l[i]);
-  else spelen_(l[i].uri, l[i].type.empty() ? "playlist" : l[i].type);
-  x.titel = l[i].naam; x.artiest = l[i].sub; x.cover = l[i].beeld; x.pos = 0; x.sp_state = "playing";
-  x.cover_van_titel = x.titel;   // hoes van de tegel tot HA de echte stand geeft
-  tonen();
-  return true;
-}
 }  // namespace audio
 
-inline std::function<void(const std::string &, Data)> &ha();
 // Schuifregelaar (volume 0-100, subwoofer -10..+10 dB): waarde live in het label, naar HA bij loslaten
 inline lv_obj_t *regelaar_(lv_obj_t *body, int y, const char *naam, int min, int max, lv_obj_t *&waarde, bool sub, const Fonts &f) {
   label(body, naam, 0, y, 120, f.f12, TEXT2);
@@ -2126,8 +1344,7 @@ inline lv_obj_t *regelaar_(lv_obj_t *body, int y, const char *naam, int min, int
     audio::Data &x = audio::d();
     if (is_sub) {
       x.sub = v; x.sub_bekend = true;
-      if (audio::sub_zetten()) audio::sub_zetten()(v);
-      else if (!x.sub_e.empty() && ha()) ha()("number.set_value", {{"entity_id", x.sub_e}, {"value", std::to_string(v)}});
+      if (!x.sub_e.empty() && ha()) ha()("number.set_value", {{"entity_id", x.sub_e}, {"value", std::to_string(v)}});
     }
     else {
       x.volume = v;
@@ -2140,32 +1357,9 @@ inline lv_obj_t *regelaar_(lv_obj_t *body, int y, const char *naam, int min, int
   lv_obj_add_event_cb(s, cb, LV_EVENT_RELEASED, sub ? (void *) 1 : nullptr);
   return s;
 }
-inline lv_obj_t *cover_vak_(lv_obj_t *p, int x, int y, int maat, int sleutel, const char *reserve, const Fonts &f) {
-  lv_obj_t *v = lv_obj_create(p);
-  lv_obj_remove_style_all(v);
-  lv_obj_set_pos(v, x, y);
-  lv_obj_set_size(v, maat, maat);
-  lv_obj_set_style_radius(v, maat >= 80 ? 10 : 6, 0);
-  lv_obj_set_style_bg_color(v, k(SURF2), 0);
-  lv_obj_set_style_bg_opa(v, LV_OPA_COVER, 0);
-  lv_obj_remove_flag(v, (lv_obj_flag_t) (LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
-  if (f.ico != nullptr) {
-    lv_obj_t *i = lv_label_create(v);
-    lv_label_set_text(i, reserve);
-    lv_obj_set_style_text_font(i, f.ico, 0);
-    lv_obj_set_style_text_color(i, k(MUTED), 0);
-    lv_obj_center(i);
-  }
-  lv_obj_t *im = lv_image_create(v);
-  lv_obj_remove_flag(im, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_center(im);
-  audio::cover_zetten_(im, sleutel, maat);
-  audio::wacht_(im, sleutel);
-  return im;
-}
 static const char *ICO_NOOT = "\U000F0388";
 
-// NOIR Audio: KEF-status + aan/uit, "nu speelt" (tik = Muziek), ingangen, volume en subwoofer
+// NOIR Audio: speaker status + on/off, "now playing" (tap = play/pause), sources, volume and subwoofer
 inline void audio_bouwen(lv_obj_t *laag, const Fonts &f) {
   Stand &s = st();
   audio::Ui &u = audio::ui();
@@ -2174,13 +1368,17 @@ inline void audio_bouwen(lv_obj_t *laag, const Fonts &f) {
   u.status = label(body, "", 0, 26, 160, f.f12, MUTED);
   u.aan = icoon_knop_(body, 164, 0, 52, 34, AUDIO_AANUIT, ICO_POWER, f);
   // Nu speelt
-  lv_obj_t *np = knop(body, 0, 48, 216, 76, AUDIO_MUZIEK);
-  u.np_cover = cover_vak_(np, 10, 10, 56, 0, ICO_NOOT, f);
+  lv_obj_t *np = knop(body, 0, 48, 216, 76, AUDIO_NU);
+  if (f.ico != nullptr) {
+    lv_obj_t *i = lv_label_create(np);
+    lv_label_set_text(i, ICO_NOOT);
+    lv_obj_set_style_text_font(i, f.ico, 0);
+    lv_obj_set_style_text_color(i, k(TEXT2), 0);
+    lv_obj_set_pos(i, 26, 27);
+  }
   u.np_bron = label(np, "MUZIEK", 76, 9, 80, f.f12, TEXT2);
   u.np_titel = label(np, "", 76, 25, 130, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
   u.np_sub = label(np, "", 76, 45, 130, f.f12, MUTED);
-  detail(np, 6, 70, 204, 2, RAND, 160, 1);
-  u.np_balk = detail(np, 6, 70, 0, 2, 0xBFC2C9, 230, 1);
   // Ingang
   label(body, "Ingang", 0, 136, 120, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
   const int bw = (216 - 2 * 6) / 3;
@@ -2196,96 +1394,30 @@ inline void audio_bouwen(lv_obj_t *laag, const Fonts &f) {
   audio::tonen();
 }
 
-inline lv_obj_t *sp_tegel_(lv_obj_t *rij, const audio::Lijst &l, int x, int actie, const Fonts &f) {
-  lv_obj_t *b = knop(rij, x, 0, 72, 98, actie);
-  lv_obj_add_flag(b, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
-  lv_obj_set_style_bg_opa(b, 0, 0);
-  lv_obj_set_style_border_width(b, 0, 0);
-  cover_vak_(b, 4, 2, 64, l.beeld, ICO_NOOT, f);
-  lv_obj_t *n = label(b, l.naam.c_str(), 4, 70, 64, f.f12, TEXT2);
-  lv_label_set_long_mode(n, LV_LABEL_LONG_MODE_DOTS);
-  lv_obj_t *s2 = label(b, l.sub.c_str(), 4, 84, 64, f.f12, MUTED);
-  lv_label_set_long_mode(s2, LV_LABEL_LONG_MODE_DOTS);
-  lv_obj_set_style_text_opa(s2, 180, 0);
-  return b;
-}
-// NOIR Muziek (Music Assistant): groot "nu speelt", shuffle/herhalen, playlists, recent gespeeld, zoeken.
-// Afspelen/pauze/volgende/vorige: fysieke toetsen (geen knoppen op het scherm, zoals bij Netflix).
-inline void muziek_bouwen(lv_obj_t *laag, const Fonts &f) {
-  Stand &s = st();
-  audio::Ui &u = audio::ui();
-  audio::Data &x = audio::d();
-  lv_obj_t *body = s.muziek_body = body_maken(laag, true);
-  label(body, "Muziek", 0, 0, 110, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
-  u.sp_app = label(body, "", 92, 6, 124, f.f12, MUTED);
-  lv_obj_set_style_text_align(u.sp_app, LV_TEXT_ALIGN_RIGHT, 0);
-  u.sp_cover = cover_vak_(body, 0, 34, 96, x.cover, ICO_NOOT, f);
-  u.sp_titel = label(body, "", 106, 40, 110, f.f16 != nullptr ? f.f16 : f.f14, TEXT);
-  lv_label_set_long_mode(u.sp_titel, LV_LABEL_LONG_MODE_WRAP);
-  lv_obj_set_style_max_height(u.sp_titel, 2 * lv_font_get_line_height(f.f16 != nullptr ? f.f16 : f.f14), 0);
-  u.sp_sub = label(body, "", 106, 84, 110, f.f12, MUTED);
-  lv_label_set_long_mode(u.sp_sub, LV_LABEL_LONG_MODE_WRAP);
-  lv_obj_set_style_max_height(u.sp_sub, 2 * lv_font_get_line_height(f.f12), 0);
-  detail(body, 0, 140, 216, 2, RAND, 160, 1);
-  u.sp_balk = detail(body, 0, 140, 0, 2, 0xBFC2C9, 230, 1);
-  u.sp_tijd = label(body, "", 0, 146, 216, f.f12, MUTED);
-  u.sp_shuffle = tekst_knop_(body, 0, 168, 104, 30, SP_SHUFFLE, "Shuffle", f);
-  u.sp_repeat = tekst_knop_(body, 112, 168, 104, 30, SP_REPEAT, "Herhaal", f);
-  lv_obj_t *zk = knop(body, 0, 206, 216, 34, ZOEK_OPEN);
-  lv_obj_t *zl = label(zk, "Zoek een nummer of artiest\xE2\x80\xA6", 14, 0, 190, f.f12, MUTED);
-  lv_obj_align(zl, LV_ALIGN_LEFT_MID, 14, 0);
-  int y = 252;
-  auto rij = [&](const char *kop, const std::vector<audio::Lijst> &l, int basis) {
-    if (l.empty()) return;
-    nf_kop_(body, y, kop, nullptr, f);
-    lv_obj_t *r = nf_rij_(body, y + 20, 100);
-    for (int i = 0; i < (int) l.size() && i < 20; i++) sp_tegel_(r, l[i], i * 76, basis + i, f);
-    y += 128;
-  };
-  rij("Jouw playlists", x.playlists, SP_LIJST);
-  rij("Recent gespeeld", x.recent, SP_RECENT);
-  if (x.playlists.empty() && x.recent.empty())
-    label(body, "Playlists worden geladen\xE2\x80\xA6", 0, y, 216, f.f12, MUTED);
-  audio::tonen();
-}
-
-// ---- NOIR UI-instellingen (simulator build(13)) ----------------------------------------------------------------
-inline std::function<void(int, int, int)> &opslaan() { static std::function<void(int, int, int)> f; return f; }   // skin, wall, radius
-inline std::function<void(uint32_t *)> &eigen_kleuren() { static std::function<void(uint32_t *)> f; return f; }   // bg,surf,text,accent
+// ---- Skin (Settings): colours + corner radius. The firmware keeps the choice (opslaan -> flash). ----------------------
+inline std::function<void(int)> &opslaan() { static std::function<void(int)> f; return f; }   // skin number
 inline void alles_herbouwen();
-
-// Kleuren van skin nr in thema() zetten (wall/radius blijven)
 inline void thema_kleuren_() {
   Thema &t = thema();
-  uint32_t c[4] = {SKIN_KLEUR[0][0], SKIN_KLEUR[0][1], SKIN_KLEUR[0][2], SKIN_KLEUR[0][3]};
-  if (t.skin >= 0 && t.skin < 4) for (int i = 0; i < 4; i++) c[i] = SKIN_KLEUR[t.skin][i];
-  else if (t.skin == 4 && eigen_kleuren()) eigen_kleuren()(c);
-  t.bg = c[0]; t.surf = c[1]; t.text = c[2]; t.accent = c[3];
+  const int n = std::max(0, std::min(SKINS - 1, t.skin));
+  t.bg = SKIN_KLEUR[n][0]; t.surf = SKIN_KLEUR[n][1]; t.text = SKIN_KLEUR[n][2]; t.accent = SKIN_KLEUR[n][3];
 }
-// Bij het opstarten (opgeslagen waarden) - vóór bouwen()
-inline void thema_laden(int skin, int wall, int radius) {
+// At start (saved value) - before bouwen()
+inline void thema_laden(int skin) {
   Thema &t = thema();
   t.skin = std::max(0, std::min(SKINS - 1, skin));
-  t.wall = std::max(0, std::min(WALLS - 1, wall));
-  t.radius = std::max(8, std::min(20, radius));
+  t.radius = SKIN_RADIUS[t.skin];
   thema_kleuren_();
 }
-inline void thema_bewaren_() { if (opslaan()) opslaan()(thema().skin, thema().wall, thema().radius); }
-// Skin kiezen zoals select_preset() in de simulator: kleuren + afronding + wallpaper van de preset
 inline void skin_kiezen(int nr) {
-  Thema &t = thema();
-  t.skin = std::max(0, std::min(SKINS - 1, nr));
-  if (t.skin < 4) { t.radius = SKIN_RADIUS[t.skin]; t.wall = SKIN_WALL[t.skin]; }
-  thema_kleuren_();
-  thema_bewaren_();
+  thema_laden(nr);
+  if (opslaan()) opslaan()(thema().skin);
   alles_herbouwen();
 }
-// Aggro600-skin gewisseld: bij "Eigen" volgt NOIR
-inline void eigen_gewisseld() { if (thema().skin == 4) alles_herbouwen(); }
 
-// Keuzelijst (2026-11-22): de firmware bouwt LVGL zonder lv_dropdown - daarom een eigen lijst van knoppen over
-// het scherm (lv_layer_top), in NOIR-stijl. soort 0 = skin, 1 = wallpaper.
-struct Keuze { lv_obj_t *over{nullptr}; int soort{0}; };
+// Choice list (Settings > Skin): LVGL is built without lv_dropdown, so our own list of buttons over the screen
+// (lv_layer_top), in NOIR style.
+struct Keuze { lv_obj_t *over{nullptr}; };
 inline Keuze &keuze() { static Keuze k; return k; }
 inline void keuze_dicht() {
   Keuze &kz = keuze();
@@ -2293,26 +1425,18 @@ inline void keuze_dicht() {
 }
 inline void keuze_gekozen_(lv_event_t *e) {
   const int v = (int) (intptr_t) lv_event_get_user_data(e);
-  const int soort = keuze().soort;
   keuze_dicht();
-  if (v < 0) return;   // achtergrond: annuleren
-  if (soort == 0) { if (v != thema().skin) skin_kiezen(v); return; }
-  if (v == thema().wall) return;
-  thema().wall = std::max(0, std::min(WALLS - 1, v));
-  thema_bewaren_();
-  alles_herbouwen();
+  if (v >= 0 && v != thema().skin) skin_kiezen(v);   // v < 0: background = cancel
 }
 inline void keuze_open_(lv_event_t *e) {
-  const int soort = (int) (intptr_t) lv_event_get_user_data(e);
+  (void) e;
   Keuze &kz = keuze();
   if (kz.over != nullptr) return;
   const Fonts &f = st().fonts;
-  const char *const *namen = soort == 0 ? SKIN_NAMEN : WALL_NAMEN;
-  const int n = soort == 0 ? SKINS : WALLS, gekozen = soort == 0 ? thema().skin : thema().wall;
-  kz.soort = soort;
+  const char *const *namen = SKIN_NAMEN;
+  const int n = SKINS, gekozen = thema().skin;
   kz.over = lv_obj_create(lv_layer_top());
   lv_obj_remove_style_all(kz.over);
-  lv_obj_add_flag(kz.over, LV_OBJ_FLAG_USER_4);
   lv_obj_set_size(kz.over, 240, 320);
   lv_obj_set_style_bg_color(kz.over, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(kz.over, 175, 0);
@@ -2332,7 +1456,7 @@ inline void keuze_open_(lv_event_t *e) {
   lv_obj_set_style_pad_all(m, 0, 0);
   lv_obj_set_style_shadow_width(m, 0, 0);
   lv_obj_remove_flag(m, LV_OBJ_FLAG_SCROLLABLE);
-  label(m, soort == 0 ? "Skin" : "Wallpaper", 14, 12, 180, f.f12, MUTED);
+  label(m, "Skin", 14, 12, 180, f.f12, MUTED);
   for (int i = 0; i < n; i++) {
     lv_obj_t *b = knop(m, 8, 34 + i * 42, 192, 36, -1);
     lv_obj_add_event_cb(b, keuze_gekozen_, LV_EVENT_CLICKED, (void *) (intptr_t) i);
@@ -2344,11 +1468,11 @@ inline void keuze_open_(lv_event_t *e) {
     }
   }
 }
-// Knop "Naam  v" die de keuzelijst opent (in plaats van een dropdown)
-inline lv_obj_t *keuzelijst_(lv_obj_t *body, int y, int soort, const Fonts &f) {
-  const char *naam = soort == 0 ? SKIN_NAMEN[thema().skin] : WALL_NAMEN[thema().wall];
+// Button "Name  v" that opens the choice list (instead of a dropdown)
+inline lv_obj_t *keuzelijst_(lv_obj_t *body, int y, const Fonts &f) {
   lv_obj_t *b = knop(body, 0, y, 216, 34, -1);
-  lv_obj_add_event_cb(b, keuze_open_, LV_EVENT_CLICKED, (void *) (intptr_t) soort);
+  lv_obj_add_event_cb(b, keuze_open_, LV_EVENT_CLICKED, nullptr);
+  const char *naam = SKIN_NAMEN[thema().skin];
   lv_obj_t *l = label(b, naam, 12, 0, 170, f.f12, TEXT);
   lv_obj_align(l, LV_ALIGN_LEFT_MID, 12, 0);
   if (f.ico != nullptr) {
@@ -2378,13 +1502,12 @@ inline void inst_bouwen(lv_obj_t *laag, const Fonts &f) {
   modus(0, INST_FULL, "Full", !eco_mode());
   modus(112, INST_ECO, "Eco", eco_mode());
   label(body, "Skin", 0, 104, 216, f.f12, MUTED);
-  keuzelijst_(body, 122, 0, f);
+  keuzelijst_(body, 122, f);
   knop_tekst_(knop(body, 0, 170, 104, 40, INST_WIFI), "Wi-Fi", f);
   knop_tekst_(knop(body, 112, 170, 104, 40, KNOPTEST), "Knoppentest", f);
 }
 
 // Lagen over page_home bouwen (eenmalig). home = page_home->obj.
-inline void zoek_bouwen(lv_obj_t *laag, const Fonts &f);   // verderop (NOIR Muziek zoeken)
 inline void bouwen(lv_obj_t *home, const Fonts &f, const Beelden &bl, JsonArrayConst thuis_items = JsonArrayConst()) {
   Stand &s = st();
   if (s.toast_font == nullptr) s.toast_font = f.f14;
@@ -2410,26 +1533,10 @@ inline void bouwen(lv_obj_t *home, const Fonts &f, const Beelden &bl, JsonArrayC
   scenes_bouwen(s.scenes, f, bl, s.scenes_items ? s.scenes_items() : JsonArrayConst());
   onderknop(s.scenes, ICO_LINKS, "Terug", 12, TERUG, f);
   onderknop(s.scenes, ICO_HOME, "Thuis", 124, THUIS, f);
-  s.netflix = laag_maken(home, bl);
-  netflix_bouwen(s.netflix, f);
-  onderknop(s.netflix, ICO_LINKS, "Terug", 12, TERUG, f);
-  onderknop(s.netflix, ICO_HOME, "Thuis", 124, THUIS, f);
-  s.nfd_laag = laag_maken(home, bl);
-  nf_detail_bouwen(s.nfd_laag, f);
-  onderknop(s.nfd_laag, ICO_LINKS, "Terug", 12, TERUG, f);
-  onderknop(s.nfd_laag, ICO_HOME, "Thuis", 124, THUIS, f);
   s.audio = laag_maken(home, bl);
   audio_bouwen(s.audio, f);
   onderknop(s.audio, ICO_LINKS, "Terug", 12, TERUG, f);
   onderknop(s.audio, ICO_HOME, "Thuis", 124, THUIS, f);
-  s.muziek = laag_maken(home, bl);
-  muziek_bouwen(s.muziek, f);
-  onderknop(s.muziek, ICO_LINKS, "Terug", 12, TERUG, f);
-  onderknop(s.muziek, ICO_HOME, "Thuis", 124, THUIS, f);
-  s.zoek = laag_maken(home, bl);
-  zoek_bouwen(s.zoek, f);
-  onderknop(s.zoek, ICO_LINKS, "Terug", 12, TERUG, f);
-  onderknop(s.zoek, ICO_HOME, "Thuis", 124, THUIS, f);
   s.test = laag_maken(home, bl);
   test_bouwen(s.test, f);
   onderknop(s.test, ICO_LINKS, "Terug", 12, TERUG, f);
@@ -2461,185 +1568,7 @@ inline void scenes_herbouwen() {
   body_vervangen_(s.scenes, s.scenes_body, [&]() { scenes_bouwen(s.scenes, s.fonts, s.beelden, s.scenes_items ? s.scenes_items() : JsonArrayConst()); });
 }
 // Nieuwe lijsten of laatst gestart: NOIR Netflix opnieuw (detail: nf_detail_tonen)
-inline void netflix_herbouwen() {
-  Stand &s = st();
-  body_vervangen_(s.netflix, s.netflix_body, [&]() { netflix_bouwen(s.netflix, s.fonts); });
-}
-inline void nf::herbouwen_() { netflix_herbouwen(); }
-// Nieuwe playlists: NOIR Muziek opnieuw
-inline void muziek_herbouwen() {
-  Stand &s = st();
-  audio::Ui &u = audio::ui();
-  u.sp_titel = u.sp_sub = u.sp_cover = u.sp_balk = u.sp_tijd = u.sp_app = u.sp_shuffle = u.sp_repeat = nullptr;
-  body_vervangen_(s.muziek, s.muziek_body, [&]() { muziek_bouwen(s.muziek, s.fonts); });
-}
-
-// ---- NOIR Muziek zoeken: tekstveld, eigen toetsenbord (geen LVGL-keyboard/textarea in deze build), resultaten ----
-inline lv_obj_t *&zoek_veld_lbl() { static lv_obj_t *l = nullptr; return l; }
-inline void audio::zoek_veld_() {
-  lv_obj_t *l = zoek_veld_lbl();
-  if (l == nullptr || !lv_obj_is_valid(l)) return;
-  const Data &x = d();
-  std::string t = x.zoek_tekst.empty() ? "" : x.zoek_tekst;
-  if (x.zoek_bezig) t += "  \xE2\x80\xA6";
-  else if (x.zoek_toetsen) t += "|";
-  lv_label_set_text(l, t.empty() ? "|" : t.c_str());
-}
-struct WielUi { lv_obj_t *l[5]{}; };
-inline WielUi &wiel_ui() { static WielUi w; return w; }
-inline void audio::wiel_tonen_() {
-  WielUi &w = wiel_ui();
-  for (int i = 0; i < 5; i++) {
-    if (w.l[i] == nullptr || !lv_obj_is_valid(w.l[i])) return;
-    const char t[2] = {wiel_teken_(i - 2), 0};
-    lv_label_set_text(w.l[i], t);
-  }
-}
-inline void zoek_bouwen(lv_obj_t *laag, const Fonts &f) {
-  Stand &s = st();
-  wiel_ui() = WielUi();
-  audio::Data &x = audio::d();
-  lv_obj_t *body = s.zoek_body = body_maken(laag, false);
-  label(body, "Zoeken", 0, 0, 110, f.f16 != nullptr ? f.f16 : f.f14, TEXT);
-  if (x.zoek_toetsen) {   // wisselen tussen letterwiel en QWERTY
-    lv_obj_t *w = tekst_knop_(body, 134, -2, 82, 24, ZOEK_INVOER, x.invoer == 0 ? "QWERTY" : "Letterwiel", f);
-    lv_obj_set_style_radius(w, 8, 0);
-  }
-  lv_obj_t *veld = knop(body, 0, 26, 216, 32, ZOEK_VELD);
-  lv_obj_set_style_bg_color(veld, k(SURF2), 0);
-  zoek_veld_lbl() = label(veld, "", 10, 0, 196, f.f14 != nullptr ? f.f14 : f.f12, TEXT);
-  lv_label_set_long_mode(zoek_veld_lbl(), LV_LABEL_LONG_MODE_CLIP);
-  lv_obj_align(zoek_veld_lbl(), LV_ALIGN_LEFT_MID, 10, 0);
-  // resultaten: klein boven het toetsenbord, of de hele hoogte als het toetsenbord dicht is
-  const int ly = 64, lh = x.zoek_toetsen ? 52 : 166;
-  lv_obj_t *lijst = lv_obj_create(body);
-  lv_obj_remove_style_all(lijst);
-  lv_obj_set_pos(lijst, 0, ly);
-  lv_obj_set_size(lijst, 216, lh);
-  lv_obj_set_scroll_dir(lijst, LV_DIR_VER);
-  lv_obj_set_scrollbar_mode(lijst, LV_SCROLLBAR_MODE_OFF);
-  if (x.zoek.empty()) {
-    lv_obj_t *h = label(lijst, x.zoek_bezig ? "Zoeken\xE2\x80\xA6" : "Typ een titel of artiest en tik op Zoek.", 2, 4, 212, f.f12, MUTED);
-    lv_label_set_long_mode(h, LV_LABEL_LONG_MODE_WRAP);
-  }
-  for (int i = 0; i < (int) x.zoek.size(); i++) {
-    lv_obj_t *b = knop(lijst, 0, i * 46, 216, 42, ZOEK_RES + i);
-    cover_vak_(b, 5, 5, 32, x.zoek[i].beeld, ICO_NOOT, f);
-    label(b, x.zoek[i].naam.c_str(), 46, 5, 162, f.f12, TEXT);
-    label(b, x.zoek[i].sub.c_str(), 46, 22, 162, f.f12, MUTED);
-  }
-  if (x.zoek_toetsen && x.invoer == 0) {
-    // Letterwiel: links tekenset/spatie/wis, midden het wiel (5 tekens, midden groot), rechts 123/#+=/Zoek
-    const int ky = 122, bh = 32, st2 = 36;
-    auto kn = [&](int x0, int y0, int actie, const char *t, bool sel) {
-      lv_obj_t *b = tekst_knop_(body, x0, y0, 58, bh, actie, t, f);
-      if (sel) { lv_obj_set_style_border_color(b, k(0xBFC2C9), 0); lv_obj_set_style_border_opa(b, 200, 0); }
-      return b;
-    };
-    kn(0, ky, WIEL_GROEP, audio::WIEL_NAAM[x.wiel_groep < 2 ? x.wiel_groep : 0], x.wiel_groep < 2);
-    kn(0, ky + st2, ZOEK_SPATIE, "Spatie", false);
-    kn(0, ky + 2 * st2, ZOEK_WIS, "Wis", false);
-    kn(158, ky, WIEL_CIJFERS, "123", x.wiel_groep == 2);
-    kn(158, ky + st2, WIEL_TEKENS, "#+=", x.wiel_groep == 3);
-    lv_obj_t *ga = kn(158, ky + 2 * st2, ZOEK_GA, "Zoek", false);
-    lv_obj_set_style_border_color(ga, k(0xBFC2C9), 0);
-    lv_obj_set_style_border_opa(ga, 230, 0);
-    // het wiel
-    lv_obj_t *w = lv_obj_create(body);
-    lv_obj_remove_style_all(w);
-    lv_obj_set_pos(w, 66, ky - 2);
-    lv_obj_set_size(w, 84, 3 * st2 - 2);
-    lv_obj_set_style_bg_color(w, k(SURF), 0);
-    lv_obj_set_style_bg_opa(w, 200, 0);
-    lv_obj_set_style_radius(w, rnd(13), 0);
-    lv_obj_set_style_border_width(w, 1, 0);
-    lv_obj_set_style_border_color(w, k(RAND), 0);
-    lv_obj_set_style_border_opa(w, 115, 0);
-    lv_obj_remove_flag(w, (lv_obj_flag_t) (LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_GESTURE_BUBBLE | LV_OBJ_FLAG_SCROLL_CHAIN));
-    lv_obj_add_flag(w, (lv_obj_flag_t) (LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_PRESS_LOCK | LV_OBJ_FLAG_USER_3));   // USER_3: de firmware breekt slepen hier niet af
-    lv_obj_t *band = detail(w, 4, (3 * st2 - 2) / 2 - 15, 76, 30, 0xBFC2C9, 38, 8);
-    (void) band;
-    WielUi &wu = wiel_ui();
-    const int mid = (3 * st2 - 2) / 2;
-    const int dy[5] = {-44, -24, 0, 24, 44};
-    for (int i = 0; i < 5; i++) {
-      const lv_font_t *fo = i == 2 ? (f.f20 != nullptr ? f.f20 : f.f16) : (i == 1 || i == 3 ? f.f14 : f.f12);
-      lv_obj_t *l = label(w, "", 0, 0, 84, fo, i == 2 ? TEXT : MUTED);
-      lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
-      lv_obj_set_style_text_opa(l, i == 2 ? 255 : (i == 1 || i == 3 ? 170 : 90), 0);
-      lv_obj_align(l, LV_ALIGN_TOP_MID, 0, mid + dy[i] - lv_font_get_line_height(fo) / 2);
-      wu.l[i] = l;
-    }
-    // Tikken: bovenste deel = vorige letter, onderste deel = volgende, midden = letter zetten (werkt ook als de
-    // touchchip bij snel vegen geen tussenpunten levert). Vegen draait ook; vasthouden boven/onder draait door.
-    lv_obj_add_event_cb(w, [](lv_event_t *e) {
-      static int32_t start_y = 0, gedraaid = 0, zone = 0;
-      static uint32_t sinds = 0, herhaald = 0;
-      lv_indev_t *in = lv_indev_active();
-      lv_obj_t *o = (lv_obj_t *) lv_event_get_current_target(e);
-      lv_point_t pt;
-      if (in == nullptr) return;
-      lv_indev_get_point(in, &pt);
-      lv_area_t a;
-      lv_obj_get_coords(o, &a);
-      const int32_t h = lv_area_get_height(&a), rel = pt.y - a.y1;
-      const lv_event_code_t c = lv_event_get_code(e);
-      if (c == LV_EVENT_PRESSED) {
-        start_y = pt.y; gedraaid = 0; sinds = lv_tick_get(); herhaald = 0;
-        zone = rel < h / 3 ? -1 : rel > 2 * h / 3 ? 1 : 0;
-      } else if (c == LV_EVENT_PRESSING) {
-        const int stappen = (pt.y - start_y) / 16;
-        if (stappen != 0) { audio::wiel_stap(-stappen); start_y += stappen * 16; gedraaid += stappen; }
-        else if (gedraaid == 0 && zone != 0 && lv_tick_get() - sinds > 450 && lv_tick_get() - herhaald > 120) {
-          audio::wiel_stap(zone); herhaald = lv_tick_get(); gedraaid = 100;   // vasthouden: doordraaien
-        }
-      } else if (c == LV_EVENT_RELEASED && gedraaid == 0) {
-        // De touchchip meldt bij een snelle veeg soms alleen neer + op: dan het verschil hier verwerken
-        const int stappen = (pt.y - start_y) / 16;
-        if (stappen != 0) audio::wiel_stap(-stappen);
-        else if (zone == 0) audio::wiel_zet();
-        else audio::wiel_stap(zone);
-      }
-    }, LV_EVENT_ALL, nullptr);
-    audio::wiel_tonen_();
-  } else if (x.zoek_toetsen) {
-    // QWERTY: 10 / 9 / 7 + wissen, dan spatie en Zoek
-    const int kh = 26, stap = 28, ky = 122;
-    auto toets = [&](int x0, int y0, int w, int actie, const char *t) {
-      lv_obj_t *b = tekst_knop_(body, x0, y0, w, kh, actie, t, f);
-      lv_obj_set_style_radius(b, 6, 0);
-      return b;
-    };
-    char t[2] = {0, 0};
-    for (int i = 0; i < 26; i++) {
-      const int rij = i < 10 ? 0 : i < 19 ? 1 : 2, kol = i < 10 ? i : i < 19 ? i - 10 : i - 19;
-      const int x0 = rij == 0 ? 0 : rij == 1 ? 11 : 11;
-      t[0] = audio::LETTERS[i];
-      toets(x0 + (int) lroundf(kol * 21.7f), ky + rij * stap, 20, ZOEK_TOETS + i, t);
-    }
-    toets(11 + (int) lroundf(7 * 21.7f), ky + 2 * stap, 216 - 11 - (int) lroundf(7 * 21.7f), ZOEK_WIS, "Wis");
-    toets(0, ky + 3 * stap, 140, ZOEK_SPATIE, "spatie");
-    lv_obj_t *ga = toets(146, ky + 3 * stap, 70, ZOEK_GA, "Zoek");
-    lv_obj_set_style_border_color(ga, k(0xBFC2C9), 0);
-    lv_obj_set_style_border_opa(ga, 230, 0);
-  }
-  audio::zoek_veld_();
-}
-inline void zoek_herbouwen() {
-  Stand &s = st();
-  zoek_veld_lbl() = nullptr;
-  body_vervangen_(s.zoek, s.zoek_body, [&]() { zoek_bouwen(s.zoek, s.fonts); });
-}
-
-// Detailscherm voor titel code (lijst*100 + i) opbouwen en tonen
 inline void zeigen_seite(int seite);
-inline void nf_detail_tonen(int code) {
-  Stand &s = st();
-  nf::Data &x = nf::d();
-  if (!nf::titel_van(code, x.detail, x.detail_plek)) return;
-  body_vervangen_(s.nfd_laag, s.nfd_body, [&]() { nf_detail_bouwen(s.nfd_laag, s.fonts); });
-  zeigen_seite(S_NF_DETAIL);
-}
 // Nieuwe lampenlijst (configurator): NOIR Verlichting opnieuw
 inline void licht_herbouwen() {
   Stand &s = st();
@@ -2649,7 +1578,7 @@ inline void licht_herbouwen() {
 
 inline lv_obj_t *laag_van(int seite) {
   Stand &s = st();
-  return seite == S_TV ? s.tv : seite == S_LICHT ? s.licht : seite == S_INST ? s.inst : seite == S_AIRCO ? s.airco : seite == S_TEST ? s.test : seite == S_SCENES ? s.scenes : seite == S_NETFLIX ? s.netflix : seite == S_NF_DETAIL ? s.nfd_laag : seite == S_AUDIO ? s.audio : seite == S_MUZIEK ? s.muziek : seite == S_ZOEK ? s.zoek : s.laag;
+  return seite == S_TV ? s.tv : seite == S_LICHT ? s.licht : seite == S_INST ? s.inst : seite == S_AIRCO ? s.airco : seite == S_TEST ? s.test : seite == S_SCENES ? s.scenes : seite == S_AUDIO ? s.audio : s.laag;
 }
 
 // Een NOIR-pagina tonen (de andere verbergen); de statusbalk verhuist mee
@@ -2672,10 +1601,9 @@ inline bool op_tv() { return st().zichtbaar && st().seite == S_TV; }
 inline bool op_licht() { return st().zichtbaar && st().seite == S_LICHT; }
 inline bool op_airco() { return st().zichtbaar && st().seite == S_AIRCO; }
 inline bool op_test() { return st().zichtbaar && st().seite == S_TEST; }
-inline bool op_audio() { return st().zichtbaar && (st().seite == S_AUDIO || st().seite == S_MUZIEK || st().seite == S_ZOEK); }
-inline bool op_netflix() { return st().zichtbaar && (st().seite == S_NETFLIX || st().seite == S_NF_DETAIL); }
+inline bool op_audio() { return st().zichtbaar && st().seite == S_AUDIO; }
 
-// NOIR aan (laatst getoonde pagina) of helemaal weg (gewone Aggro600-startpagina zichtbaar)
+// NOIR on (last shown screen) or hidden (display off)
 inline void zeigen(bool an) {
   Stand &s = st();
   if (s.laag == nullptr) return;
@@ -2685,8 +1613,8 @@ inline void zeigen(bool an) {
   for (int i = 0; i < S_ANZ; i++) if (laag_van(i) != nullptr) lv_obj_add_flag(laag_van(i), LV_OBJ_FLAG_HIDDEN);
 }
 
-// Skin/wallpaper/afronding gewisseld: alle lagen opnieuw (na de lopende gebeurtenis - de keuzelijst die het
-// meldde, wordt zelf verwijderd)
+// Skin or language changed: every layer again (after the running event - the choice list that reported it is
+// deleted itself)
 inline void alles_herbouwen() {
   static bool gepland = false;
   if (gepland || st().laag == nullptr) return;
@@ -2695,15 +1623,14 @@ inline void alles_herbouwen() {
     gepland = false;
     Stand &s = st();
     if (s.laag == nullptr || s.home == nullptr) return;
-    thema_kleuren_();   // "Eigen": kleuren van de Aggro600-skin zoals die nu is
+    thema_kleuren_();
     dimmer_dicht();
     keuze_dicht();
     const bool zicht = s.zichtbaar;
     const int seite = s.seite;
-    lv_obj_t *weg[] = {s.laag, s.tv, s.licht, s.inst, s.airco, s.test, s.scenes, s.netflix, s.nfd_laag, s.audio, s.muziek, s.zoek};
+    lv_obj_t *weg[] = {s.laag, s.tv, s.licht, s.inst, s.airco, s.test, s.scenes, s.audio};
     for (lv_obj_t *o : weg) if (o != nullptr) lv_obj_delete(o);   // kop hangt aan een ervan
-    s.laag = s.tv = s.licht = s.inst = s.airco = s.test = s.scenes = s.scenes_body = s.netflix = s.netflix_body = s.nfd_laag = s.nfd_body = s.audio = s.audio_body = s.muziek = s.muziek_body = s.zoek = s.zoek_body = nullptr;
-    zoek_veld_lbl() = nullptr;
+    s.laag = s.tv = s.licht = s.inst = s.airco = s.test = s.scenes = s.scenes_body = s.audio = s.audio_body = nullptr;
     audio::ui() = audio::Ui();
     for (auto &t : knoptest::st_().tegel) t = nullptr;
     knoptest::st_().info = nullptr;
@@ -2716,8 +1643,6 @@ inline void alles_herbouwen() {
     if (zicht) zeigen_seite(seite);
   }, nullptr);
 }
-// Bij elk laden van de startpagina: de laatst getoonde NOIR-pagina (als NOIR aan staat)
-inline void bij_home() { if (st().aan) zeigen(true); }
 
 // TV-status uit HA (state van de media_player, attribuut source) op het TV-scherm
 inline void tv_status(const std::string &state, const std::string &bron) {
@@ -2846,92 +1771,8 @@ inline void herhaal_tik(uint32_t nu) { noir::herhaal_tik(nu); }
 
 }  // namespace kef
 
-// ---- TV: fysieke toetsen op het NOIR TV-scherm -> webostv.button ------------------------------------------------
+// ---- TV: the TV's media_player in Home Assistant (module Tv sets it) -----------------------------------------------
 namespace tv {
-
 inline std::string &entiteit() { static std::string e; return e; }
-
-// Toetscodes (defaults.py): 14 Hoch, 35 Runter, 15 Links, 32 Rechts, 34 OK, 13 Zurueck, 3 "Menu"/Home am Geraet
-inline const char *knop_van(int t) {
-  switch (t) {
-    case 14: return "UP";
-    case 35: return "DOWN";
-    case 15: return "LEFT";
-    case 32: return "RIGHT";
-    case 34: return "ENTER";
-    case 13: return "BACK";
-    case 3: return "HOME";
-    default: return nullptr;
-  }
-}
-inline void stuur(const char *knop) {
-  if (noir::ha()) noir::ha()("webostv.button", {{"entity_id", entiteit()}, {"button", knop}});
-}
-// Uit on_key (na KEF): alleen als het NOIR TV-scherm zichtbaar is en de startpagina actief is
-inline bool airco_taste(int t, bool ingedrukt) {
-  if (t != 14 && t != 35 && t != 34) return false;
-  if (!ingedrukt) { halten_los(t); return true; }
-  if (t == 34) { airco::aanuit(); return true; }
-  const int d = t == 14 ? 1 : -1;
-  airco::temp_stap(d);
-  halten_start(t, [d]() { airco::temp_stap(d); });
-  return true;
-}
-inline bool taste(int t, bool ingedrukt, bool op_home) {
-  if (op_home && op_test()) return knoptest::taste(t, ingedrukt);   // NOIR Knoppentest: alles blijft op het scherm
-  if (op_home && op_airco()) return airco_taste(t, ingedrukt);   // NOIR Airco: pijlen = temperatuur, OK = aan/uit
-  if (entiteit().empty() || !noir::ha() || !op_home || !(op_tv() || op_netflix())) return false;   // ook op NOIR Netflix
-  // NOIR Netflix-dashboard: de mediatoetsen van de remote bedienen Netflix (2 play/pauze, 5 stop, 4/11 spoelen)
-  if (op_netflix() && (t == 2 || t == 5 || t == 4 || t == 11)) {
-    if (!ingedrukt) return true;
-    if (t == 2) noir::ha()("media_player.media_play_pause", {{"entity_id", entiteit()}});
-    else stuur(t == 5 ? "STOP" : t == 4 ? "REWIND" : "FASTFORWARD");
-    return true;
-  }
-  const char *knop = knop_van(t);
-  if (knop == nullptr) return false;
-  if (!ingedrukt) { halten_los(t); return true; }
-  stuur(knop);
-  if (t == 14 || t == 35 || t == 15 || t == 32) halten_start(t, [knop]() { stuur(knop); });   // pijlen herhalen
-  return true;
-}
-
 }  // namespace tv
-
-// NOIR Audio/Muziek: mediatoetsen naar de MA-speler (2 play/pauze, 5 stop, 4 vorige, 11 volgende).
-// Volume blijft bij kef::taste (die komt eerder in on_key).
-inline bool zoek_taste(int t, bool ingedrukt) {
-  if (!st().zichtbaar || st().seite != S_ZOEK) return false;
-  audio::Data &x = audio::d();
-  const bool wiel = x.invoer == 0 && x.zoek_toetsen;
-  if (t == 13) {   // Terug: eerst tekst wissen, leeg = gewoon terug
-    if (x.zoek_tekst.empty()) return false;
-    if (ingedrukt) { audio::zoek_wis(); halten_start(t, []() { audio::zoek_wis(); }); } else halten_los(t);
-    return true;
-  }
-  if (t == 2) { if (ingedrukt) audio::zoek_ga(); return true; }   // play-toets = Zoek
-  if (!wiel) return false;
-  if (t == 14 || t == 35) {   // omhoog/omlaag draait het wiel (vasthouden = doordraaien)
-    const int dlt = t == 14 ? -1 : 1;
-    if (ingedrukt) { audio::wiel_stap(dlt); halten_start(t, [dlt]() { audio::wiel_stap(dlt); }); } else halten_los(t);
-    return true;
-  }
-  if (!ingedrukt) return t == 15 || t == 32 || t == 34;
-  if (t == 34) { audio::wiel_zet(); return true; }                                   // OK = teken zetten
-  if (t == 15 || t == 32) { audio::wiel_groep((x.wiel_groep + (t == 32 ? 1 : 3)) % 4); return true; }   // links/rechts = tekenset
-  return false;
-}
-inline bool audio_taste(int t, bool ingedrukt) {
-  if (zoek_taste(t, ingedrukt)) return true;
-  // Op Audio/Muziek/Zoeken gaan pijlen en OK NIET naar de tv (2026-11-22: OK startte de serie die in Netflix op
-  // de tv geselecteerd stond, via de toetsindeling van de actieve activiteit)
-  if (op_audio() && (t == 14 || t == 35 || t == 15 || t == 32 || t == 34)) return true;
-  if (!op_audio() || audio::d().muziek.empty() || !ha()) return false;
-  if (t != 2 && t != 5 && t != 4 && t != 11) return false;
-  if (!ingedrukt) return true;
-  const char *svc = t == 2 ? "media_player.media_play_pause" : t == 5 ? "media_player.media_pause"
-                  : t == 4 ? "media_player.media_previous_track" : "media_player.media_next_track";
-  ha()(svc, {{"entity_id", audio::d().muziek}});
-  return true;
-}
 }  // namespace noir

@@ -1,6 +1,6 @@
-# NOIR simulator for ESPHomeRemote
+# NOIR simulator
 
-Runs the NOIR screens of the ESPHomeRemote (OpenRemote Rev6, 240 × 320) in a window on your PC.
+Runs the NOIR screens of the remote (OpenRemote Rev6, 240 × 320) in a window on your PC.
 It uses **the same screen code as the firmware** – it compiles `../firmware/noir-ui.h` directly –
 on LVGL 9.5 + SDL2. Change the firmware, rebuild the simulator, see the result. Home Assistant, the TV,
 IR and the internet are simulated: whatever the remote would send to Home Assistant is printed in the console.
@@ -9,13 +9,12 @@ IR and the internet are simulated: whatever the remote would send to Home Assist
 
 ## Screens
 
-NOIR Thuis (home, tiles from the configurator) · TV (apps, power) · Verlichting (lights: tap = on/off, long press =
-dimmer) · Scènes (incl. built-in "Alles uit") · Airco (Mitsubishi Heavy IR: temperature, mode, fan, swing, HI POWER,
-ECO) · Netflix dashboard (Top 10 NL, Popular, Recently started, detail screen) · UI settings (skin, wallpaper, corner
-radius) · Audio (speaker, inputs, volume, sub) · Muziek via Music Assistant (now playing, playlists, recent) ·
-Search (letter wheel and keyboard) · Knoppentest (button test).
+Home (tiles from NOIR Builder) · TV (sources with logos, power) · Lights (tap = on/off, hold = dimmer) · Scenes
+(incl. "All off") · Audio (speaker, sources, volume, subwoofer, now playing) · Airco (dial, modes, fan, swing –
+Mitsubishi Heavy infrared) · Settings (mode, skin) · Button test.
 
-Environment variables: `NOIR_README=1` (abstract posters), `NOIR_GEEN_WIFI=1` (no Wi-Fi).
+`--demo` walks every screen and saves a screenshot of each (`demo-*.bmp`); `--en` shows the English screens.
+Without a screen (CI, servers): `SDL_VIDEODRIVER=dummy ./build/noir-simulator --demo`.
 
 ## Build
 

@@ -59,7 +59,7 @@ struct Audio : Module {
     }
     if (a >= noir::AUDIO_BRON && a < noir::AUDIO_BRON + noir::audio::BRONNEN) { noir::audio::bron_kiezen(a - noir::AUDIO_BRON); return true; }
     if (a == noir::AUDIO_AANUIT) { noir::audio::aanuit(); return true; }
-    if (a == noir::AUDIO_MUZIEK) { media("media_player.media_play_pause"); return true; }   // tap "now playing"
+    if (a == noir::AUDIO_NU) { media("media_player.media_play_pause"); return true; }   // tap "now playing"
     return false;
   }
 
