@@ -95,7 +95,7 @@ The NOIR Builder is the page in Home Assistant's sidebar where you build your re
 | **TV** | 1 your TV · 2 its brand for infrared – press **Test · On** to check · 3 your speaker (optional, with *Switch it on with: source* for speakers that wake up that way) · 4 tap the inputs and apps you want; logos are picked for you. Your TV must be on to see its inputs. More in [docs/tv.md](docs/tv.md). |
 | **Audio** | 1 your speaker · 2 tap its sources (up to 6), rename them · 3 *Now playing* from another player (optional, e.g. Music Assistant) · 4 a subwoofer level (optional). |
 | **Airco** | Per room: a name and how it is controlled – a **climate entity** in Home Assistant (any brand) or the remote's **own infrared** (Mitsubishi Heavy). Up to 4 rooms; on the remote you switch between them. |
-| **Remote** | Mode (**Full** / **Eco**), language, **Firmware** (version, **Check now**, **Update firmware**, channel **Stable** or **Test**) and *First-time setup* with a link to the installer. |
+| **Remote** | Mode (**Full** / **Eco**), language, **Updates** (one **Update** button for the remote and NOIR Remote itself, channel **Stable** or **Test**) and *First-time setup* with a link to the installer. |
 
 A screen only works once it has a tile on **Home** – e.g. add a tile *Audio screen* after setting up Audio.
 
@@ -113,9 +113,12 @@ A screen only works once it has a tile on **Home** – e.g. add a tile *Audio sc
 
 Your screens and settings stay.
 
-- **Remote:** *NOIR Builder → Remote → Firmware* → **Update firmware**. The remote downloads the new firmware itself and restarts. (Home Assistant also shows the update under *Settings → Updates*.)
-  **Stable** (default) gets released versions only. **Test** gets the newest build first – for testers; switch back to Stable any time.
-- **Home Assistant:** HACS shows the update – press **Update**, then restart Home Assistant.
+*NOIR Builder → Remote → Updates* → **Update**. One button for everything – it checks first and only does what is needed:
+- **the remote** downloads its new firmware itself and restarts;
+- **NOIR Remote in Home Assistant** (the Builder and the link to your remotes) is updated through HACS, then Home Assistant restarts and the Builder reloads by itself. No new version = no restart.
+
+**Stable** (default) gets released versions only. **Test** gets the newest build first – for testers; switch back to Stable any time.
+(You can still update the usual way too: *Settings → Updates* in Home Assistant.)
 
 **Coming from version 0.2** (with a `secrets.yaml`)? Install the new firmware once with the [installer](https://ronsone.github.io/Noir_Remote/) via USB and set up Wi-Fi (steps 2 and 3).
 In Home Assistant, delete the old *noir-remote* under ESPHome first; the new one is added by itself.
