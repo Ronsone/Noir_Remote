@@ -1,7 +1,7 @@
 # NOIR simulator
 
 Runs the NOIR screens of the remote (OpenRemote Rev6, 240 × 320) in a window on your PC.
-It uses **the same screen code as the firmware** – it compiles `../firmware/noir-ui.h` directly –
+It uses **the same screen code as the firmware** – it compiles `../firmware/core/noir-ui.h` directly –
 on LVGL 9.5 + SDL2. Change the firmware, rebuild the simulator, see the result. Home Assistant, the TV,
 IR and the internet are simulated: whatever the remote would send to Home Assistant is printed in the console.
 
@@ -63,7 +63,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 ## How it fits together
 
 - NOIR is a set of full-screen LVGL layers on `page_home`, one per screen; the status bar moves to the visible one.
-- `firmware/noir-ui.h` only builds and shows the screens. In the firmware, modules (`firmware/modules/*.h`) fill in the
+- `firmware/core/noir-ui.h` only builds and shows the screens. In the firmware, modules (`firmware/core/modules/*.h`) fill in the
   data from Home Assistant and handle taps and keys; here `src/main.cpp` is a small stand-in with sample data.
 - Taps call `noir::st().actie(code)` – in the firmware `noirapp::action`, here `action()` in `src/main.cpp`.
 - The icon font `fonts/mdi20.c` is made from the firmware's glyph list: `python3 tools/make_sim_font.py`.

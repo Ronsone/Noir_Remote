@@ -132,11 +132,15 @@ Only then do the installer and the remotes on Stable get it.
 
 ```
 firmware/
-  noir-remote.yaml    hardware + ESPHome setup
-  noir-ui.h           the screens (shared with the simulator)
-  mdi_icons.h         the icons NOIR Builder offers (tools/check_icons.py keeps the font in sync)
-  noir-app.h          starts the modules
-  modules/            one file per feature: core, home, lights, scenes, tv, audio, airco, nav
+  noir-remote.yaml    the remote = core + boards/rev6.yaml (name, version, update channel)
+  core/               the same on every NOIR device – the core knows no boards, only capabilities
+    noir-core.yaml    Home Assistant link, updates, Wi-Fi setup, fonts, LVGL
+    noir-ui.h         the screens (shared with the simulator)
+    mdi_icons.h       the icons NOIR Builder offers (tools/check_icons.py keeps the font in sync)
+    noir-app.h        starts the modules
+    modules/          one file per feature: core, home, lights, scenes, tv, audio, airco, nav
+  boards/rev6.yaml    OpenRemote Rev6 hardware: display, touch, keys, infrared, battery + its capabilities
+  components/         Rev6 drivers (from ESPHomeRemote by Aggro600)
   logos/              logos for TV sources (made by tools/make_logos.py)
 custom_components/noir_remote/
   NOIR Builder panel, config + state endpoints for the remote
@@ -150,7 +154,7 @@ simulator/            all screens on your PC (SDL2 + LVGL), same screen code as 
 tools/                check_icons.py, check_languages.py, make_sim_font.py, make_logos.py, make_brand.py
 ```
 
-**New feature = new module.** Copy `firmware/modules/scenes.h`, give it a name, handle its actions/keys, add it in `noir-app.h`.
+**New feature = new module.** Copy `firmware/core/modules/scenes.h`, give it a name, handle its actions/keys, add it in `noir-app.h`.
 
 ## Help translate
 

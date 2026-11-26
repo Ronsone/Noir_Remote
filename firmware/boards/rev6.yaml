@@ -1,0 +1,132 @@
+# =============================================================================
+# Board: OpenRemote Rev6 (ESP32-S3, 240 x 320 ILI9341 + FT6336 touch, 5x5 key matrix, infrared, MAX17048 battery)
+# Drivers in firmware/components come from ESPHomeRemote by Aggro600 (see LICENSE-ESPHomeRemote there).
+# What a board must provide: see firmware/core/noir-core.yaml.
+# =============================================================================
+
+substitutions:
+  noir_width: "240"
+  noir_height: "320"
+  noir_touch: "true"
+  noir_keys: "true"
+  noir_ir: "true"
+  noir_battery_sensor: "true"
+  noir_battery: "id(battery_pct).has_state() ? (int) id(battery_pct).state : -1"
+
+esphome:
+  on_boot:
+    # +VSW (display, touch, I2C pull-ups): GPIO38 LOW. The display driver keeps it on; set early so the
+    # touch controller has its 300 ms to settle before it starts.
+    - priority: 950
+      then:
+        - lambda: |-
+            gpio_set_direction(GPIO_NUM_38, GPIO_MODE_OUTPUT);
+            gpio_set_level(GPIO_NUM_38, 0);
+
+esp32:
+  board: esp32-s3-devkitc1-n16r8
+  flash_size: 16MB
+  flash_mode: dio
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+external_components:   # path relative to the device file (firmware/)
+  - source: {type: local, path: components}
+    components: [ili9341_i80, ft63x6, tca8418, max17048]
+
+i2c:
+  id: i2c_bus
+  sda: GPIO20
+  scl: GPIO19
+
+# ---- Display, touch, backlight ----------------------------------------------------------------------------------
+display:
+  - platform: ili9341_i80
+    id: main_display
+    cs_pin: GPIO39
+    dc_pin: GPIO40
+    wr_pin: GPIO41
+    rd_pin: GPIO42
+    enable_pin: {number: GPIO38}
+    invert_colors: true
+    data_pins: [GPIO48, GPIO47, GPIO21, GPIO14, GPIO13, GPIO12, GPIO11, GPIO10]
+    dimensions: {width: 240, height: 320}
+    bus_frequency: 20MHz
+    update_interval: 1s
+
+touchscreen:
+  - platform: ft63x6
+    id: main_touch
+    display: main_display
+    update_interval: 10ms
+    transform:
+      mirror_x: true
+      mirror_y: true
+    on_touch:
+      - lambda: 'noirapp::touched();'
+
+output:
+  - platform: ledc
+    id: backlight_pwm
+    pin: {number: GPIO9, inverted: true}
+    frequency: 20000Hz
+    min_power: 0.0005
+    zero_means_zero: true
+  - platform: ledc
+    id: button_backlight_pwm
+    pin: {number: GPIO46}
+    frequency: 20000Hz
+
+light:
+  - platform: monochromatic
+    id: display_backlight
+    output: backlight_pwm
+    default_transition_length: 200ms
+    restore_mode: ALWAYS_OFF
+  - platform: monochromatic
+    id: button_backlight
+    output: button_backlight_pwm
+    restore_mode: ALWAYS_OFF
+
+# ---- Infrared -----------------------------------------------------------------------------------------------------
+remote_transmitter:
+  id: ir_tx
+  pin: {number: GPIO5, inverted: true}
+  carrier_duty_percent: 50%
+  non_blocking: true
+
+# Never run. ESPHome only builds the infrared protocols it sees in this file; Ir::send (modules/core.h) uses NEC.
+script:
+  - id: ir_protocols
+    then:
+      - remote_transmitter.transmit_nec: {transmitter_id: ir_tx, address: 0, command: 0}
+
+# ---- Keys (TCA8418 5x5 matrix) ----------------------------------------------------------------------------------
+tca8418:
+  id: keypad
+  address: 0x34
+  interrupt_pin: {number: GPIO8}
+  rows: 5
+  columns: 5
+  extra_gpi_pins: [5]
+  debounce: 25ms
+  long_press: 500ms
+  on_key:
+    - then:
+        - lambda: 'noirapp::key(keycode, pressed, long_press);'
+
+# ---- Battery --------------------------------------------------------------------------------------------------------
+sensor:
+  - platform: max17048
+    address: 0x36
+    update_interval: 30s
+    battery_level:
+      id: battery_pct
+      name: "Battery"
+    voltage:
+      id: battery_v
+      name: "Battery voltage"
