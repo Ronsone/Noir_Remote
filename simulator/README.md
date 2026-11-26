@@ -74,3 +74,18 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 - Inter font (SIL OFL 1.1, `fonts/Inter-OFL.txt`), Material Design Icons subset (Pictogrammers, Apache 2.0),
   Lucide icons (ISC, `assets/LUCIDE-LICENSE.txt`).
 - App logos belong to their owners and are only used to show the TV screen.
+
+## In the browser (the NOIR phone panel)
+
+The same simulator builds to WebAssembly with [Emscripten](https://emscripten.org); Home Assistant serves it as the
+sidebar panel **NOIR** (`custom_components/noir_remote/frontend/web/`, loaded by `noir-phone.js`).
+
+```bash
+emcmake cmake -S simulator -B build-web -DCMAKE_BUILD_TYPE=Release
+cmake --build build-web
+cp build-web/noir-simulator.{js,wasm,data} custom_components/noir_remote/frontend/web/
+```
+
+In the browser it takes its configuration and the states of its lamps and TV from Home Assistant
+(`noir_web_config`, `noir_web_states`) and sends its actions back (`Module.noirHa`). Without Emscripten's network
+access to GitHub archives, point it at a git clone of SDL2: `EMCC_LOCAL_PORTS=sdl2=/path/to/SDL` (tag `release-2.32.10`).

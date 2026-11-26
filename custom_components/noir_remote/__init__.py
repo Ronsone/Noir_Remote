@@ -200,6 +200,23 @@ async def ws_get(hass, connection, msg):
                                        "packs": LANG_PACKS})
 
 
+PHONE = "noir-phone"   # the NOIR panel on your phone (sidebar "NOIR") is a NOIR device too: its own home screen
+
+
+@websocket_api.websocket_command({vol.Required("type"): "noir_remote/phone", vol.Required("w"): int, vol.Required("h"): int})
+@websocket_api.async_response
+async def ws_phone(hass, connection, msg):
+    """The phone panel: its configuration (like a remote fetches it) plus its info tiles. Not admin-only: anyone who
+    may open the panel may use it - the actions it sends run with that person's own rights."""
+    nd: NoirData = hass.data[DOMAIN]
+    await nd.seen(PHONE, "phone", max(200, min(msg["w"], 3000)), max(200, min(msg["h"], 3000)), ["touch"])
+    cfg = nd.payload(PHONE)
+    lang = nd.model.get("lang", "nl")
+    cfg["info"] = {f"i:{t['entity']}": o for t in cfg["home"] if t.get("t") in ("weather", "calendar", "value")
+                   if (o := await noir_info.info(hass, t["entity"], lang))}
+    connection.send_result(msg["id"], cfg)
+
+
 @websocket_api.websocket_command({vol.Required("type"): "noir_remote/logo", vol.Required("names"): [str]})
 @websocket_api.require_admin
 @websocket_api.callback
@@ -255,6 +272,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         websocket_api.async_register_command(hass, ws_save)
         websocket_api.async_register_command(hass, ws_logo)
         websocket_api.async_register_command(hass, ws_test)
+        websocket_api.async_register_command(hass, ws_phone)
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC, os.path.join(os.path.dirname(__file__), "frontend"), cache_headers=False)])
     from .config_flow import ha_host
@@ -267,9 +285,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, webcomponent_name="noir-builder", frontend_url_path=PANEL,
             module_url=f"{STATIC}/noir-builder.js?v={stamp}", sidebar_title="NOIR Builder",
             sidebar_icon="mdi:view-grid-outline", require_admin=True)
+    web = os.path.join(os.path.dirname(__file__), "frontend", "web", "noir-simulator.wasm")
+    if "noir" not in hass.data.get("frontend_panels", {}) and os.path.exists(web):
+        # NOIR on your phone (proof of concept): the same screens as the remote, in the browser (WebAssembly)
+        js = os.path.join(os.path.dirname(__file__), "frontend", "noir-phone.js")
+        stamp = int(await hass.async_add_executor_job(os.path.getmtime, js))
+        await panel_custom.async_register_panel(
+            hass, webcomponent_name="noir-phone", frontend_url_path="noir",
+            module_url=f"{STATIC}/noir-phone.js?v={stamp}", sidebar_title="NOIR",
+            sidebar_icon="mdi:remote", require_admin=False)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_remove_panel(hass, PANEL)
+    frontend.async_remove_panel(hass, "noir", warn_if_unknown=False)
     return True

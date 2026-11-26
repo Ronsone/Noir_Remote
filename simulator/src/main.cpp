@@ -15,6 +15,9 @@
 #include <ctime>
 #include <string>
 #include <vector>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 extern "C" {
 extern const lv_font_t inter12, inter14, inter16, inter20, inter48, mdi20;
@@ -86,8 +89,27 @@ static JsonDocument g_home, g_scenes;
 static bool g_demo = false, g_grid = false;
 static int g_w = 240, g_h = 320, g_hh = -1, g_mm = 0;
 
-// ---------------------------------------------------------------- simulated Home Assistant
+// ---------------------------------------------------------------- Home Assistant
+// In the browser (phone, HA panel /noir) actions go to the real Home Assistant through JavaScript (noir-phone.js);
+// on the PC they are printed.
+#ifdef __EMSCRIPTEN__
+EM_JS(void, js_ha, (const char *svc, const char *json), {
+  if (Module.noirHa) Module.noirHa(UTF8ToString(svc), JSON.parse(UTF8ToString(json)));
+});
+static bool g_web = true;
+#else
+static void js_ha(const char *, const char *) {}
+static bool g_web = false;
+#endif
+static void ha_send(const std::string &svc, const Data &d) {
+  JsonDocument j;
+  for (auto &kv : d) j[kv.first] = kv.second;
+  std::string out;
+  serializeJson(j, out);
+  js_ha(svc.c_str(), out.c_str());
+}
 static void ha_print(const std::string &svc, const Data &d) {
+  if (g_web) { ha_send(svc, d); return; }
   std::printf("[HA] %s", svc.c_str());
   for (auto &kv : d) std::printf("  %s=%s", kv.first.c_str(), kv.second.c_str());
   std::printf("\n");
@@ -161,6 +183,53 @@ static Fonts scaled_fonts() {
   return Fonts{ttf(inter, 12), ttf(inter, 14), ttf(inter, 16), ttf(mdi, 20), ttf(inter, 20), ttf(inter, 48)};
 }
 
+// ---------------------------------------------------------------- the phone: configuration and states from Home Assistant
+static JsonDocument g_cfg;
+// the device's payload from NOIR Remote (as the remote fetches it) + {"info": {"i:weather.x": {...}}}
+extern "C" void noir_web_config(const char *json) {
+  if (deserializeJson(g_cfg, json)) return;
+  g_home.clear(); g_home.set(g_cfg["home"]);
+  g_scenes.clear(); g_scenes.set(g_cfg["scenes"]);
+  english() = std::string(g_cfg["lang"] | "nl") != "nl";
+  texts().clear();
+  for (JsonPairConst kv : g_cfg["texts"].as<JsonObjectConst>()) texts()[kv.key().c_str()] = kv.value().as<std::string>();
+  if (!lamps_from_items(g_cfg["lights"].as<JsonArrayConst>())) lamps().clear();
+  tv::entity_ref() = g_cfg["tv"]["entity"] | "";
+  tv_apps().clear();
+  for (JsonObjectConst a : g_cfg["tv"]["apps"].as<JsonArrayConst>()) tv_apps().push_back({a["name"] | "", a["source"] | "", a["logo"] | ""});
+  for (JsonPairConst kv : g_cfg["info"].as<JsonObjectConst>()) {   // same objects as the remote's module Info gets
+    const std::string e = std::string(kv.key().c_str()).substr(2), d = e.substr(0, e.find('.'));
+    JsonObjectConst o = kv.value();
+    if (d == "weather") {
+      info::Weather w; w.known = true; w.cond = o["c"] | ""; w.place = o["p"] | ""; w.temp = o["t"] | 0; w.lo = o["lo"] | 0; w.hi = o["hi"] | 0;
+      for (JsonArrayConst h : o["h"].as<JsonArrayConst>()) w.hours.push_back({h[0] | "", h[1] | 0});
+      for (JsonArrayConst x : o["d"].as<JsonArrayConst>()) w.days.push_back({x[0] | "", x[1] | 0, x[2] | 0});
+      info::weather()[e] = w;
+    } else if (d == "calendar") {
+      std::vector<info::Event> ev;
+      for (JsonArrayConst x : o["ev"].as<JsonArrayConst>()) ev.push_back({x[0] | "", x[1] | "", x[2] | "", x[3] | ""});
+      info::calendar()[e] = ev;
+    } else {
+      info::Value v; v.known = true; v.name = o["n"] | ""; v.text = o["v"] | ""; v.change = o["ch"] | ""; v.trend = o["tr"] | 0;
+      for (float f : o["hs"].as<JsonArrayConst>()) v.history.push_back(f);
+      info::values()[e] = v;
+    }
+  }
+  rebuild_all();
+}
+// {"light.x": ["on", 128], "media_player.tv": ["on", -1, "HDMI 1"]} - lamps and the TV
+extern "C" void noir_web_states(const char *json) {
+  JsonDocument d;
+  if (deserializeJson(d, json)) return;
+  for (Lamp &l : lamps()) {
+    JsonArrayConst v = d[l.entity_ref];
+    if (!v.isNull()) { l.state = v[0] | ""; l.bri = v[1] | -1; }
+  }
+  lamps_text();
+  JsonArrayConst t = d[tv::entity_ref()];
+  if (!t.isNull()) tv_status(t[0] | "", t[2] | "");
+}
+
 // ---------------------------------------------------------------- actions (as noirapp::action in the firmware)
 static void run_tile(int i) {
   JsonArrayConst items = g_home.as<JsonArrayConst>();
@@ -173,13 +242,25 @@ static void run_tile(int i) {
   else if (fn == "scenes") action(SCENES);
   else if (fn == "airco") action(AIRCO);
   else if (fn == "alloff") action(SCENE_ALL_OFF);
-  else std::printf("[remote] tile %d: %s\n", i, fn.c_str());
+  else if (!fn.empty()) std::printf("[remote] tile %d: %s\n", i, fn.c_str());
+  else {   // an entity tile (as module Home): scene/script run, light/switch toggle; info tiles only show
+    const std::string e = items[i]["entity"] | "", t = items[i]["t"] | "";
+    if (e.empty() || t == "weather" || t == "calendar" || t == "value") return;
+    if (e.rfind("scene.", 0) == 0) ha_print("scene.turn_on", {{"entity_id", e}});
+    else if (e.rfind("script.", 0) == 0) ha_print("script.turn_on", {{"entity_id", e}});
+    else if (e.rfind("light.", 0) == 0) ha_print("light.toggle", {{"entity_id", e}});
+    else ha_print("homeassistant.toggle", {{"entity_id", e}});
+  }
 }
 
 void action(int a) {
   if (a >= SCENE && a < SCENE + 40) {
     JsonArrayConst it = g_scenes.as<JsonArrayConst>();
-    if (a - SCENE < (int) it.size()) toast(it[a - SCENE]["label"] | "Scene");
+    if (a - SCENE < (int) it.size()) {
+      const std::string e = it[a - SCENE]["entity"] | "";
+      if (!e.empty()) ha_print(e.rfind("script.", 0) == 0 ? "script.turn_on" : "scene.turn_on", {{"entity_id", e}});
+      toast(it[a - SCENE]["label"] | "Scene");
+    }
     return;
   }
   if (a >= ITEM) { run_tile(a - ITEM); return; }
@@ -189,7 +270,7 @@ void action(int a) {
   if (a >= TV_APP && a < TV_APP + (int) tv_apps().size()) {
     const TvApp &app = tv_apps()[a - TV_APP];
     if (!tv_aan()) tv_status("on", "");
-    ha_print("media_player.select_source", {{"source", app.source}});
+    ha_print("media_player.select_source", {{"entity_id", tv::entity_ref()}, {"source", app.source}});
     tv_status("on", app.source);
     toast(app.name.c_str());
     return;
@@ -200,7 +281,7 @@ void action(int a) {
       if (tv_aan()) { ha_print("media_player.turn_off", {{"entity_id", tv::entity_ref()}}); tv_status("off", ""); toast("TV uit"); }
       else { tv_status("on", "Live TV"); toast("TV aan"); }
       break;
-    case AUDIO: show_screen(S_AUDIO); break;
+    case AUDIO: if (g_web) { toast("Audio: op de remote"); break; } show_screen(S_AUDIO); break;
     case AUDIO_POWER: audio::toggle_power(); break;
     case AUDIO_NOW: ha_print("media_player.media_play_pause", {{"entity_id", audio::d().muziek}}); break;
     case LIGHTS: show_screen(S_LIGHTS); break;
@@ -211,7 +292,7 @@ void action(int a) {
       ha_print("light.turn_off", {{"entity_id", "all lamps"}});
       toast("Alles uit");
       break;
-    case AIRCO: show_screen(S_AIRCO); break;
+    case AIRCO: if (g_web) { toast("Airco: op de remote"); break; } show_screen(S_AIRCO); break;
     case AIRCO_POWER: airco::toggle_power(); break;
     case AIRCO_MIN: airco::temp_stap(-1); break;
     case AIRCO_PLUS: airco::temp_stap(1); break;
@@ -346,15 +427,20 @@ int main(int argc, char **argv) {
   speaker_e::entity_ref() = "media_player.woonkamer";
   speaker_e::notice() = [](const char *t) { toast(t); };
   st().actie = action;
-  deserializeJson(g_home, g_grid ? (english() ? GRID_JSON_EN : GRID_JSON) : (english() ? HOME_JSON_EN : HOME_JSON));
-  deserializeJson(g_scenes, english() ? SCENES_JSON_EN : SCENES_JSON);
+  if (g_web) { deserializeJson(g_home, "[]"); deserializeJson(g_scenes, "[]"); }
+  else {
+    deserializeJson(g_home, g_grid ? (english() ? GRID_JSON_EN : GRID_JSON) : (english() ? HOME_JSON_EN : HOME_JSON));
+    deserializeJson(g_scenes, english() ? SCENES_JSON_EN : SCENES_JSON);
+  }
   st().items = []() { return g_home.as<JsonArrayConst>(); };
   st().scenes_items = []() { return g_scenes.as<JsonArrayConst>(); };
-  lamps_from_text(english() ? LAMPS_EN : LAMPS);
-  for (auto &l : lamps()) { l.state = "off"; l.bri = -1; }
-  sample_audio();
-  sample_airco();
-  sample_info();
+  if (!g_web) {   // the browser gets the real configuration from Home Assistant (noir_web_config)
+    lamps_from_text(english() ? LAMPS_EN : LAMPS);
+    for (auto &l : lamps()) { l.state = "off"; l.bri = -1; }
+    sample_audio();
+    sample_airco();
+    sample_info();
+  }
 
   Fonts f{&inter12, &inter14, &inter16, &mdi20, &inter20, &inter48};
   if (lay().u != 1.0f) f = scaled_fonts();
@@ -362,7 +448,7 @@ int main(int argc, char **argv) {
   bl.wall = &wall;
   bl.tv = &ic_tv; bl.audio = &ic_audio; bl.light = &ic_light; bl.scenes = &ic_scenes;
   sim_logos();
-  tv_apps() = {{"PS5", "PS5 Gameconsole", "playstation"}, {"Netflix", "Netflix", "netflix"}, {"YouTube", "YouTube", "youtube"},
+  if (!g_web) tv_apps() = {{"PS5", "PS5 Gameconsole", "playstation"}, {"Netflix", "Netflix", "netflix"}, {"YouTube", "YouTube", "youtube"},
                {"Xbox", "HDMI 3", "game"}, {"Live TV", "Live TV", "tv"}, {"Spotify", "Spotify", "spotify"}};
   st().toast_font = &inter14;
   build_all(scr, f, bl, g_home.as<JsonArrayConst>());
@@ -377,8 +463,12 @@ int main(int argc, char **argv) {
   if (g_demo) lv_timer_create(demo_cb, 400, nullptr);
   std::printf("NOIR simulator: mouse = finger, arrows/Enter/Backspace = D-pad/OK/Back, H = Home,\n"
               "space = play/pause, +/-/M = volume, P = screenshot, Q = quit.\n");
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop([]() { lv_timer_handler(); }, 0, false);   // the browser calls it every frame
+#else
   for (;;) {
     const uint32_t wait = lv_timer_handler();
     lv_delay_ms(wait < 5 ? wait : 5);
   }
+#endif
 }
