@@ -127,7 +127,7 @@ In Home Assistant, delete the old *noir-remote* under ESPHome first; the new one
 
 With Python 3: `pip install esphome`, then in the folder `firmware`: `esphome run noir-remote.yaml`.
 GitHub checks that the firmware builds on every change in `firmware/` (`.github/workflows/firmware.yml`). **Run workflow** publishes the newest build to the **test** channel. The **stable** channel only changes when you **release**:
-raise `substitutions: version` in `noir-remote.yaml`, then *GitHub → Releases → Draft a new release*, tag `v` + that version (e.g. `v0.7.2`) → **Publish**.
+raise `substitutions: version` in `noir-remote.yaml`, then *GitHub → Actions → Firmware → Run workflow*, tick **Make it stable** → **Run workflow** (it makes the release `v` + that version itself). Or by hand: *Releases → Draft a new release*, tag `v0.7.5` → **Publish**.
 Only then do the installer and the remotes on Stable get it.
 </details>
 

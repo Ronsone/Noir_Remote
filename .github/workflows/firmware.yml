@@ -1,7 +1,8 @@
 # Builds the NOIR firmware. Two channels on GitHub Pages:
 #   stable  firmware/manifest.json       = the latest GitHub release (everyone)
 #   test    firmware/beta/manifest.json  = the newest build, published by "Run workflow" (testers, NOIR Builder > Test)
-# Stable only changes when you release:
+# Stable only changes when you release - either way:
+#   GitHub > Actions > Firmware > Run workflow > tick "Make it stable" > Run   (makes the release v<version> itself)
 #   GitHub > Releases > Draft a new release > tag v<version> (same as substitutions: version in firmware/noir-remote.yaml) > Publish
 # Then it is published on GitHub Pages:
 #   https://ronsone.github.io/Noir_Remote/                         installer (USB, from the browser)
@@ -16,6 +17,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:   # publish the newest build to the test channel (stable stays the latest release)
+    inputs:
+      stable:
+        description: "Make it stable: release v<version> from firmware/noir-remote.yaml for everyone"
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # keep the firmware with a release
@@ -45,8 +51,11 @@ jobs:
         # so the remote shows it is on a test build and sees each new test build as an update
         run: |
           version=$(sed -n 's/^  version: "\(.*\)"/\1/p' firmware/noir-remote.yaml)
-          [ "${{ github.event_name }}" = "release" ] || version="$version-beta.${{ github.run_number }}"
+          stable=false
+          if [ "${{ github.event_name }}" = "release" ] || [ "${{ inputs.stable }}" = "true" ]; then stable=true; fi
+          [ "$stable" = "true" ] || version="$version-beta.${{ github.run_number }}"
           echo "NOIR_VERSION=$version" >> "$GITHUB_ENV"
+          echo "NOIR_STABLE=$stable" >> "$GITHUB_ENV"
           esphome -s version "$version" compile firmware/noir-remote.yaml
       - name: Site and manifests (stable + test)
         env:
@@ -66,11 +75,16 @@ jobs:
           # test channel: always this build
           cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/beta/
           manifest out/firmware/beta "$version"
-          if [ "${{ github.event_name }}" = "release" ]; then
+          if [ "$NOIR_STABLE" = "true" ]; then
             # a release: this build is stable too, and is kept with the release for later deploys
+            tag="v$version"
+            if [ "${{ github.event_name }}" != "release" ]; then   # "Make it stable": create the release here
+              gh release create "$tag" --target "$GITHUB_SHA" --title "NOIR Remote $version" \
+                --notes "Firmware $version for the OpenRemote Rev6. Update from NOIR Builder > Remote > Update, or install with the installer: https://ronsone.github.io/Noir_Remote/"
+            fi
             cp $build/firmware.ota.bin $build/firmware.factory.bin out/firmware/
             manifest out/firmware "$version"
-            gh release upload "${{ github.event.release.tag_name }}" out/firmware/firmware.ota.bin out/firmware/firmware.factory.bin --clobber
+            gh release upload "$tag" out/firmware/firmware.ota.bin out/firmware/firmware.factory.bin --clobber
           elif tag=$(gh release view --json tagName -q .tagName 2>/dev/null) && gh release download "$tag" -p 'firmware.*.bin' -D out/firmware; then
             manifest out/firmware "${tag#v}"   # stable = the latest release
           else
