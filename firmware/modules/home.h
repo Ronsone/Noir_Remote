@@ -63,9 +63,6 @@ struct Home : Module {
         return true;
       case noir::KNOPTEST: noir::knoptest::reset(); noir::zeigen_seite(noir::S_TEST); return true;
       case noir::TEST_RESET: noir::knoptest::reset(); return true;
-      case noir::NETFLIX: case noir::INST_REMOTE:
-        noir::toast("Coming in a later version");
-        return true;
       default: return false;
     }
   }

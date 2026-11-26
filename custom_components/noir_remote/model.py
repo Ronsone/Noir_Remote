@@ -6,7 +6,7 @@ import copy
 from .const import AIRCO_IR, DEFAULT_MODEL, LANG_PACKS, LANGUAGES, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
 from .tv import clean_apps, ir_block
 
-FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "netflix", "airco"}
+FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "airco"}
 
 
 def normalize(model: dict | None) -> dict:

@@ -134,6 +134,7 @@ Only then do the installer and the remotes on Stable get it.
 firmware/
   noir-remote.yaml    hardware + ESPHome setup
   noir-ui.h           the screens (shared with the simulator)
+  mdi_icons.h         the icons NOIR Builder offers (tools/check_icons.py keeps the font in sync)
   noir-app.h          starts the modules
   modules/            one file per feature: core, home, lights, scenes, tv, audio, airco, nav
   logos/              logos for TV sources (made by tools/make_logos.py)
