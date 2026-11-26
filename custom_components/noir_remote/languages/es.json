@@ -129,7 +129,10 @@
   "Update": "Actualizar",
   "Everything is up to date.": "Todo está actualizado.",
   "Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.": "Actualizar revisa ambos y solo hace lo necesario. Home Assistant solo se reinicia si NOIR Remote recibió una versión nueva.",
-  "Press Save after changing the channel.": "Pulsa Guardar después de cambiar de canal."
+  "Press Save after changing the channel.": "Pulsa Guardar después de cambiar de canal.",
+  "Updating the remote…": "Actualizando el mando…",
+  "The remote is up to date.": "El mando está actualizado.",
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "El mando tarda – NOIR Remote aún no se ha actualizado. Pulsa Actualizar otra vez cuando vuelva el mando."
  },
  "remote": {
   "Terug": "Atrás",

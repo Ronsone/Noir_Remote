@@ -129,7 +129,10 @@
   "Update": "Update",
   "Everything is up to date.": "Everything is up to date.",
   "Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.": "Update checks both and only does what is needed. Home Assistant only restarts when NOIR Remote itself got a new version.",
-  "Press Save after changing the channel.": "Press Save after changing the channel."
+  "Press Save after changing the channel.": "Press Save after changing the channel.",
+  "Updating the remote…": "Updating the remote…",
+  "The remote is up to date.": "The remote is up to date.",
+  "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back.": "The remote takes long – NOIR Remote itself was not updated yet. Press Update again when the remote is back."
  },
  "remote": {
   "Terug": "Back",
