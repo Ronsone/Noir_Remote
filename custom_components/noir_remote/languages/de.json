@@ -122,7 +122,8 @@
   "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.": "Der Player, der zeigt, was läuft, und Play/Pause und Weiter bekommt. Leer = der Lautsprecher selbst.",
   "— the speaker —": "— der Lautsprecher —",
   "Subwoofer (optional)": "Subwoofer (optional)",
-  "A number entity with the subwoofer level, e.g. the KEF's.": "Eine Number-Entität mit dem Subwoofer-Pegel, z. B. die des KEF."
+  "A number entity with the subwoofer level, e.g. the KEF's.": "Eine Number-Entität mit dem Subwoofer-Pegel, z. B. die des KEF.",
+  "Also used by": "Auch benutzt von"
  },
  "remote": {
   "Terug": "Zurück",

@@ -1,0 +1,31 @@
+name: Translation
+description: Add or improve a language for NOIR (no git needed)
+title: "Translation: <language>"
+labels: [translation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping! Start from the English reference:
+        **[languages/en.json](https://github.com/ronsone/Noir_Remote/blob/main/custom_components/noir_remote/languages/en.json)** – copy it, set `name`, and translate the **values** only (never the keys).
+        Keep the `remote` texts short – the remote's screen is 240 pixels wide. More in [docs/languages.md](https://github.com/ronsone/Noir_Remote/blob/main/docs/languages.md).
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: Its own name and code, e.g. "Italiano (it)"
+    validations:
+      required: true
+  - type: textarea
+    id: pack
+    attributes:
+      label: Your translation
+      description: Paste the whole file here, or attach it (drag it into this box).
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything you were unsure about, or texts that did not fit.

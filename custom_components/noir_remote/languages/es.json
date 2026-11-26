@@ -122,7 +122,8 @@
   "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.": "El reproductor que muestra lo que suena y recibe play/pausa y siguiente. Vacío = el propio altavoz.",
   "— the speaker —": "— el altavoz —",
   "Subwoofer (optional)": "Subwoofer (opcional)",
-  "A number entity with the subwoofer level, e.g. the KEF's.": "Una entidad number con el nivel del subwoofer, p. ej. la del KEF."
+  "A number entity with the subwoofer level, e.g. the KEF's.": "Una entidad number con el nivel del subwoofer, p. ej. la del KEF.",
+  "Also used by": "También usado por"
  },
  "remote": {
   "Terug": "Atrás",

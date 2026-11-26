@@ -122,7 +122,8 @@
   "The player that shows what is playing and gets play/pause and next. Empty = the speaker itself.": "Le lecteur qui affiche ce qui joue et reçoit lecture/pause et suivant. Vide = l'enceinte elle-même.",
   "— the speaker —": "— l'enceinte —",
   "Subwoofer (optional)": "Caisson de basses (facultatif)",
-  "A number entity with the subwoofer level, e.g. the KEF's.": "Une entité number avec le niveau du caisson, ex. celle du KEF."
+  "A number entity with the subwoofer level, e.g. the KEF's.": "Une entité number avec le niveau du caisson, ex. celle du KEF.",
+  "Also used by": "Aussi utilisé par"
  },
  "remote": {
   "Terug": "Retour",
