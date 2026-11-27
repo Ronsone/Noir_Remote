@@ -17,6 +17,7 @@
 #include "modules/audio.h"
 #include "modules/airco.h"
 #include "modules/info.h"
+#include "modules/mouse.h"
 #include "modules/nav.h"
 
 namespace noirapp {
@@ -33,13 +34,14 @@ inline void device(const char *name, const char *board, int w, int h, bool touch
 inline void start(const std::string &host, const std::string &key) {   // host + key: kept in flash (noir_setup)
   static Airco airco;
   static Info info;
+  static Mouse mouse;
   static Nav nav;
   static Audio audio;
   static Tv tv;
   static Lights lights;
   static Scenes scenes;
   static Home home;
-  modules() = {&airco, &audio, &tv, &lights, &scenes, &home, &info, &nav};   // screen modules first (their keys on their screen), audio before tv
+  modules() = {&airco, &audio, &mouse, &tv, &lights, &scenes, &home, &info, &nav};   // screen modules first (their keys on their screen), audio before tv
 
   App &a = app();
   a.host = host;

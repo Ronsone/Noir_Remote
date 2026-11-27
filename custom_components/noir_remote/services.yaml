@@ -5,3 +5,18 @@ set_mode:
       selector:
         select:
           options: ["full", "eco"]
+
+pointer:
+  fields:
+    dx:
+      selector:
+        number: {min: -500, max: 500}
+    dy:
+      selector:
+        number: {min: -500, max: 500}
+    scroll:
+      selector:
+        number: {min: -50, max: 50}
+    click:
+      selector:
+        number: {min: 0, max: 1}

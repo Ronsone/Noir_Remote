@@ -25,7 +25,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import info as noir_info
-from . import link
+from . import link, pointer
 from .autoadd import maybe_add
 from .const import AIRCO_IR, BOARDS, CAPS, DOMAIN, LANG_PACKS, LANGUAGES, LEGACY_DEVICE, PROFILES, STORE_VERSION, UPDATE_URLS
 from .model import normalize, payload
@@ -113,6 +113,7 @@ class NoirData:
         sp = self.hass.states.get(p["audio"]["speaker"]) if p["audio"]["speaker"] else None
         if sp is not None:   # name on the Audio screen: the speaker as Home Assistant calls it
             p["audio"]["name"] = str(sp.attributes.get("friendly_name") or "")[:24]
+        p["tv"]["mouse"] = "touch" in self.info(device).get("caps", []) and pointer.supported(self.hass, p["tv"]["entity"])
         return p
 
 
@@ -268,6 +269,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await cur.save({**cur.model, "mode": "eco" if call.data.get("mode") == "eco" else "full"})
 
     hass.services.async_register(DOMAIN, "set_mode", set_mode, schema=vol.Schema({vol.Required("mode"): vol.In(["full", "eco"])}))
+
+    async def mouse(call) -> None:   # the remote's touchpad screen -> the TV's cursor (pointer.py)
+        cur: NoirData = hass.data[DOMAIN]
+        d = call.data
+        await pointer.send(hass, d.get("entity_id") or cur.model.get("tv", {}).get("entity", ""),
+                           d.get("dx", 0), d.get("dy", 0), d.get("scroll", 0), bool(d.get("click", 0)))
+
+    hass.services.async_register(DOMAIN, "pointer", mouse, schema=vol.Schema({
+        vol.Optional("dx", default=0): vol.Coerce(int), vol.Optional("dy", default=0): vol.Coerce(int),
+        vol.Optional("scroll", default=0): vol.Coerce(int), vol.Optional("click", default=0): vol.Coerce(int),
+        vol.Optional("entity_id"): str}))
     if first:   # views and paths can't be unregistered - only once per HA start
         hass.http.register_view(ConfigView())
         hass.http.register_view(StatesView())

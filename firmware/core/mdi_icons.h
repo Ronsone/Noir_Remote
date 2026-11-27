@@ -21,7 +21,7 @@ static const IconEntry MDI_ICONS[] = {
   {"lamp", 0xF06B5},
   {"leaf", 0xF032A},
   {"led-strip", 0xF07D6},
-  {"lightbulb", 0xF0335},
+  {"lightbulb", 0xF0335}, {"mouse", 0xF037D},
   {"lock", 0xF033E},
   {"movie-open", 0xF0FCE},
   {"music", 0xF075A},

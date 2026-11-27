@@ -15,6 +15,7 @@ struct Home : Module {
     if (fn == "tv_power") return noir::TV_POWER;
     if (fn == "audio") return noir::AUDIO;
     if (fn == "airco") return noir::AIRCO;
+    if (fn == "mouse") return noir::MOUSE;
     return -1;
   }
   static void run_item(JsonObjectConst it) {

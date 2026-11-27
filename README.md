@@ -27,7 +27,7 @@
 | | |
 |---|---|
 | **Home** | Big tiles. You choose what each one opens. |
-| **TV** | Any TV in Home Assistant. Your inputs and apps as tiles with their logo. Keys by infrared. |
+| **TV** | Any TV in Home Assistant. Your inputs and apps as tiles with their logo. Keys by infrared. **Mouse** (LG webOS): a touchpad screen moves the TV's cursor – drag, tap to click, a strip to scroll; open it with the mouse button on the TV screen or a *TV mouse* tile. |
 | **Lights** | Tap = on/off, hold = dim. |
 | **Scenes** | Your scenes and scripts, plus *All off*. |
 | **Audio** | Your speaker: on/off, its sources, volume, subwoofer and what is playing. Play/pause and next with the remote's keys. |

@@ -6,7 +6,7 @@ import copy
 from .const import AIRCO_IR, BOARDS, DEFAULT_MODEL, LANG_PACKS, LANGUAGES, LEGACY_DEVICE, MAX_AIRCO_UNITS, MAX_AUDIO_SOURCES, PROFILES
 from .tv import clean_apps, ir_block
 
-FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "airco"}
+FN = {"tv", "lights", "scenes", "settings", "alloff", "tv_power", "audio", "airco", "mouse"}
 INFO = {"weather", "calendar", "value"}   # tiles that show information (info.py) instead of opening something
 
 
