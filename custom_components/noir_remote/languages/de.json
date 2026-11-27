@@ -139,7 +139,8 @@
   "This device has no infrared – the TV goes through Home Assistant.": "Dieses Gerät hat kein Infrarot – der Fernseher läuft über Home Assistant.",
   "Weather": "Wetter",
   "Calendar": "Kalender",
-  "Value (stock, crypto, sensor)": "Wert (Aktie, Krypto, Sensor)"
+  "Value (stock, crypto, sensor)": "Wert (Aktie, Krypto, Sensor)",
+  "TV mouse": "Maus für den Fernseher"
  },
  "remote": {
   "Terug": "Zurück",
@@ -206,6 +207,9 @@
   "Agenda": "Kalender",
   "Vandaag": "Heute",
   "Morgen": "Morgen",
-  "Geen afspraken": "Keine Termine"
+  "Geen afspraken": "Keine Termine",
+  "Muis": "Maus",
+  "Slepen = bewegen · tikken = klikken": "Ziehen = bewegen · tippen = klicken",
+  "De muis werkt met een LG webOS-tv": "Die Maus funktioniert mit einem LG-webOS-Fernseher"
  }
 }

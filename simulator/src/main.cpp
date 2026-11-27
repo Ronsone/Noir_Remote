@@ -195,6 +195,7 @@ extern "C" void noir_web_config(const char *json) {
   for (JsonPairConst kv : g_cfg["texts"].as<JsonObjectConst>()) texts()[kv.key().c_str()] = kv.value().as<std::string>();
   if (!lamps_from_items(g_cfg["lights"].as<JsonArrayConst>())) lamps().clear();
   tv::entity_ref() = g_cfg["tv"]["entity"] | "";
+  tv_mouse() = g_cfg["tv"]["mouse"] | false;
   tv_apps().clear();
   for (JsonObjectConst a : g_cfg["tv"]["apps"].as<JsonArrayConst>()) tv_apps().push_back({a["name"] | "", a["source"] | "", a["logo"] | ""});
   for (JsonPairConst kv : g_cfg["info"].as<JsonObjectConst>()) {   // same objects as the remote's module Info gets
@@ -248,6 +249,7 @@ static void run_tile(int i) {
   else if (fn == "scenes") action(SCENES);
   else if (fn == "airco") action(AIRCO);
   else if (fn == "alloff") action(SCENE_ALL_OFF);
+  else if (fn == "mouse") action(MOUSE);
   else if (!fn.empty()) std::printf("[remote] tile %d: %s\n", i, fn.c_str());
   else {   // an entity tile (as module Home): scene/script run, light/switch toggle; info tiles only show
     const std::string e = items[i]["entity"] | "", t = items[i]["t"] | "";
@@ -299,6 +301,7 @@ void action(int a) {
       toast("Alles uit");
       break;
     case AIRCO: if (g_web) { toast("Airco: op de remote"); break; } show_screen(S_AIRCO); break;
+    case MOUSE: if (tv_mouse()) show_screen(S_MOUSE); else toast("De muis werkt met een LG webOS-tv"); break;
     case AIRCO_POWER: airco::toggle_power(); break;
     case AIRCO_MIN: airco::temp_stap(-1); break;
     case AIRCO_PLUS: airco::temp_stap(1); break;
@@ -388,7 +391,8 @@ static void demo_cb(lv_timer_t *tm) {
   struct S { int action; const char *file; };
   static const S steps[] = {{HOME, "demo-01-home.bmp"}, {TV, "demo-02-tv.bmp"}, {LIGHTS, "demo-03-lights.bmp"},
                             {SCENES, "demo-04-scenes.bmp"}, {AUDIO, "demo-05-audio.bmp"}, {-1, "demo-05b-audio-bottom.bmp"},
-                            {AIRCO, "demo-06-airco.bmp"}, {SETTINGS, "demo-07-settings.bmp"}, {KEYTEST, "demo-08-buttontest.bmp"}};
+                            {AIRCO, "demo-06-airco.bmp"}, {SETTINGS, "demo-07-settings.bmp"}, {KEYTEST, "demo-08-buttontest.bmp"},
+                            {MOUSE, "demo-09-mouse.bmp"}};
   const int n = sizeof(steps) / sizeof(steps[0]);
   if (step > 0) screenshot(steps[step - 1].file);
   if (step >= n) { lv_timer_delete(tm); std::exit(0); }
@@ -454,6 +458,7 @@ int main(int argc, char **argv) {
   bl.wall = &wall;
   bl.tv = &ic_tv; bl.audio = &ic_audio; bl.light = &ic_light; bl.scenes = &ic_scenes;
   sim_logos();
+  if (!g_web) tv_mouse() = true;   // the demo TV is an LG
   if (!g_web) tv_apps() = {{"PS5", "PS5 Gameconsole", "playstation"}, {"Netflix", "Netflix", "netflix"}, {"YouTube", "YouTube", "youtube"},
                {"Xbox", "HDMI 3", "game"}, {"Live TV", "Live TV", "tv"}, {"Spotify", "Spotify", "spotify"}};
   st().toast_font = &inter14;

@@ -102,7 +102,7 @@ inline int cell_w(int w, int n) { return (w - (n - 1) * COL_GAP) / n; }
 // simulator box(): afrondingen vanaf 10 px volgen de skin
 inline int rnd(int r) { return r >= LV_RADIUS_CIRCLE ? r : sc(r >= 10 ? theme().radius : r); }
 
-enum Action : int { BACK = 1, HOME = 100, TV = 101, AUDIO = 102, LIGHTS = 103, SCENES = 104, AIRCO = 105, SETTINGS = 113,
+enum Action : int { BACK = 1, HOME = 100, TV = 101, AUDIO = 102, LIGHTS = 103, SCENES = 104, AIRCO = 105, MOUSE = 106, SETTINGS = 113,
                    SET_WIFI = 131, SET_FULL = 132, SET_ECO = 133, DIM_DONE = 128,
                    AIRCO_POWER = 140, AIRCO_MIN = 141, AIRCO_PLUS = 142, AIRCO_FAN = 143, AIRCO_SWING = 144, AIRCO_UNIT = 147, KEYTEST = 160, TEST_RESET = 161, SCENE_ALL_OFF = 170,
                    AUDIO_NOW = 107 /* tap "now playing": play/pause */, AUDIO_POWER = 189,
@@ -124,7 +124,7 @@ struct ImageSet {
   const void *wall{nullptr}, *tv{nullptr}, *audio{nullptr}, *light{nullptr}, *scenes{nullptr};
 };
 
-enum Screen : int { S_HOME = 0, S_TV = 1, S_LIGHTS = 2, S_SETTINGS = 3, S_AIRCO = 4, S_TEST = 5, S_SCENES = 6, S_AUDIO = 7, S_COUNT = 8 };
+enum Screen : int { S_HOME = 0, S_TV = 1, S_LIGHTS = 2, S_SETTINGS = 3, S_AIRCO = 4, S_TEST = 5, S_SCENES = 6, S_AUDIO = 7, S_MOUSE = 8, S_COUNT = 9 };
 
 struct UiState {
   lv_obj_t *layer_obj{nullptr};                  // NOIR Thuis
@@ -145,6 +145,7 @@ struct UiState {
   lv_obj_t *light{nullptr}, *settings{nullptr}, *lights_body{nullptr}, *airco{nullptr}, *test{nullptr}, *scenes{nullptr}, *scenes_body{nullptr};
   std::function<JsonArrayConst()> scenes_items;   // configuratorpagina "noir_scenes"
   lv_obj_t *audio{nullptr}, *audio_body{nullptr};
+  lv_obj_t *mouse{nullptr};                 // touchpad for the TV's cursor
   lv_obj_t *home{nullptr};
   lv_obj_t *big_clock{nullptr};             // large clock on Home (big screens)
   std::function<JsonArrayConst()> items;    // tegels van NOIR Thuis (configurator), voor het herbouwen
@@ -180,6 +181,8 @@ inline const char *tr(const char *nl) {
     {"kamer", "room"},
     {"Zonnig", "Sunny"}, {"Helder", "Clear"}, {"Half bewolkt", "Partly cloudy"}, {"Bewolkt", "Cloudy"}, {"Regen", "Rain"},
     {"Stortregen", "Pouring"}, {"Sneeuw", "Snow"}, {"Mist", "Fog"}, {"Onweer", "Thunder"}, {"Wind", "Windy"},
+    {"Muis", "Mouse"}, {"Slepen = bewegen \xC2\xB7 tikken = klikken", "Drag = move \xC2\xB7 tap = click"},
+    {"De muis werkt met een LG webOS-tv", "The mouse works with an LG webOS TV"},
     {"Weer", "Weather"}, {"Agenda", "Calendar"}, {"Vandaag", "Today"}, {"Morgen", "Tomorrow"}, {"Geen afspraken", "No events"},
   };
   for (const auto &r : T) if (strcmp(r[0], nl) == 0) return r[1];
@@ -744,6 +747,77 @@ inline void home_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl, 
 }
 
 static const char *ICO_POWER = "\U000F0425";
+using Data = std::map<std::string, std::string>;   // (also below) Home Assistant action data
+inline std::function<void(const std::string &, Data)> &ha();
+
+// ---- Mouse: the remote as a touchpad for the TV's cursor (LG webOS; NOIR Remote passes it on, pointer.py) ------------
+// Drag = move, tap = click, the strip on the right = scroll. Movements are collected and sent 25x a second as
+// noir_remote.pointer; on the remote the D-pad moves in small steps and OK clicks (module Mouse).
+inline bool &tv_mouse() { static bool m = false; return m; }   // the TV can show a cursor (config tv.mouse)
+namespace mouse {
+struct Pad { float dx{0}, dy{0}, sc{0}; bool click{false}; lv_point_t start{}; uint32_t down{0}; int travel{0}; lv_timer_t *timer{nullptr}; };
+inline Pad &pad() { static Pad p; return p; }
+inline void flush_(lv_timer_t *) {
+  Pad &p = pad();
+  const int dx = (int) p.dx, dy = (int) p.dy, sc = (int) p.sc;
+  if (!dx && !dy && !sc && !p.click) return;
+  p.dx -= dx; p.dy -= dy; p.sc -= sc;
+  Data d;
+  if (dx) d["dx"] = std::to_string(dx);
+  if (dy) d["dy"] = std::to_string(dy);
+  if (sc) d["scroll"] = std::to_string(sc);
+  if (p.click) d["click"] = "1";
+  p.click = false;
+  if (ha()) ha()("noir_remote.pointer", d);
+}
+inline void nudge(int dx, int dy) { pad().dx += dx; pad().dy += dy; }   // D-pad
+inline void click() { pad().click = true; }
+inline void pad_event_(lv_event_t *e) {
+  Pad &p = pad();
+  lv_indev_t *in = lv_indev_active();
+  if (in == nullptr) return;
+  const bool strip = lv_event_get_user_data(e) != nullptr;
+  const float k = 2.4f / lay().u;   // pad pixels -> TV pixels (the TV is ~1920 wide)
+  switch (lv_event_get_code(e)) {
+    case LV_EVENT_PRESSED: lv_indev_get_point(in, &p.start); p.down = lv_tick_get(); p.travel = 0; break;
+    case LV_EVENT_PRESSING: {
+      lv_point_t v;
+      lv_indev_get_vect(in, &v);
+      p.travel += abs(v.x) + abs(v.y);
+      if (strip) p.sc += v.y / (8.0f * lay().u);
+      else { p.dx += v.x * k; p.dy += v.y * k; }
+      break;
+    }
+    case LV_EVENT_RELEASED:
+      if (!strip && p.travel < sc(8) && lv_tick_get() - p.down < 300) p.click = true;   // a tap
+      break;
+    default: break;
+  }
+}
+}  // namespace mouse
+
+inline void mouse_build(lv_obj_t *layer_obj, const Fonts &f) {
+  const int W = lay().full, H = lay().hd - 90;
+  lv_obj_t *body = body_make(layer_obj, false, true);
+  label(body, tr("Muis"), 0, 0, W, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
+  label(body, "Slepen = bewegen \xC2\xB7 tikken = klikken", 0, 28, W, f.f12, MUTED);
+  // the pad: one big surface, and a narrow strip on the right for scrolling
+  auto surface = [&](int x, int w, bool strip) {
+    lv_obj_t *o = detail(body, x, 50, w, H - 56, SURF2, 235, 16);
+    lv_obj_set_style_border_width(o, 1, 0);
+    lv_obj_set_style_border_color(o, k(BORDER), 0);
+    lv_obj_add_flag(o, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(o, (lv_obj_flag_t) (LV_OBJ_FLAG_GESTURE_BUBBLE | LV_OBJ_FLAG_SCROLL_CHAIN));
+    for (lv_event_code_t c : {LV_EVENT_PRESSED, LV_EVENT_PRESSING, LV_EVENT_RELEASED})
+      lv_obj_add_event_cb(o, mouse::pad_event_, c, strip ? (void *) 1 : nullptr);
+    return o;
+  };
+  surface(0, W - 44, false);
+  lv_obj_t *st = surface(W - 36, 36, true);
+  glyph_label(st, "\U000F0143", 7, 8, f, MUTED);                      // mdi:chevron-up / chevron-down: scroll
+  glyph_label(st, "\U000F0140", 7, H - 56 - 30, f, MUTED);
+  if (mouse::pad().timer == nullptr) mouse::pad().timer = lv_timer_create(mouse::flush_, 40, nullptr);
+}
 
 // NOIR TV (simulator build(1)): titel, status uit HA, aan/uit, 6 app-tegels (scrollt), Terug/Thuis
 inline void tv_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl) {
@@ -751,7 +825,12 @@ inline void tv_build(lv_obj_t *layer_obj, const Fonts &f, const ImageSet &bl) {
   const int W = lay().full, n = lay().cols, cw = cell_w(W, n);
   lv_obj_t *body = body_make(layer_obj, true, true);
   label(body, "TV", 0, 0, 150, f.f20 != nullptr ? f.f20 : f.f16, TEXT);
-  s.tv_status = label(body, "Apparaten en apps", 0, 31, W - 56, f.f12, MUTED);
+  s.tv_status = label(body, "Apparaten en apps", 0, 31, W - (tv_mouse() ? 108 : 56), f.f12, MUTED);
+  if (f.f12 != nullptr) lv_obj_set_height(s.tv_status, lv_font_get_line_height(f.f12));   // one line, "..." when long
+  if (tv_mouse()) {   // the TV shows a cursor from NOIR (LG webOS): the touchpad screen
+    lv_obj_t *m = btn(body, W - 52 - 8 - 44, 20, 44, 34, MOUSE);
+    if (f.ico != nullptr) glyph_label(m, "\U000F037D", 12, 7, f, TEXT2);   // mdi:mouse
+  }
   lv_obj_t *pw = btn(body, W - 52, 20, 52, 34, TV_POWER);
   if (f.ico != nullptr) {
     lv_obj_t *i = lv_label_create(pw);
@@ -1831,6 +1910,10 @@ inline void build_all(lv_obj_t *home, const Fonts &f, const ImageSet &bl, JsonAr
   test_build(s.test, f);
   bottom_button(s.test, ICO_BACK, "Terug", 12, BACK, f);
   bottom_button(s.test, ICO_HOME, "Thuis", 124, HOME, f);
+  s.mouse = layer_make(home, bl);
+  mouse_build(s.mouse, f);
+  bottom_button(s.mouse, ICO_BACK, "Terug", 12, BACK, f);
+  bottom_button(s.mouse, ICO_HOME, "Thuis", 124, HOME, f);
   s.settings = layer_make(home, bl);
   settings_build(s.settings, f);
   bottom_button(s.settings, ICO_BACK, "Terug", 12, BACK, f);
@@ -1868,7 +1951,7 @@ inline void lights_rebuild() {
 
 inline lv_obj_t *layer_of(int cur_screen) {
   UiState &s = st();
-  return cur_screen == S_TV ? s.tv : cur_screen == S_LIGHTS ? s.light : cur_screen == S_SETTINGS ? s.settings : cur_screen == S_AIRCO ? s.airco : cur_screen == S_TEST ? s.test : cur_screen == S_SCENES ? s.scenes : cur_screen == S_AUDIO ? s.audio : s.layer_obj;
+  return cur_screen == S_TV ? s.tv : cur_screen == S_LIGHTS ? s.light : cur_screen == S_SETTINGS ? s.settings : cur_screen == S_AIRCO ? s.airco : cur_screen == S_TEST ? s.test : cur_screen == S_SCENES ? s.scenes : cur_screen == S_AUDIO ? s.audio : cur_screen == S_MOUSE ? s.mouse : s.layer_obj;
 }
 
 // Een NOIR-pagina tonen (de andere verbergen); de statusbalk verhuist mee
@@ -1918,9 +2001,9 @@ inline void rebuild_all() {
     choice_close();
     const bool vis = s.visible;
     const int cur_screen = s.cur_screen;
-    lv_obj_t *gone[] = {s.layer_obj, s.tv, s.light, s.settings, s.airco, s.test, s.scenes, s.audio};
+    lv_obj_t *gone[] = {s.layer_obj, s.tv, s.light, s.settings, s.airco, s.test, s.scenes, s.audio, s.mouse};
     for (lv_obj_t *o : gone) if (o != nullptr) lv_obj_delete(o);   // kop hangt aan een ervan
-    s.layer_obj = s.tv = s.light = s.settings = s.airco = s.test = s.scenes = s.scenes_body = s.audio = s.audio_body = nullptr;
+    s.layer_obj = s.tv = s.light = s.settings = s.airco = s.test = s.scenes = s.scenes_body = s.audio = s.audio_body = s.mouse = nullptr;
     audio::ui() = audio::Ui();
     for (auto &t : keytest::st_().tile) t = nullptr;
     keytest::st_().info = nullptr;
